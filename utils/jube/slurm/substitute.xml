@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <!-- Default jobscript substitution -->
+    <substituteset name="slurm_sub">
+        <iofile in="${job_script}.in" out="$job_script" />
+        <sub source="#BENCHNAME#" dest="${jube_benchmark_name}_${jube_step_name}_${jube_wp_id}" />
+        <sub source="#STDOUTLOGFILE#" dest="$outlogfile" />
+        <sub source="#STDERRLOGFILE#" dest="$errlogfile" />
+        <sub source="#QUEUE#" dest="$queue" />
+        <sub source="#ACCOUNT#" dest ="$account" />
+        <sub source="#TIME_LIMIT#" dest="$timelimit" />
+        <sub source="#NODES#" dest="$nodes" />
+        <sub source="#TASKS#" dest="$tasks" />
+        <sub source="#TASKSPERNODE#" dest="$taskspernode" />
+        <sub source="#TASKSPERSOCKET#" dest="$taskspersocket" />
+        <sub source="#CPUSPERTASK#" dest="$cpuspertask" />
+        <sub source="#OMPTHREADS#" dest="$ompthreads" />
+        <sub source="#OMPAFFINITY#" dest="$ompaffinity" />
+        <sub source="#MPITHREADSAFETY#" dest="$mpithreadsafety" />
+        <sub source="#FLAG#" dest="touch $done_file" />
+        <sub source="#ENV#" dest="$env" />
+        <sub source="#ADDITIONAL_JOB_CONFIG#" dest="$additional_job_config" />
+
+        <sub source="#EXECUTABLE#" dest="$exec" />
+        <sub source="#ARGS_EXECUTABLE#" dest="$args_exec" />
+    </substituteset>
+</jube>

@@ -2,12 +2,7 @@
 #SBATCH --job-name=#BENCHNAME#
 #SBATCH --output=#STDOUTLOGFILE#
 #SBATCH --error=#STDERRLOGFILE#
-
-# #SBATCH --mail-user=#NOTIFY_EMAIL#
-# #SBATCH --mail-type=#NOTIFICATION_TYPE#
-
 #SBATCH --time=#TIME_LIMIT#
-
 #SBATCH --nodes=#NODES#
 #SBATCH --ntasks-per-node=#TASKSPERNODE#
 #SBATCH --ntasks-per-socket=#TASKSPERSOCKET#
