@@ -2,7 +2,6 @@
 <jube>
     <!-- Default jobscript substitution -->
     <substituteset name="slurm_sub">
-        <iofile in="${job_script}.in" out="$job_script" />
         <sub source="#BENCHNAME#" dest="${jube_benchmark_name}_${jube_step_name}_${jube_wp_id}" />
         <sub source="#STDOUTLOGFILE#" dest="$outlogfile" />
         <sub source="#STDERRLOGFILE#" dest="$errlogfile" />

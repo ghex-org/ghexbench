@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <benchmark name="exchange" outpath="runs">
+
+        <parameterset name="system" init_with="../../utils/jube/slurm/execute.xml:jobsystem_params">
+            <parameter name="system">daint</parameter>
+            <parameter name="subsystem">daint_gpu</parameter>
+            <parameter name="jobsystem">slurm</parameter>
+            <parameter name="jobsystem_jobfile">slurm_job</parameter>
+            <parameter name="system_jobfile">daint_job</parameter>
+            <parameter name="jobfile">job</parameter>
+        </parameterset>
+
+        <fileset name="copy_jobfiles">
+            <copy>../../utils/jube/${jobsystem}/flag.in</copy>
+            <copy>../../utils/jube/${jobsystem}/${jobsystem_jobfile}.in</copy>
+            <copy>../../utils/jube/${jobsystem}/${system}/${system_jobfile}.in</copy>
+            <copy>../../utils/jube/${jobsystem}/${system}/${subsystem}/${jobfile}.in</copy>
+        </fileset>
+
+        <substituteset name="sub_flag" init_with="../../utils/jube/slurm/substitute.xml:slurm_sub">
+            <iofile in="flag.in" out="flag" />
+        </substituteset>
+
+        <substituteset name="sub_jobsystem" init_with="../../utils/jube/slurm/substitute.xml:slurm_sub">
+            <iofile in="${jobsystem_jobfile}.in" out="$jobsystem_jobfile" />
+        </substituteset>
+
+        <substituteset name="sub_system" init_with="../../utils/jube/slurm/substitute.xml:slurm_sub">
+            <iofile in="${system_jobfile}.in" out="$system_jobfile" />
+        </substituteset>
+
+        <substituteset name="sub_job" init_with="../../utils/jube/slurm/substitute.xml:slurm_sub">
+            <iofile in="${jobfile}.in" out="$jobfile" />
+        </substituteset>
+
+
+        <step name="run"
+            work_dir="/home/boeschf/tmp/bench_run/exchange-benchmark-daint-gpu/bench_${jube_benchmark_id}_${jube_wp_id}">
+            <use>system</use>
+            <use>copy_jobfiles</use>
+            <use>sub_flag</use>
+            <use>sub_jobsystem</use>
+            <use>sub_system</use>
+            <use>sub_job</use>
+
+            <do>cp ${jobsystem_jobfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
+            <do>cp ${system_jobfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
+            <do>cp ${jobfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
+
+        </step>
+
+    </benchmark>
+</jube>

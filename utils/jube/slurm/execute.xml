@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <!-- Default SLURM sets -->
+    <parameterset name="jobsystem_params">
+        <parameter name="submit_cmd">sbatch</parameter>
+        <parameter name="done_file">ready</parameter>
+    </parameterset>
+</jube>
