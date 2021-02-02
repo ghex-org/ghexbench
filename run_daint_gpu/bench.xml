@@ -2,7 +2,7 @@
 <jube>
     <benchmark name="exchange" outpath="runs">
 
-        <parameterset name="system" init_with="../../utils/jube/slurm/execute.xml:jobsystem_params">
+        <parameterset name="system" init_with="../utils/jube/slurm/execute.xml:jobsystem_params">
             <parameter name="system">daint</parameter>
             <parameter name="subsystem">daint_gpu</parameter>
             <parameter name="jobsystem">slurm</parameter>
@@ -12,25 +12,25 @@
         </parameterset>
 
         <fileset name="copy_jobfiles">
-            <copy>../../utils/jube/${jobsystem}/flag.in</copy>
-            <copy>../../utils/jube/${jobsystem}/${jobsystem_jobfile}.in</copy>
-            <copy>../../utils/jube/${jobsystem}/${system}/${system_jobfile}.in</copy>
-            <copy>../../utils/jube/${jobsystem}/${system}/${subsystem}/${jobfile}.in</copy>
+            <copy>../utils/jube/${jobsystem}/flag.in</copy>
+            <copy>../utils/jube/${jobsystem}/${jobsystem_jobfile}.in</copy>
+            <copy>../utils/jube/${jobsystem}/${system}/${system_jobfile}.in</copy>
+            <copy>../utils/jube/${jobsystem}/${system}/${subsystem}/${jobfile}.in</copy>
         </fileset>
 
-        <substituteset name="sub_flag" init_with="../../utils/jube/slurm/substitute.xml:slurm_sub">
+        <substituteset name="sub_flag" init_with="../utils/jube/slurm/substitute.xml:slurm_sub">
             <iofile in="flag.in" out="flag" />
         </substituteset>
 
-        <substituteset name="sub_jobsystem" init_with="../../utils/jube/slurm/substitute.xml:slurm_sub">
+        <substituteset name="sub_jobsystem" init_with="../utils/jube/slurm/substitute.xml:slurm_sub">
             <iofile in="${jobsystem_jobfile}.in" out="$jobsystem_jobfile" />
         </substituteset>
 
-        <substituteset name="sub_system" init_with="../../utils/jube/slurm/substitute.xml:slurm_sub">
+        <substituteset name="sub_system" init_with="../utils/jube/slurm/substitute.xml:slurm_sub">
             <iofile in="${system_jobfile}.in" out="$system_jobfile" />
         </substituteset>
 
-        <substituteset name="sub_job" init_with="../../utils/jube/slurm/substitute.xml:slurm_sub">
+        <substituteset name="sub_job" init_with="../utils/jube/slurm/substitute.xml:slurm_sub">
             <iofile in="${jobfile}.in" out="$jobfile" />
         </substituteset>
 
