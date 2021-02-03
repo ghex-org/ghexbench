@@ -19,6 +19,33 @@
 
 namespace cartex
 {
+decomposition::decomposition(const std::string& order, const arr& thread_d, std::vector<int>&& topo,
+    std::vector<hwcart_split_t>&& levels)
+: m_hw_topo()
+, m_order{parse_order(order)}
+, m_thread_decomposition(thread_d)
+, m_topo{topo}
+, m_levels{levels}
+, m_threads_per_rank{thread_d[0] * thread_d[1] * thread_d[2]}
+{
+    if (hwcart_create(m_hw_topo.m, MPI_COMM_WORLD, m_levels.size(), m_levels.data(), m_topo.data(),
+            m_order, &m_comm))
+        throw std::runtime_error("hwcart create failed");
+    for (int i = 0; i < 3; ++i)
+    {
+        m_global_decomposition[i] = 1;
+        for (unsigned int j = 0; j < m_levels.size(); ++j)
+            m_global_decomposition[i] *= m_topo[j * 3 + i];
+        m_last_coord[i] = m_global_decomposition[i] * m_thread_decomposition[i] - 1;
+    }
+    CARTEX_CHECK_MPI_RESULT(MPI_Comm_rank(m_comm, &m_rank));
+    CARTEX_CHECK_MPI_RESULT(MPI_Comm_size(m_comm, &m_size));
+    hwcart_rank2coord(m_comm, m_global_decomposition.data(), m_rank, m_order, m_coord.data());
+    m_coord[0] *= m_thread_decomposition[0];
+    m_coord[1] *= m_thread_decomposition[1];
+    m_coord[2] *= m_thread_decomposition[2];
+}
+
 decomposition::decomposition(const arr& global_d, const arr& thread_d)
 : m_mpi_cart{true}
 , m_hw_topo()

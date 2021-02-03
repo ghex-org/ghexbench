@@ -13,6 +13,8 @@
 
 #include <array>
 #include <vector>
+#include <string>
+#include <iostream>
 extern "C"
 {
 #include <hwcart.h>
@@ -20,7 +22,6 @@ extern "C"
 #ifdef NDEBUG
 #define CARTEX_CHECK_MPI_RESULT(x) x;
 #else
-#include <string>
 #include <stdexcept>
 #define CARTEX_CHECK_MPI_RESULT(x)                                                                 \
     if (x != MPI_SUCCESS)                                                                          \
@@ -53,6 +54,26 @@ class decomposition
         }
     };
 
+    static hwcart_order_t parse_order(std::string const& order_str)
+    {
+        if (order_str == "XYZ") return HWCartOrderXYZ;
+        else if (order_str == "XZY")
+            return HWCartOrderXZY;
+        else if (order_str == "ZYX")
+            return HWCartOrderZYX;
+        else if (order_str == "YZX")
+            return HWCartOrderYZX;
+        else if (order_str == "ZXY")
+            return HWCartOrderZXY;
+        else if (order_str == "YXZ")
+            return HWCartOrderYXZ;
+        else
+        {
+            std::cerr << "warning: unrecognized order, using XYZ" << std::endl;
+            return HWCartOrderXYZ;
+        }
+    }
+
   private:
     bool                        m_mpi_cart = false;
     hw_topo_t                   m_hw_topo;
@@ -68,8 +89,64 @@ class decomposition
     int                         m_size;
     arr                         m_coord;
 
+  private:
+    decomposition(const std::string& order, const arr& thread_d, std::vector<int>&& topo,
+        std::vector<hwcart_split_t>&& levels);
+
   public:
     decomposition(const arr& global_d, const arr& thread_d);
+    decomposition(const std::string& order, const arr& node_d, const arr& thread_d)
+    : decomposition(order, thread_d, std::vector<int>{1, 1, 1, node_d[0], node_d[1], node_d[2]},
+          std::vector<hwcart_split_t>{HWCART_MD_CORE, HWCART_MD_NODE})
+    {
+    }
+    decomposition(
+        const std::string& order, const arr& node_d, const arr& socket_d, const arr& thread_d)
+    : decomposition(order, thread_d,
+          std::vector<int>{
+              1, 1, 1, socket_d[0], socket_d[1], socket_d[2], node_d[0], node_d[1], node_d[2]},
+          std::vector<hwcart_split_t>{HWCART_MD_CORE, HWCART_MD_SOCKET, HWCART_MD_NODE})
+    {
+    }
+    decomposition(const std::string& order, const arr& node_d, const arr& socket_d,
+        const arr& numa_d, const arr& thread_d)
+    : decomposition(order, thread_d,
+          std::vector<int>{1, 1, 1, numa_d[0], numa_d[1], numa_d[2], socket_d[0], socket_d[1],
+              socket_d[2], node_d[0], node_d[1], node_d[2]},
+          std::vector<hwcart_split_t>{
+              HWCART_MD_CORE, HWCART_MD_NUMA, HWCART_MD_SOCKET, HWCART_MD_NODE})
+    {
+    }
+    decomposition(const std::string& order, const arr& node_d, const arr& socket_d,
+        const arr& numa_d, const arr& l3_d, const arr& thread_d)
+    : decomposition(order, thread_d,
+          std::vector<int>{1, 1, 1, l3_d[0], l3_d[1], l3_d[2], numa_d[0], numa_d[1], numa_d[2],
+              socket_d[0], socket_d[1], socket_d[2], node_d[0], node_d[1], node_d[2]},
+          std::vector<hwcart_split_t>{
+              HWCART_MD_CORE, HWCART_MD_L3CACHE, HWCART_MD_NUMA, HWCART_MD_SOCKET, HWCART_MD_NODE})
+    {
+    }
+    decomposition(const std::string& order, const arr& node_d, const arr& socket_d,
+        const arr& numa_d, const arr& l3_d, const arr& core_d, const arr& thread_d)
+    : decomposition(order, thread_d,
+          std::vector<int>{core_d[0], core_d[1], core_d[2], l3_d[0], l3_d[1], l3_d[2], numa_d[0],
+              numa_d[1], numa_d[2], socket_d[0], socket_d[1], socket_d[2], node_d[0], node_d[1],
+              node_d[2]},
+          std::vector<hwcart_split_t>{
+              HWCART_MD_CORE, HWCART_MD_L3CACHE, HWCART_MD_NUMA, HWCART_MD_SOCKET, HWCART_MD_NODE})
+    {
+    }
+    decomposition(const std::string& order, const arr& node_d, const arr& socket_d,
+        const arr& numa_d, const arr& l3_d, const arr& core_d, const arr& hwthread_d,
+        const arr& thread_d)
+    : decomposition(order, thread_d,
+          std::vector<int>{hwthread_d[0], hwthread_d[1], hwthread_d[2], core_d[0], core_d[1],
+              core_d[2], l3_d[0], l3_d[1], l3_d[2], numa_d[0], numa_d[1], numa_d[2], socket_d[0],
+              socket_d[1], socket_d[2], node_d[0], node_d[1], node_d[2]},
+          std::vector<hwcart_split_t>{HWCART_MD_HWTHREAD, HWCART_MD_CORE, HWCART_MD_L3CACHE,
+              HWCART_MD_NUMA, HWCART_MD_SOCKET, HWCART_MD_NODE})
+    {
+    }
     decomposition(const decomposition&) = delete;
     ~decomposition() { hwcart_free(&m_hw_topo.m, &m_comm); }
     MPI_Comm   mpi_comm() const noexcept { return m_comm; }

@@ -23,8 +23,6 @@ set(CARTEX_RUNTIME "mpi_comm" CACHE STRING "Runtime")
 set_property(CACHE CARTEX_RUNTIME PROPERTY STRINGS "mpi_comm" "ghex_comm")
 set(CARTEX_ON_GPU "OFF" CACHE BOOL "use gpu")
 
-#configure_file(cmake/runtime.inc ${CMAKE_CURRENT_SOURCE_DIR}/src/bin/runtime.inc @ONLY NEWLINE_STYLE UNIX)
-
 # Set up cuda if needed
 set(_cartex_cuda_enabled OFF)
 if(CARTEX_ON_GPU)
@@ -50,8 +48,8 @@ target_include_directories(cartex_common INTERFACE
   $<INSTALL_INTERFACE:include>
 )
 target_compile_definitions(cartex_common INTERFACE
-  CARTEX_RUNTIME=${CARTEX_RUNTIME}
-  CARTEX_RUNTIME_$<UPPER_CASE:${CARTEX_RUNTIME}>
+# CARTEX_RUNTIME=${CARTEX_RUNTIME}
+# CARTEX_RUNTIME_$<UPPER_CASE:${CARTEX_RUNTIME}>
   CARTEX_FLOAT=${CARTEX_FLOAT}
 )
 set_target_properties(
