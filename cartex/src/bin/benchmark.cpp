@@ -156,7 +156,11 @@ main(int argc, char** argv)
             options.get<int>("halo"), options.get<int>("nfields"), options.is_set("check"),
             *decomp_ptr);
 
-        if (rank == 0) std::cout << r.info() << std::endl;
+        if (rank == 0)
+        {
+            std::cout << r.info() << std::endl;
+            std::cout << "running on " << size << " ranks" << std::endl;
+        }
 
         if (decomp_ptr->threads_per_rank() == 1) r.exchange(0);
         else
