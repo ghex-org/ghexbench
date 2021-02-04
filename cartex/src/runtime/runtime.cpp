@@ -14,6 +14,7 @@
 
 #include <cartex/runtime/runtime.hpp>
 #include <cartex/common/memory_view.hpp>
+#include <cartex/common/accumulator.hpp>
 
 namespace cartex
 {
@@ -22,10 +23,13 @@ runtime::exchange(int j)
 {
     using clock_type = std::chrono::high_resolution_clock;
 
-    make_fields(j);
+    accumulator acc;
 
+    // prepare fields
+    make_fields(j);
     init(j);
 
+    // check for correctness
     if (m_check_res)
     {
         step(j);
@@ -36,20 +40,30 @@ runtime::exchange(int j)
     // warm up
     for (int t = 0; t < 50; ++t) step(j);
 
-    const auto start = clock_type::now();
-    for (int t = 0; t < m_num_reps; ++t) step(j);
-    const auto                          end = clock_type::now();
-    const std::chrono::duration<double> elapsed_seconds = end - start;
+    for (int t = 0; t < m_num_reps; ++t)
+    {
+        const auto start = clock_type::now();
+        step(j);
+        const auto end = clock_type::now();
+        acc(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
+    }
 
     if (m_rank == 0 && j == 0)
     {
+        const auto elapsed_time_ns = acc.mean() * acc.num_samples();
+        const auto elapsed_time_s = elapsed_time_ns / 1.0e9;
         const auto num_elements =
             m_ext_buffer[0] * m_ext_buffer[1] * m_ext_buffer[2] - m_ext[0] * m_ext[1] * m_ext[2];
         const auto   num_bytes = num_elements * sizeof(real_type);
         const double load = 2 * m_size * m_num_threads * m_num_fields * num_bytes;
-        const auto   GB_per_s = m_num_reps * load / (elapsed_seconds.count() * 1.0e9);
-        std::cout << "elapsed time: " << elapsed_seconds.count() << "s\n";
-        std::cout << "GB/s : " << GB_per_s << std::endl;
+        const auto   GB_per_s = m_num_reps * load / (elapsed_time_ns);
+        std::cout << "elapsed (s)       " << elapsed_time_s << "\n";
+        std::cout << "mean (s)          " << acc.mean() / 1.0e9 << "\n";
+        std::cout << "min (s)           " << acc.min() / 1.0e9 << "\n";
+        std::cout << "max (s)           " << acc.max() / 1.0e9 << "\n";
+        std::cout << "stddev (s)        " << acc.stddev() / 1.0e9 << "\n";
+        std::cout << "stddev (%)        " << acc.stddev()/acc.mean() * 100 << "\n";
+        std::cout << "throughput (GB/s) " << GB_per_s << std::endl;
     }
 }
 
