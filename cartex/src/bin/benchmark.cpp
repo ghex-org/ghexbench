@@ -19,7 +19,7 @@ main(int argc, char** argv)
 {
     /* clang-format off */
     const auto options = cartex::options()
-        ("domain",   "local domain size",              "d",        {64})
+        ("domain",   "local domain size",              "X Y Z",    {64,64,64})
         ("nrep",     "number of repetitions",          "r",        {10})
         ("nfields",  "number of fields",               "n",        {1})
         ("halo",     "halo size",                      "h",        {1})
@@ -152,7 +152,7 @@ main(int argc, char** argv)
             return 0;
         }
 
-        cartex::runtime r(options.get<int>("nrep"), options.get<int>("domain"),
+        cartex::runtime r(options.get<int>("nrep"), options.get<std::array<int, 3>>("domain"),
             options.get<int>("halo"), options.get<int>("nfields"), options.is_set("check"),
             *decomp_ptr);
 

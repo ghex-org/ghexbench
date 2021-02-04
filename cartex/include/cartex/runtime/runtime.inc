@@ -1,5 +1,5 @@
-runtime::runtime(
-    int num_reps, int ext, int halo, int num_fields, bool check_res, decomposition& decomp_)
+runtime::runtime(int num_reps, const std::array<int, 3>& ext, int halo, int num_fields,
+    bool check_res, decomposition& decomp_)
 : m_decomposition(decomp_)
 , m_rank(m_decomposition.rank())
 , m_size(m_decomposition.size())
@@ -8,7 +8,7 @@ runtime::runtime(
 , m_mt(m_num_threads > 1)
 , m_num_fields{num_fields}
 , m_check_res(check_res)
-, m_ext{ext, ext, ext}
+, m_ext{ext}
 , m_g_first{0, 0, 0}
 , m_g_last{m_decomposition.last_coord()[0] * m_ext[0] + m_ext[0] - 1,
       m_decomposition.last_coord()[1] * m_ext[1] + m_ext[1] - 1,
@@ -42,4 +42,3 @@ runtime::step(int j)
 {
     m_impl->step(j);
 }
-

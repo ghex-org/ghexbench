@@ -50,11 +50,11 @@ class runtime
     std::unique_ptr<impl> m_impl;
 
   public:
-    runtime(
-        int num_reps, int ext, int halo, int num_fields, bool check_res, decomposition& decomp_);
+    runtime(int num_reps, const std::array<int, 3>& ext, int halo, int num_fields, bool check_res,
+        decomposition& decomp_);
     ~runtime();
     runtime(const runtime&) = delete;
-    void exchange(int j);
+    void        exchange(int j);
     std::string info() const;
 
   private:
