@@ -48,29 +48,34 @@ runtime::exchange(int j)
         acc(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
     }
 
-    if (m_rank == 0 && j == 0)
+    if (j == 0)
     {
-        const auto elapsed_time_ns = acc.mean() * acc.num_samples();
-        const auto elapsed_time_s = elapsed_time_ns / 1.0e9;
-        int        num_elements = 0;
+        int num_elements, local_num_elements = 0;
         for (int i = 0; i < m_num_threads; ++i)
         {
-            num_elements += (m_domains[i].domain_ext[0] + m_halos[0] + m_halos[1]) *
-                                (m_domains[i].domain_ext[1] + m_halos[2] + m_halos[3]) *
-                                (m_domains[i].domain_ext[2] + m_halos[4] + m_halos[5]) -
-                            (m_domains[i].domain_ext[0]) * (m_domains[i].domain_ext[1]) *
-                                (m_domains[i].domain_ext[2]);
+            local_num_elements += (m_domains[i].domain_ext[0] + m_halos[0] + m_halos[1]) *
+                                      (m_domains[i].domain_ext[1] + m_halos[2] + m_halos[3]) *
+                                      (m_domains[i].domain_ext[2] + m_halos[4] + m_halos[5]) -
+                                  (m_domains[i].domain_ext[0]) * (m_domains[i].domain_ext[1]) *
+                                      (m_domains[i].domain_ext[2]);
         }
-        const auto   num_bytes = m_num_fields * num_elements * sizeof(real_type);
-        const double load = 2 * m_size * num_bytes;
-        const auto   GB_per_s = m_num_reps * load / (elapsed_time_ns);
-        std::cout << "elapsed (s)       " << elapsed_time_s << "\n";
-        std::cout << "mean (s)          " << acc.mean() / 1.0e9 << "\n";
-        std::cout << "min (s)           " << acc.min() / 1.0e9 << "\n";
-        std::cout << "max (s)           " << acc.max() / 1.0e9 << "\n";
-        std::cout << "stddev (s)        " << acc.stddev() / 1.0e9 << "\n";
-        std::cout << "stddev (%)        " << acc.stddev() / acc.mean() * 100 << "\n";
-        std::cout << "throughput (GB/s) " << GB_per_s << std::endl;
+        CARTEX_CHECK_MPI_RESULT(MPI_Reduce(&local_num_elements, &num_elements, 1, MPI_INT, MPI_SUM,
+            0, m_decomposition.mpi_comm()));
+        if (m_rank == 0)
+        {
+            const auto   elapsed_time_ns = acc.mean() * acc.num_samples();
+            const auto   elapsed_time_s = elapsed_time_ns / 1.0e9;
+            const auto   num_bytes = m_num_fields * num_elements * sizeof(real_type);
+            const double load = 2 * num_bytes;
+            const auto   GB_per_s = m_num_reps * load / (elapsed_time_ns);
+            std::cout << "elapsed (s)       " << elapsed_time_s << "\n";
+            std::cout << "mean (s)          " << acc.mean() / 1.0e9 << "\n";
+            std::cout << "min (s)           " << acc.min() / 1.0e9 << "\n";
+            std::cout << "max (s)           " << acc.max() / 1.0e9 << "\n";
+            std::cout << "stddev (s)        " << acc.stddev() / 1.0e9 << "\n";
+            std::cout << "stddev (%)        " << acc.stddev() / acc.mean() * 100 << "\n";
+            std::cout << "throughput (GB/s) " << GB_per_s << std::endl;
+        }
     }
 }
 
