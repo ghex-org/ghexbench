@@ -10,6 +10,7 @@
  */
 
 #include <cartex/runtime/mpi_comm/runtime.hpp>
+#include "../runtime_inc.cpp"
 
 namespace cartex
 {

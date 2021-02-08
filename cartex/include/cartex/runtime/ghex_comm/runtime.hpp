@@ -86,6 +86,4 @@ class runtime::impl
     }
 };
 
-#include "../runtime.inc"
-
 } // namespace cartex
