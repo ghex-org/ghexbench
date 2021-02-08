@@ -26,6 +26,7 @@ class runtime
   public:
     using real_type = CARTEX_FLOAT;
     using memory_type = memory<real_type>;
+    using domain_type = decomposition::domain_t;
 
   private:
     decomposition&                        m_decomposition;
@@ -36,13 +37,9 @@ class runtime
     const bool                            m_mt;
     const int                             m_num_fields;
     const bool                            m_check_res;
-    const std::array<int, 3>              m_ext;
-    const std::array<int, 3>              m_g_first;
-    const std::array<int, 3>              m_g_last;
-    const std::array<int, 3>              m_offset;
     const std::array<int, 6>              m_halos;
-    const std::array<int, 3>              m_ext_buffer;
-    const int                             m_max_memory;
+    const std::array<int, 3>              m_offset;
+    std::vector<domain_type>              m_domains;
     std::vector<std::vector<memory_type>> m_raw_fields;
     std::mutex                            m_mutex;
     class impl;
@@ -50,8 +47,7 @@ class runtime
     std::unique_ptr<impl> m_impl;
 
   public:
-    runtime(int num_reps, const std::array<int, 3>& ext, int halo, int num_fields, bool check_res,
-        decomposition& decomp_);
+    runtime(int num_reps, int halo, int num_fields, bool check_res, decomposition& decomp_);
     ~runtime();
     runtime(const runtime&) = delete;
     void        exchange(int j);
@@ -62,7 +58,7 @@ class runtime
     void step(int);
     void make_fields(int j);
     void print_fields(int j);
-    bool check(int jj);
+    bool check(int j);
 };
 
 } // namespace cartex

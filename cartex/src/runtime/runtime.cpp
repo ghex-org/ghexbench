@@ -52,17 +52,24 @@ runtime::exchange(int j)
     {
         const auto elapsed_time_ns = acc.mean() * acc.num_samples();
         const auto elapsed_time_s = elapsed_time_ns / 1.0e9;
-        const auto num_elements =
-            m_ext_buffer[0] * m_ext_buffer[1] * m_ext_buffer[2] - m_ext[0] * m_ext[1] * m_ext[2];
-        const auto   num_bytes = num_elements * sizeof(real_type);
-        const double load = 2 * m_size * m_num_threads * m_num_fields * num_bytes;
+        int        num_elements = 0;
+        for (int i = 0; i < m_num_threads; ++i)
+        {
+            num_elements += (m_domains[i].domain_ext[0] + m_halos[0] + m_halos[1]) *
+                                (m_domains[i].domain_ext[1] + m_halos[2] + m_halos[3]) *
+                                (m_domains[i].domain_ext[2] + m_halos[4] + m_halos[5]) -
+                            (m_domains[i].domain_ext[0]) * (m_domains[i].domain_ext[1]) *
+                                (m_domains[i].domain_ext[2]);
+        }
+        const auto   num_bytes = m_num_fields * num_elements * sizeof(real_type);
+        const double load = 2 * m_size * num_bytes;
         const auto   GB_per_s = m_num_reps * load / (elapsed_time_ns);
         std::cout << "elapsed (s)       " << elapsed_time_s << "\n";
         std::cout << "mean (s)          " << acc.mean() / 1.0e9 << "\n";
         std::cout << "min (s)           " << acc.min() / 1.0e9 << "\n";
         std::cout << "max (s)           " << acc.max() / 1.0e9 << "\n";
         std::cout << "stddev (s)        " << acc.stddev() / 1.0e9 << "\n";
-        std::cout << "stddev (%)        " << acc.stddev()/acc.mean() * 100 << "\n";
+        std::cout << "stddev (%)        " << acc.stddev() / acc.mean() * 100 << "\n";
         std::cout << "throughput (GB/s) " << GB_per_s << std::endl;
     }
 }
@@ -73,15 +80,25 @@ runtime::make_fields(int j)
     using view_type = memory_view<real_type, 3>;
     for (int i = 0; i < m_num_fields; ++i)
     {
-        m_raw_fields[j].emplace_back(m_max_memory, 0);
-        view_type    v(&m_raw_fields[j].back(), m_ext_buffer[0], m_ext_buffer[1], m_ext_buffer[2]);
-        unsigned int c = m_decomposition.domain(j).id + i + 1;
-        for (int z = 0; z < m_ext[2]; ++z)
-            for (int y = 0; y < m_ext[1]; ++y)
-                for (int x = 0; x < m_ext[0]; ++x)
+        m_raw_fields[j].emplace_back((m_domains[j].domain_ext[0] + m_halos[0] + m_halos[1]) *
+                                         (m_domains[j].domain_ext[1] + m_halos[2] + m_halos[3]) *
+                                         (m_domains[j].domain_ext[2] + m_halos[4] + m_halos[5]),
+            0);
+        view_type v(&m_raw_fields[j].back(), m_domains[j].domain_ext[0] + m_halos[0] + m_halos[1],
+            m_domains[j].domain_ext[1] + m_halos[2] + m_halos[3],
+            m_domains[j].domain_ext[2] + m_halos[4] + m_halos[5]);
+        for (int z = 0; z < m_domains[j].domain_ext[2]; ++z)
+            for (int y = 0; y < m_domains[j].domain_ext[1]; ++y)
+                for (int x = 0; x < m_domains[j].domain_ext[0]; ++x)
                 {
-                    v(x + m_halos[0], y + m_halos[2], z + m_halos[4]) = c;
-                    ++c;
+                    v(x + m_halos[0], y + m_halos[2], z + m_halos[4]) =
+                        ((m_domains[j].domain_coord[0] + x) +
+                            (m_decomposition.last_domain_coord()[0] + 1) *
+                                ((m_domains[j].domain_coord[1] + y) +
+                                    (m_decomposition.last_domain_coord()[1] + 1) *
+                                        ((m_domains[j].domain_coord[2] + z)))) *
+                            m_num_fields +
+                        i;
                 }
     }
 }
@@ -100,7 +117,10 @@ runtime::print_fields(int j)
             for (int i = 0; i < m_num_fields; ++i)
             {
                 std::cout << "  field " << i << std::endl;
-                view_type v(&m_raw_fields[j][i], m_ext_buffer[0], m_ext_buffer[1], m_ext_buffer[2]);
+                view_type v(&m_raw_fields[j][i],
+                    m_domains[j].domain_ext[0] + m_halos[0] + m_halos[1],
+                    m_domains[j].domain_ext[1] + m_halos[2] + m_halos[3],
+                    m_domains[j].domain_ext[2] + m_halos[4] + m_halos[5]);
                 v.print();
                 std::cout << std::endl;
             }
@@ -110,54 +130,68 @@ runtime::print_fields(int j)
 }
 
 bool
-runtime::check(int jj)
+runtime::check(int j)
 {
     using view_type = memory_view<real_type, 3>;
-    for (int zn = -1; zn < 2; ++zn)
-        for (int yn = -1; yn < 2; ++yn)
-            for (int xn = -1; xn < 2; ++xn)
-            {
-                int offset = m_decomposition.neighbor(jj, xn, yn, zn).id;
-
-                const int ext_z = zn < 0 ? m_halos[4] : zn == 0 ? m_ext[2] : m_halos[5];
-                const int first_z = zn < 0 ? 0 : zn == 0 ? m_halos[4] : m_halos[4] + m_ext[2];
-                const int first_zn = zn < 0 ? m_ext[2] : zn == 0 ? m_halos[4] : m_halos[4];
-
-                const int ext_y = yn < 0 ? m_halos[2] : yn == 0 ? m_ext[1] : m_halos[3];
-                const int first_y = yn < 0 ? 0 : yn == 0 ? m_halos[2] : m_halos[2] + m_ext[1];
-                const int first_yn = yn < 0 ? m_ext[1] : yn == 0 ? m_halos[2] : m_halos[2];
-
-                const int ext_x = xn < 0 ? m_halos[0] : xn == 0 ? m_ext[0] : m_halos[1];
-                const int first_x = xn < 0 ? 0 : xn == 0 ? m_halos[0] : m_halos[0] + m_ext[0];
-                const int first_xn = xn < 0 ? m_ext[0] : xn == 0 ? m_halos[0] : m_halos[0];
-
-                for (int ii = 0; ii < m_num_fields; ++ii)
+    for (int i = 0; i < m_num_fields; ++i)
+    {
+#ifdef __CUDACC__
+        m_raw_fields[j][i].clone_to_host();
+#endif
+        view_type v(&m_raw_fields[j][i], m_domains[j].domain_ext[0] + m_halos[0] + m_halos[1],
+            m_domains[j].domain_ext[1] + m_halos[2] + m_halos[3],
+            m_domains[j].domain_ext[2] + m_halos[4] + m_halos[5]);
+        for (int zn = -1; zn < 2; ++zn)
+            for (int yn = -1; yn < 2; ++yn)
+                for (int xn = -1; xn < 2; ++xn)
                 {
-                    view_type v(
-                        &m_raw_fields[jj][ii], m_ext_buffer[0], m_ext_buffer[1], m_ext_buffer[2]);
-                    for (int k = 0; k < ext_z; ++k)
-                        for (int j = 0; j < ext_y; ++j)
-                            for (int i = 0; i < ext_x; ++i)
-                            {
-                                const auto x = first_x + i;
-                                const auto xn = first_xn + i - m_halos[0];
-                                const auto y = first_y + j;
-                                const auto yn = first_yn + j - m_halos[2];
-                                const auto z = first_z + k;
-                                const auto zn = first_zn + k - m_halos[4];
+                    auto n = m_decomposition.neighbor(j, xn, yn, zn);
 
-                                const unsigned int expected =
-                                    offset + ii + 1 + xn + m_ext[0] * (yn + zn * m_ext[1]);
-                                if (v(x, y, z) != (real_type)expected)
+                    const int ext_z =
+                        zn < 0 ? m_halos[4] : zn == 0 ? m_domains[j].domain_ext[2] : m_halos[5];
+                    const int first_z =
+                        zn < 0 ? 0 : zn == 0 ? m_halos[4] : m_halos[4] + m_domains[j].domain_ext[2];
+                    const int first_zn = zn < 0 ? n.domain_ext[2] - m_halos[4] : 0;
+
+                    const int ext_y =
+                        yn < 0 ? m_halos[2] : yn == 0 ? m_domains[j].domain_ext[1] : m_halos[3];
+                    const int first_y =
+                        yn < 0 ? 0 : yn == 0 ? m_halos[2] : m_halos[2] + m_domains[j].domain_ext[1];
+                    const int first_yn = yn < 0 ? n.domain_ext[1] - m_halos[2] : 0;
+
+                    const int ext_x =
+                        xn < 0 ? m_halos[0] : xn == 0 ? m_domains[j].domain_ext[0] : m_halos[1];
+                    const int first_x =
+                        xn < 0 ? 0 : xn == 0 ? m_halos[0] : m_halos[0] + m_domains[j].domain_ext[0];
+                    const int first_xn = xn < 0 ? n.domain_ext[0] - m_halos[0] : 0;
+
+                    for (int kk = 0; kk < ext_z; ++kk)
+                    {
+                        for (int jj = 0; jj < ext_y; ++jj)
+                        {
+                            for (int ii = 0; ii < ext_x; ++ii)
+                            {
+                                const real_type expected =
+                                    ((n.domain_coord[0] + first_xn + ii) +
+                                        (m_decomposition.last_domain_coord()[0] + 1) *
+                                            ((n.domain_coord[1] + first_yn + jj) +
+                                                (m_decomposition.last_domain_coord()[1] + 1) *
+                                                    ((n.domain_coord[2] + first_zn + kk)))) *
+                                        m_num_fields +
+                                    i;
+                                if (v(first_x + ii, first_y + jj, first_z + kk) != expected)
                                 {
                                     std::cout << "check failed!!!!!!!!!!!!!!!!! expected "
-                                              << (real_type)expected << " but found " << v(x, y, z)
+                                              << expected << " but found "
+                                              << v(first_x + ii, first_y + jj, first_z + kk)
                                               << std::endl;
                                     return false;
                                 }
                             }
+                        }
+                    }
                 }
-            }
+    }
     return true;
 }
 

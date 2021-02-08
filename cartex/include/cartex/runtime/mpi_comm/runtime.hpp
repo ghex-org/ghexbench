@@ -34,28 +34,36 @@ class runtime::impl
 
     struct neighborhood
     {
-        domain_t d;
-        domain_t x_l, x_r;
-        domain_t y_l, y_r;
-        domain_t z_l, z_r;
+        MPI_Comm                 comm;
+        int                      num_fields;
+        domain_t                 d;
+        domain_t                 x_l, x_r;
+        domain_t                 y_l, y_r;
+        domain_t                 z_l, z_r;
+        const std::array<int, 3> ext_buffer;
+        mpi_dtype_unique_ptr     x_recv_l, x_recv_r;
+        mpi_dtype_unique_ptr     x_send_l, x_send_r;
+        mpi_dtype_unique_ptr     y_recv_l, y_recv_r;
+        mpi_dtype_unique_ptr     y_send_l, y_send_r;
+        mpi_dtype_unique_ptr     z_recv_l, z_recv_r;
+        mpi_dtype_unique_ptr     z_send_l, z_send_r;
+
+        neighborhood(
+            int i, decomposition& decomp, MPI_Datatype mpi_T, std::array<int, 6> const& halos);
+
+        void exchange(void* data, int field_id);
     };
 
   private:
     runtime&                  m_base;
     MPI_Comm                  m_comm;
     MPI_Datatype              m_mpi_T;
-    mpi_dtype_unique_ptr      x_recv_l, x_recv_r;
-    mpi_dtype_unique_ptr      x_send_l, x_send_r;
-    mpi_dtype_unique_ptr      y_recv_l, y_recv_r;
-    mpi_dtype_unique_ptr      y_send_l, y_send_r;
-    mpi_dtype_unique_ptr      z_recv_l, z_recv_r;
-    mpi_dtype_unique_ptr      z_send_l, z_send_r;
     std::vector<neighborhood> m_neighbors;
 
   public:
     impl(runtime& base);
-    void init(int) {}
-    void step(int j);
+    void        init(int) {}
+    void        step(int j);
     std::string info() const
     {
 #define CARTEX_STR2(var) #var

@@ -19,8 +19,29 @@
 
 namespace cartex
 {
+void
+decomposition::init_domain(const arr& domain_, bool local)
+{
+    for (int d = 0; d < 3; ++d)
+    {
+        m_coord[d] *= m_thread_decomposition[d];
+        const int dim = m_global_decomposition[d] * m_thread_decomposition[d];
+        m_global_domain[d] = (local ? dim * domain_[d] : domain_[d]);
+        const int ext = (double)m_global_domain[d] / dim;
+        m_domain_coord[d].resize(dim + 1, 0);
+        m_domain_ext[d].resize(dim, 0);
+        const int j = m_global_domain[d] - dim * ext;
+        for (int i = 0; i < dim; ++i)
+        {
+            m_domain_coord[d][i + 1] = m_domain_coord[d][i] + ext + (i < j ? 1 : 0);
+            m_domain_ext[d][i] = ext + (i < j ? 1 : 0);
+        }
+        m_last_domain_coord[d] = m_domain_coord[d].back() - 1;
+    }
+}
+
 decomposition::decomposition(const std::string& order, const arr& thread_d, std::vector<int>&& topo,
-    std::vector<hwcart_split_t>&& levels)
+    std::vector<hwcart_split_t>&& levels, const arr& domain_, bool local)
 : m_hw_topo()
 , m_order{parse_order(order)}
 , m_thread_decomposition(thread_d)
@@ -41,12 +62,11 @@ decomposition::decomposition(const std::string& order, const arr& thread_d, std:
     CARTEX_CHECK_MPI_RESULT(MPI_Comm_rank(m_comm, &m_rank));
     CARTEX_CHECK_MPI_RESULT(MPI_Comm_size(m_comm, &m_size));
     hwcart_rank2coord(m_comm, m_global_decomposition.data(), m_rank, m_order, m_coord.data());
-    m_coord[0] *= m_thread_decomposition[0];
-    m_coord[1] *= m_thread_decomposition[1];
-    m_coord[2] *= m_thread_decomposition[2];
+    init_domain(domain_, local);
 }
 
-decomposition::decomposition(const arr& global_d, const arr& thread_d)
+decomposition::decomposition(
+    const arr& global_d, const arr& thread_d, const arr& domain_, bool local)
 : m_mpi_cart{true}
 , m_hw_topo()
 , m_order{HWCartOrderXYZ}
@@ -64,9 +84,7 @@ decomposition::decomposition(const arr& global_d, const arr& thread_d)
     CARTEX_CHECK_MPI_RESULT(MPI_Comm_rank(m_comm, &m_rank));
     CARTEX_CHECK_MPI_RESULT(MPI_Comm_size(m_comm, &m_size));
     CARTEX_CHECK_MPI_RESULT(MPI_Cart_coords(m_comm, m_rank, 3, m_coord.data()));
-    m_coord[0] *= m_thread_decomposition[0];
-    m_coord[1] *= m_thread_decomposition[1];
-    m_coord[2] *= m_thread_decomposition[2];
+    init_domain(domain_, local);
 }
 
 void
@@ -101,7 +119,9 @@ decomposition::domain(int thread_id) const noexcept
     const auto c = coord(thread_id);
     return {c[0] + m_global_decomposition[0] * m_thread_decomposition[0] *
                        (c[1] + m_global_decomposition[1] * m_thread_decomposition[1] * c[2]),
-        m_rank, thread_id, c};
+        m_rank, thread_id, c,
+        {m_domain_coord[0][c[0]], m_domain_coord[1][c[1]], m_domain_coord[2][c[2]]},
+        {m_domain_ext[0][c[0]], m_domain_ext[1][c[1]], m_domain_ext[2][c[2]]}};
 }
 
 decomposition::domain_t
@@ -120,6 +140,10 @@ decomposition::neighbor(int thread_id, int dx, int dy, int dz) const noexcept
     const int id = c[0] + m_global_decomposition[0] * m_thread_decomposition[0] *
                               (c[1] + m_global_decomposition[1] * m_thread_decomposition[1] * c[2]);
 
+    const arr domain_coord{
+        m_domain_coord[0][c[0]], m_domain_coord[1][c[1]], m_domain_coord[2][c[2]]};
+    const arr domain_ext{m_domain_ext[0][c[0]], m_domain_ext[1][c[1]], m_domain_ext[2][c[2]]};
+
     arr ct = c;
     arr c0;
     for (int i = 0; i < 3; ++i)
@@ -131,7 +155,7 @@ decomposition::neighbor(int thread_id, int dx, int dy, int dz) const noexcept
         ct[0] + m_thread_decomposition[0] * (ct[1] + m_thread_decomposition[1] * ct[2]);
 
     if (c0[0] == m_coord[0] && c0[1] == m_coord[1] && c0[2] == m_coord[2])
-    { return {id, m_rank, t_id, c}; }
+    { return {id, m_rank, t_id, c, domain_coord, domain_ext}; }
     else
     {
         int n_rank;
@@ -143,7 +167,7 @@ decomposition::neighbor(int thread_id, int dx, int dy, int dz) const noexcept
         {
             hwcart_coord2rank(m_comm, dims, periodic, c0.data(), m_order, &n_rank);
         }
-        return {id, n_rank, t_id, c};
+        return {id, n_rank, t_id, c, domain_coord, domain_ext};
     }
 }
 

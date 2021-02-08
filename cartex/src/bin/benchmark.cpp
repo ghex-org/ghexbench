@@ -19,21 +19,22 @@ main(int argc, char** argv)
 {
     /* clang-format off */
     const auto options = cartex::options()
-        ("domain",   "local domain size",              "X Y Z",    {64,64,64})
-        ("nrep",     "number of repetitions",          "r",        {10})
-        ("nfields",  "number of fields",               "n",        {1})
-        ("halo",     "halo size",                      "h",        {1})
-        ("MPICart",  "MPI cartesian global grid",      "NX NY NZ", 3)
-        ("order",    "cartesian order (default: XYZ)", "IJK",      1)
-        ("node",     "node grid",                      "NX NY NZ", 3)
-        ("socket",   "socket grid",                    "NX NY NZ", 3)
-        ("numa",     "numa-node grid",                 "NX NY NZ", 3)
-        ("l3",       "l3-cache grid",                  "NX NY NZ", 3)
-        ("core",     "core grid",                      "NX NY NZ", 3)
-        ("hwthread", "hardware-thread grid",           "NX NY NZ", 3)
-        ("thread",   "software-thread grid",           "NX NY NZ", {1,1,1})
-        ("print",    "print decomposition")
-        ("check",    "check results")
+        ("domain",        "local domain size (default: 64 64 64)", "X Y Z",    3)
+        ("global-domain", "global domain size",                    "X Y Z",    3)
+        ("nrep",          "number of repetitions",                 "r",        {10})
+        ("nfields",       "number of fields",                      "n",        {1})
+        ("halo",          "halo size",                             "h",        {1})
+        ("MPICart",       "MPI cartesian global grid",             "NX NY NZ", 3)
+        ("order",         "cartesian order (default: XYZ)",        "IJK",      1)
+        ("node",          "node grid",                             "NX NY NZ", 3)
+        ("socket",        "socket grid",                           "NX NY NZ", 3)
+        ("numa",          "numa-node grid",                        "NX NY NZ", 3)
+        ("l3",            "l3-cache grid",                         "NX NY NZ", 3)
+        ("core",          "core grid",                             "NX NY NZ", 3)
+        ("hwthread",      "hardware-thread grid",                  "NX NY NZ", 3)
+        ("thread",        "software-thread grid",                  "NX NY NZ", {1,1,1})
+        ("print",         "print decomposition")
+        ("check",         "check results")
         .parse(argc, argv);
     /* clang-format on */
 
@@ -61,6 +62,9 @@ main(int argc, char** argv)
     {
         std::unique_ptr<cartex::decomposition> decomp_ptr;
 
+        const bool global = options.has("global-domain");
+        if (global && options.has("domain"))
+            if (rank == 0) std::cerr << "Warning: ignoring argument --domain" << std::endl;
         try
         {
             if (options.has("MPICart"))
@@ -84,7 +88,10 @@ main(int argc, char** argv)
                 int        cart_size = dims[0] * dims[1] * dims[2];
                 if (cart_size != size)
                     throw std::runtime_error("cart size is not equal to world size");
-                decomp_ptr = std::make_unique<cartex::decomposition>(dims, threads);
+                decomp_ptr = std::make_unique<cartex::decomposition>(dims, threads,
+                    (global ? options.get<std::array<int, 3>>("global-domain")
+                            : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+                    !global);
             }
             /* clang-format off */
         else if (options.has("hwthread"))
@@ -96,7 +103,10 @@ main(int argc, char** argv)
                 options.get_or("l3",     std::array<int,3>{1,1,1}),
                 options.get_or("core",   std::array<int,3>{1,1,1}),
                 options.get<std::array<int,3>>("hwthread"),
-                threads);
+                threads, 
+                (global ? options.get<std::array<int,3>>("global-domain")
+                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+                !global);
         else if (options.has("core"))
             decomp_ptr = std::make_unique<cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
@@ -105,7 +115,10 @@ main(int argc, char** argv)
                 options.get_or("numa",   std::array<int,3>{1,1,1}),
                 options.get_or("l3",     std::array<int,3>{1,1,1}),
                 options.get<std::array<int,3>>("core"),
-                threads);
+                threads,
+                (global ? options.get<std::array<int,3>>("global-domain")
+                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+                !global);
         else if (options.has("l3"))
             decomp_ptr = std::make_unique<cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
@@ -113,25 +126,37 @@ main(int argc, char** argv)
                 options.get_or("socket", std::array<int,3>{1,1,1}),
                 options.get_or("numa",   std::array<int,3>{1,1,1}),
                 options.get<std::array<int,3>>("l3"),
-                threads);
+                threads,
+                (global ? options.get<std::array<int,3>>("global-domain")
+                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+                !global);
         else if (options.has("numa"))
             decomp_ptr = std::make_unique<cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
                 options.get_or("node",   std::array<int,3>{1,1,1}),
                 options.get_or("socket", std::array<int,3>{1,1,1}),
                 options.get<std::array<int,3>>("numa"),
-                threads);
+                threads,
+                (global ? options.get<std::array<int,3>>("global-domain")
+                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+                !global);
         else if (options.has("socket"))
             decomp_ptr = std::make_unique<cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
                 options.get_or("node",   std::array<int,3>{1,1,1}),
                 options.get<std::array<int,3>>("socket"),
-                threads);
+                threads,
+                (global ? options.get<std::array<int,3>>("global-domain")
+                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+                !global);
         else 
             decomp_ptr = std::make_unique<cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
                 options.get_or("node",   std::array<int,3>{1,1,1}),
-                threads);
+                threads,
+                (global ? options.get<std::array<int,3>>("global-domain")
+                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+                !global);
         }
         /* clang-format on */
         catch (...)
@@ -152,9 +177,8 @@ main(int argc, char** argv)
             return 0;
         }
 
-        cartex::runtime r(options.get<int>("nrep"), options.get<std::array<int, 3>>("domain"),
-            options.get<int>("halo"), options.get<int>("nfields"), options.is_set("check"),
-            *decomp_ptr);
+        cartex::runtime r(options.get<int>("nrep"), options.get<int>("halo"),
+            options.get<int>("nfields"), options.is_set("check"), *decomp_ptr);
 
         if (rank == 0)
         {
