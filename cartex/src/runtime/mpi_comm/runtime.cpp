@@ -14,6 +14,12 @@
 
 namespace cartex
 {
+options&
+runtime::add_options(options& opts)
+{
+    return opts;
+}
+
 runtime::impl::neighborhood::neighborhood(
     int i, decomposition& decomp, MPI_Datatype mpi_T, std::array<int, 6> const& halos)
 : comm(decomp.mpi_comm())
@@ -127,7 +133,7 @@ runtime::impl::neighborhood::neighborhood::exchange(void* data, int field_id)
         field_id + num_fields * 5 + num_fields * 6 * z_l.thread, comm, MPI_STATUS_IGNORE));
 }
 
-runtime::impl::impl(cartex::runtime& base)
+runtime::impl::impl(cartex::runtime& base, options_values const&)
 : m_base{base}
 , m_comm{m_base.m_decomposition.mpi_comm()}
 {

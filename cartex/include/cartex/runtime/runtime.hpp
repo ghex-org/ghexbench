@@ -17,6 +17,7 @@
 #include <string>
 
 #include <cartex/common/memory.hpp>
+#include <cartex/common/options.hpp>
 #include <cartex/decomposition/decomposition.hpp>
 
 namespace cartex
@@ -37,7 +38,7 @@ class runtime
     const bool                            m_mt;
     const int                             m_num_fields;
     const bool                            m_check_res;
-    const bool                            m_node_local;
+    const int                             m_halo;
     const std::array<int, 6>              m_halos;
     const std::array<int, 3>              m_offset;
     std::vector<domain_type>              m_domains;
@@ -48,8 +49,10 @@ class runtime
     std::unique_ptr<impl> m_impl;
 
   public:
-    runtime(int num_reps, int halo, int num_fields, bool check_res, bool node_local,
-        decomposition& decomp_);
+    static options& add_options(options& opts);
+
+  public:
+    runtime(const options_values& options, decomposition& decomp_);
     ~runtime();
     runtime(const runtime&) = delete;
     void        exchange(int j);

@@ -14,7 +14,13 @@
 
 namespace cartex
 {
-runtime::impl::impl(cartex::runtime& base)
+options&
+runtime::add_options(options& opts)
+{
+    return opts("node-local", "use non-compact node-local transport");
+}
+
+runtime::impl::impl(cartex::runtime& base, options_values const& options)
 : m_base{base}
 , m_context_ptr{tl::context_factory<transport>::create(base.m_decomposition.mpi_comm())}
 , m_context{*m_context_ptr}
@@ -27,6 +33,7 @@ runtime::impl::impl(cartex::runtime& base)
 , m_comm{m_context.get_serial_communicator()}
 , m_comms(base.m_num_threads, m_comm)
 , m_cos(base.m_num_threads)
+, m_node_local(options.is_set("node-local"))
 {
     m_local_domains.reserve(m_base.m_num_threads);
     for (auto& dom : m_base.m_domains)
@@ -64,7 +71,7 @@ runtime::impl::init(int j)
 #else
         gpu_field_type
 #endif
-        >(m_comms[j], m_base.m_node_local);
+        >(m_comms[j], m_node_local);
 #ifndef __CUDACC__
     for (int i = 0; i < m_base.m_num_fields; ++i)
         bco.add_field(m_pattern->operator()(m_fields[j][i]));

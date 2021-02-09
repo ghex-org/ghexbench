@@ -61,7 +61,7 @@ class runtime::impl
     std::vector<neighborhood> m_neighbors;
 
   public:
-    impl(runtime& base);
+    impl(runtime& base, options_values const& options);
     void        init(int) {}
     void        step(int j);
     std::string info() const

@@ -66,13 +66,14 @@ class runtime::impl
     typename context_type::communicator_type              m_comm;
     std::vector<typename context_type::communicator_type> m_comms;
     std::vector<generic_bulk_communication_object>        m_cos;
+    bool                                                  m_node_local;
 
     using pattern_type = std::remove_reference_t<decltype(
         make_pattern<structured::grid>(m_context, m_halo_gen, m_local_domains))>;
     std::unique_ptr<pattern_type> m_pattern;
 
   public:
-    impl(runtime& base);
+    impl(runtime& base, options_values const& options);
     void        init(int j);
     void        step(int j);
     std::string info() const

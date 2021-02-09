@@ -18,7 +18,7 @@ int
 main(int argc, char** argv)
 {
     /* clang-format off */
-    const auto options = cartex::options()
+    auto opts = cartex::options()
         ("domain",        "local domain size (default: 64 64 64)", "X Y Z",    3)
         ("global-domain", "global domain size",                    "X Y Z",    3)
         ("nrep",          "number of repetitions",                 "r",        {10})
@@ -33,11 +33,10 @@ main(int argc, char** argv)
         ("core",          "core grid",                             "NX NY NZ", 3)
         ("hwthread",      "hardware-thread grid",                  "NX NY NZ", 3)
         ("thread",        "software-thread grid",                  "NX NY NZ", {1,1,1})
-        ("node-local",    "use non-compact node-local transport")
         ("print",         "print decomposition")
-        ("check",         "check results")
-        .parse(argc, argv);
+        ("check",         "check results");
     /* clang-format on */
+    const auto options = cartex::runtime::add_options(opts).parse(argc, argv);
 
     const auto threads = options.get<std::array<int, 3>>("thread");
     const auto num_threads = threads[0] * threads[1] * threads[2];
@@ -178,9 +177,7 @@ main(int argc, char** argv)
             return 0;
         }
 
-        cartex::runtime r(options.get<int>("nrep"), options.get<int>("halo"),
-            options.get<int>("nfields"), options.is_set("check"), options.is_set("node-local"),
-            *decomp_ptr);
+        cartex::runtime r(options, *decomp_ptr);
 
         if (rank == 0)
         {
