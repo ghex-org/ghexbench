@@ -33,6 +33,7 @@ main(int argc, char** argv)
         ("core",          "core grid",                             "NX NY NZ", 3)
         ("hwthread",      "hardware-thread grid",                  "NX NY NZ", 3)
         ("thread",        "software-thread grid",                  "NX NY NZ", {1,1,1})
+        ("node-local",    "use non-compact node-local transport")
         ("print",         "print decomposition")
         ("check",         "check results")
         .parse(argc, argv);
@@ -178,7 +179,8 @@ main(int argc, char** argv)
         }
 
         cartex::runtime r(options.get<int>("nrep"), options.get<int>("halo"),
-            options.get<int>("nfields"), options.is_set("check"), *decomp_ptr);
+            options.get<int>("nfields"), options.is_set("check"), options.is_set("node-local"),
+            *decomp_ptr);
 
         if (rank == 0)
         {

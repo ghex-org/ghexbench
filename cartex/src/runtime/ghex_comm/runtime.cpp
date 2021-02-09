@@ -64,7 +64,7 @@ runtime::impl::init(int j)
 #else
         gpu_field_type
 #endif
-        >(m_comms[j]);
+        >(m_comms[j], m_base.m_node_local);
 #ifndef __CUDACC__
     for (int i = 0; i < m_base.m_num_fields; ++i)
         bco.add_field(m_pattern->operator()(m_fields[j][i]));

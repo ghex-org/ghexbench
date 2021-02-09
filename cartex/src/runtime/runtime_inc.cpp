@@ -11,7 +11,8 @@
 
 namespace cartex
 {
-runtime::runtime(int num_reps, int halo, int num_fields, bool check_res, decomposition& decomp_)
+runtime::runtime(
+    int num_reps, int halo, int num_fields, bool check_res, bool node_local, decomposition& decomp_)
 : m_decomposition(decomp_)
 , m_rank(m_decomposition.rank())
 , m_size(m_decomposition.size())
@@ -20,6 +21,7 @@ runtime::runtime(int num_reps, int halo, int num_fields, bool check_res, decompo
 , m_mt(m_num_threads > 1)
 , m_num_fields{num_fields}
 , m_check_res(check_res)
+, m_node_local(node_local)
 , m_halos{halo, halo, halo, halo, halo, halo}
 , m_offset{m_halos[0], m_halos[2], m_halos[4]}
 , m_domains{decomp_.domains()}
