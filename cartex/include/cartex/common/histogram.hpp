@@ -94,25 +94,27 @@ class histogram
                 ++bins[size_type((x * hist.m_scale - min) / bin_width)];
         }
 
-        static constexpr int ww = 40;
-        auto                 print_bar = [&os, n = hist.num_samples()](size_type x) {
+        auto print_bar = [&os, n = hist.num_samples()](size_type x) {
             os << std::setw(6) << std::fixed << std::setprecision(2) << std::right
                << (x * 100.0) / n << "% | ";
-            const int y = ((x * 1.0) / n) * ww;
+            const int y = ((x * 1.0) / n) * 50;
             for (int j = 0; j < y; ++j) os << "o";
         };
+
         auto print_row = [&os, &print_bar](value_type mu, size_type x) {
             os << std::setw(11) << std::scientific << std::setprecision(4) << std::left << mu
                << "| ";
             print_bar(x);
             os << "\n";
         };
+
         auto print_outlier_row = [&os, &print_bar](const char* title, size_type x) {
             os << std::setw(11) << std::left << title << "| ";
             print_bar(x);
             os << "\n";
         };
-        print_outlier_row("under", under);
+
+        if (0.5 * bin_width + min > 0) print_outlier_row("under", under);
         os << "-----------+\n";
         for (size_type i = 0; i < hist.m_nbins; ++i)
         {
