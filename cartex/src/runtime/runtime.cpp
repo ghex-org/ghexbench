@@ -15,6 +15,7 @@
 #include <cartex/runtime/runtime.hpp>
 #include <cartex/common/memory_view.hpp>
 #include <cartex/common/accumulator.hpp>
+#include <cartex/common/histogram.hpp>
 
 namespace cartex
 {
@@ -22,8 +23,6 @@ void
 runtime::exchange(int j)
 {
     using clock_type = std::chrono::high_resolution_clock;
-
-    accumulator acc;
 
     // prepare fields
     make_fields(j);
@@ -40,12 +39,13 @@ runtime::exchange(int j)
     // warm up
     for (int t = 0; t < 50; ++t) step(j);
 
+    histogram hist(1.0e-9, 20, 2, m_num_reps);
     for (int t = 0; t < m_num_reps; ++t)
     {
         const auto start = clock_type::now();
         step(j);
         const auto end = clock_type::now();
-        acc(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
+        hist(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count());
     }
 
     if (j == 0)
@@ -63,18 +63,19 @@ runtime::exchange(int j)
             0, m_decomposition.mpi_comm()));
         if (m_rank == 0)
         {
-            const auto   elapsed_time_ns = acc.mean() * acc.num_samples();
-            const auto   elapsed_time_s = elapsed_time_ns / 1.0e9;
+            const auto   elapsed_time_s = hist.sum();
             const auto   num_bytes = m_num_fields * num_elements * sizeof(real_type);
             const double load = 2 * num_bytes;
-            const auto   GB_per_s = m_num_reps * load / (elapsed_time_ns);
+            const auto   GB_per_s = m_num_reps * load / (elapsed_time_s * 1.0e9);
             std::cout << "elapsed (s)       " << elapsed_time_s << "\n";
-            std::cout << "mean (s)          " << acc.mean() / 1.0e9 << "\n";
-            std::cout << "min (s)           " << acc.min() / 1.0e9 << "\n";
-            std::cout << "max (s)           " << acc.max() / 1.0e9 << "\n";
-            std::cout << "stddev (s)        " << acc.stddev() / 1.0e9 << "\n";
-            std::cout << "stddev (%)        " << acc.stddev() / acc.mean() * 100 << "\n";
+            std::cout << "median (s)        " << hist.median() << "\n";
+            std::cout << "mean (s)          " << hist.mean() << "\n";
+            std::cout << "min (s)           " << hist.min() << "\n";
+            std::cout << "max (s)           " << hist.max() << "\n";
+            std::cout << "stddev (s)        " << hist.stddev() << "\n";
+            std::cout << "stddev (%)        " << hist.stddev() / hist.mean() * 100 << "\n";
             std::cout << "throughput (GB/s) " << GB_per_s << std::endl;
+            std::cout << "\n" << hist << std::endl;
         }
     }
 }
