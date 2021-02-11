@@ -38,6 +38,11 @@ mark_as_advanced(GHEX_USE_PMIX)
 set(CARTEX_RMA "none" CACHE STRING "select rma option")
 set_property(CACHE CARTEX_RMA PROPERTY STRINGS "none" "threads" "xpmem")
 
+set(CARTEX_FAT_CALLBACKS ON CACHE BOOL "use fat callbacks")
+if (CARTEX_FAT_CALLBACKS)
+  target_compile_definitions(runtime PRIVATE GHEX_COMM_OBJ_USE_FAT_CALLBACKS)
+endif()
+
 if(CARTEX_RMA STREQUAL "xpmem")
   set(GHEX_USE_XPMEM ON CACHE BOOL "Set to true to use xpmem shared memory" FORCE)
 elseif(CARTEX_RMA STREQUAL "threads")

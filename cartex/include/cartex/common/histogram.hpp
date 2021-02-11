@@ -57,6 +57,11 @@ class histogram
         std::sort(m_data.begin(), m_data.end());
         return m_data[num_samples() / 2] * m_scale;
     }
+    inline value_type percentile(value_type percent) noexcept
+    {
+        std::sort(m_data.begin(), m_data.end());
+        return m_data[(size_type)(num_samples() * (percent / 100.0))] * m_scale;
+    }
 
   public:
     inline histogram& operator()(value_type sample) noexcept

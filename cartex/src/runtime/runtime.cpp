@@ -67,14 +67,24 @@ runtime::exchange(int j)
             const auto   num_bytes = m_num_fields * num_elements * sizeof(real_type);
             const double load = 2 * num_bytes;
             const auto   GB_per_s = m_num_reps * load / (elapsed_time_s * 1.0e9);
-            std::cout << "elapsed (s)       " << elapsed_time_s << "\n";
-            std::cout << "median (s)        " << hist.median() << "\n";
-            std::cout << "mean (s)          " << hist.mean() << "\n";
-            std::cout << "min (s)           " << hist.min() << "\n";
-            std::cout << "max (s)           " << hist.max() << "\n";
-            std::cout << "stddev (s)        " << hist.stddev() << "\n";
-            std::cout << "stddev (%)        " << hist.stddev() / hist.mean() * 100 << "\n";
-            std::cout << "throughput (GB/s) " << GB_per_s << std::endl;
+            std::cout << "elapsed (s)       " << std::scientific << std::setprecision(8)
+                      << elapsed_time_s << "\n";
+            std::cout << "mean (s)          " << std::scientific << std::setprecision(8)
+                      << hist.mean() << "\n";
+            std::cout << "median (s)        " << std::scientific << std::setprecision(8)
+                      << hist.median() << "\n";
+            std::cout << "25% centile (s)   " << std::scientific << std::setprecision(8)
+                      << hist.percentile(25) << "\n";
+            std::cout << "75% centile (s)   " << std::scientific << std::setprecision(8)
+                      << hist.percentile(75) << "\n";
+            std::cout << "min (s)           " << std::scientific << std::setprecision(8)
+                      << hist.min() << "\n";
+            std::cout << "max (s)           " << std::scientific << std::setprecision(8)
+                      << hist.max() << "\n";
+            std::cout << "stddev (s)        " << std::scientific << std::setprecision(8)
+                      << hist.stddev() << "\n";
+            std::cout << "throughput (GB/s) " << std::scientific << std::setprecision(8) << GB_per_s
+                      << std::endl;
             std::cout << "\n" << hist << std::endl;
         }
     }
