@@ -1,0 +1,238 @@
+#!/bin/bash
+
+exit_on_error() {
+    exit_code=$1
+    desc=$2
+    #${@:2}
+    if [ $exit_code -ne 0 ]; then
+        if [ $# -eq 2 ]; then
+            >&2 echo "${2}"
+        fi
+        exit $exit_code
+    fi
+}
+
+work_dir="."
+scratch_dir="."
+output_dir="."
+bin_dir="."
+system=""
+subsystem=""
+use_ucx=0
+
+systems="daint ault"
+subsystems="daint_mc daint_gpu ault_18 ault_25"
+
+benchmark_mpi_comm="benchmark_mpi_comm"
+benchmark_ghex_comm_mpi="benchmark_ghex_comm_mpi"
+benchmark_ghex_comm_xpmem_mpi="benchmark_ghex_comm_xpmem_mpi"
+benchmark_ghex_comm_ucx="benchmark_ghex_comm_ucx"
+benchmark_ghex_comm_xpmem_ucx="benchmark_ghex_comm_xpmem_ucx"
+
+binaries_mpi="${benchmark_mpi_comm} ${benchmark_ghex_comm_mpi} ${benchmark_ghex_comm_xpmem_mpi}"
+binaries_ucx="${benchmark_ghex_comm_ucx} ${benchmark_ghex_comm_xpmem_ucx}"
+
+benchmark_mpi_comm_path="."
+benchmark_ghex_comm_mpi_path="."
+benchmark_ghex_comm_xpmem_mpi_path="."
+benchmark_ghex_comm_ucx_path="."
+benchmark_ghex_comm_xpmem_ucx_path="."
+
+usage() {
+    echo "Usage: [Options] system subsystem"
+    echo ""
+    echo "  system and subsystem can be one of these values"
+    echo "    daint"
+    echo "      daint_mc"
+    echo "      daint_gpu"
+    echo "    ault"
+    echo "      ault_18"
+    echo "      ault_25"
+    echo ""
+    echo "  options"
+    echo "    -h               Display this help message"
+    echo "    -u               Enable ucx"
+    echo "    -w work_dir      Set the path to the work directory"
+    echo "    -s scratch_dir   Set the path to the scratch directory"
+    echo "    -o output_dir    Set the path to the output directory"
+    echo "    -b bin_dir       Set the path to the directory containing the binaries"
+    echo "                     This directiory must contain the following binaries:"
+    echo "                       ${benchmark_mpi_comm}"
+    echo "                       ${benchmark_ghex_comm_mpi}"
+    echo "                       ${benchmark_ghex_comm_xpmem_mpi}"
+    echo "                     If ucx is enabled (see -u), it must additionally contain:"
+    echo "                       ${benchmark_ghex_comm_ucx}"
+    echo "                       ${benchmark_ghex_comm_xpmem_ucx}"
+}
+
+exit_0() {
+    usage
+    exit 0
+}
+
+exit_1() {
+    usage
+    exit 1
+}
+
+summary() {
+    echo "configured for target"
+    echo "====================="
+    echo "target machine           ${system}: ${subsystem}"
+    echo "work directory           ${work_dir}"
+    echo "output directory         ${output_dir}"
+    echo "scratch directory        ${scratch_dir}"
+    echo "binary directory         ${bin_dir}"
+    echo " -  mpi_comm             ${benchmark_mpi_comm_path}"
+    echo " -  ghex_comm mpi        ${benchmark_ghex_comm_mpi_path}"
+    echo " -  ghex_comm xpmem mpi  ${benchmark_ghex_comm_xpmem_mpi_path}"
+    if [ $use_ucx -eq 1 ] ; then
+        echo " -  ghex_comm ucx        ${benchmark_ghex_comm_ucx_path}"
+        echo " -  ghex_comm xpmem ucx  ${benchmark_ghex_comm_xpmem_ucx_path}"
+    fi
+}
+
+check_mk_path() {
+    mkdir -p ${1}
+    exit_on_error $?
+    cd $1
+    path=$(pwd)
+    cd -  > /dev/null 2>&1
+}
+
+check_path() {
+    if [ -d "${1}" ] ; then
+        cd $1
+        path=$(pwd)
+        cd -  > /dev/null 2>&1
+    else
+        echo "could not find ${1}"
+        exit 1
+    fi
+}
+
+check_binary() {
+    if [ ! -f "${1}/${2}" ] ; then
+        echo "Couldn't find binary ${2} in ${1}"
+        exit 1
+    else
+        path="${1}/${2}"
+    fi
+}
+
+
+while getopts ":hw:s:o:b:u" opt; do
+    case ${opt} in
+        h )
+            exit_0
+            ;;
+        u )
+            use_ucx=1
+            ;;
+        w )
+            work_dir=${OPTARG}
+            ;;
+        s )
+            scratch_dir=${OPTARG}
+            ;;
+        o )
+            output_dir=${OPTARG}
+            ;;
+        b )
+            bin_dir=${OPTARG}
+            ;;
+        \? )
+            echo "Invalid option: $OPTARG" 1>&2
+            exit_1
+            ;;
+        : )
+            echo "Invalid option: $OPTARG requires an argument" 1>&2
+            exit_1
+            ;;
+    esac
+done
+shift $((OPTIND -1))
+
+if [ "$#" -ne 2 ]; then
+    echo "Illegal number of parameters"
+    exit_1
+fi
+
+
+if [[ ! $systems =~ (^|[[:space:]])${1}($|[[:space:]]) ]] ; then
+    echo "Target machine ${1} not recognized"
+    exit_1
+else
+    system=${1}
+fi
+
+if [[ ! $subsystems =~ (^|[[:space:]])${2}($|[[:space:]]) ]] ; then
+    echo "Target machine ${2} not recognized"
+    exit_1
+else
+    subsystem=${2}
+fi
+
+ghexbench_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+this_dir=$(pwd)
+
+ghexbench_system_dir="${ghexbench_dir}/${system}"
+check_path $ghexbench_system_dir
+ghexbench_subsystem_dir="${ghexbench_dir}/${system}/${subsystem}"
+check_path $ghexbench_subsystem_dir
+
+ghexbench_utils_dir="${ghexbench_dir}/utils"
+check_path $ghexbench_utils_dir
+
+command -v jube --version &> /dev/null
+exit_on_error $? "jube not found"
+
+check_path $bin_dir
+bin_dir=$path
+
+check_binary $bin_dir $benchmark_mpi_comm
+benchmark_mpi_comm_path=$path
+check_binary $bin_dir $benchmark_ghex_comm_mpi
+benchmark_ghex_comm_mpi_path=$path
+check_binary $bin_dir $benchmark_ghex_comm_xpmem_mpi
+benchmark_ghex_comm_xpmem_mpi_path=$path
+if [ $use_ucx -eq 1 ] ; then
+    check_binary $bin_dir $benchmark_ghex_comm_ucx
+    benchmark_ghex_comm_ucx_path=$path
+    check_binary $bin_dir $benchmark_ghex_comm_xpmem_ucx
+    benchmark_ghex_comm_xpmem_ucx_path=$path
+fi
+
+check_mk_path $work_dir
+work_dir=$path
+check_mk_path $scratch_dir
+scratch_dir=$path
+check_mk_path $output_dir
+output_dir=$path
+
+check_mk_path "${work_dir}/ghexbench/work/${system}/${subsystem}"
+work_dir=$path
+check_mk_path "$scratch_dir/ghexbench/scratch/${system}/${subsystem}"
+scratch_dir=$path
+check_mk_path "$output_dir/ghexbench/out/${system}/${subsystem}"
+output_dir=$path
+
+
+# copy jobfiles
+cp "${ghexbench_subsystem_dir}/bench.xml" ${this_dir}
+exit_on_error $? "copy failed"
+sed -i "s/@OUTPUT_DIR@/${output_dir//\//\\/}/g" bench.xml
+exit_on_error $?
+sed -i "s/@WORK_DIR@/${work_dir//\//\\/}/g" bench.xml
+exit_on_error $?
+sed -i "s/@GHEXBENCH_DIR@/${ghexbench_dir//\//\\/}/g" bench.xml
+exit_on_error $?
+sed -i "s/@GHEXBENCH_SYSTEM_DIR@/${ghexbench_system_dir//\//\\/}/g" bench.xml
+exit_on_error $?
+sed -i "s/@GHEXBENCH_SUBSYSTEM_DIR@/${ghexbench_subsystem_dir//\//\\/}/g" bench.xml
+exit_on_error $?
+
+summary
+
+
+
