@@ -25,7 +25,7 @@
             <parameter name="taskspersocket" type="int">64</parameter>
             <parameter name="cpuspertask" type="int">1</parameter>
             <parameter name="tasks" type="int" mode="python">int($nodes*$taskspernode)</parameter>
-            <parameter name="timelimit" type="string">01:00:00</parameter>
+            <parameter name="timelimit" type="string">00:10:00</parameter>
             <parameter name="L" type="int">32,64,128</parameter>
             <parameter name="halo" type="int">1,5</parameter>
             <parameter name="num_fields" type="int">1,8</parameter>
@@ -88,6 +88,101 @@
             <do>cp ${errlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
             <do>cp ${executable} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
         </step>
+
+        <!--
+        <! - - Regex pattern: filter out results - ->
+        <patternset name="pattern">
+
+            <! - - example output:
+            elapsed (s)       1.28642400e-03
+            mean (s)          1.28642400e-04
+            median (s)        1.27776000e-04
+            25% centile (s)   1.26604000e-04
+            75% centile (s)   1.29861000e-04
+            min (s)           1.24949000e-04
+            max (s)           1.34551000e-04
+            stddev (s)        3.27546924e-06
+            throughput (GB/s) 6.30635001e+00
+            - - >
+
+            <pattern name="pat_fp" type="float">(([-+]?\d*\.?\d+)(?:[eE]([-+]?\d+))?)</pattern>
+
+            <pattern name="pat_elapsed"        type="float">elapsed (s)       $pat_fp</pattern>
+            <pattern name="pat_mean"           type="float">mean (s)          $pat_fp</pattern>
+            <pattern name="pat_median"         type="float">median (s)        $pat_fp</pattern>
+            <pattern name="pat_centile_25"     type="float">25% centile (s)   $pat_fp</pattern>
+            <pattern name="pat_centile_75"     type="float">75% centile (s)   $pat_fp</pattern>
+            <pattern name="pat_min"            type="float">min (s)           $pat_fp</pattern>
+            <pattern name="pat_max"            type="float">max (s)           $pat_fp</pattern>
+            <pattern name="pat_stddev"         type="float">stddev (s)        $pat_fp</pattern>
+            <pattern name="pat_throughput"     type="float">throughput (GB/s) $pat_fp</pattern>
+
+            <pattern name="val_elapsed"        type="float" mode="python">$pat_elapsed        </pattern>
+            <pattern name="val_mean"           type="float" mode="python">$pat_mean           </pattern>
+            <pattern name="val_median"         type="float" mode="python">$pat_median         </pattern>
+            <pattern name="val_centile_25"     type="float" mode="python">$pat_centile_25     </pattern>
+            <pattern name="val_centile_75"     type="float" mode="python">$pat_centile_75     </pattern>
+            <pattern name="val_min"            type="float" mode="python">$pat_min            </pattern>
+            <pattern name="val_max"            type="float" mode="python">$pat_max            </pattern>
+            <pattern name="val_stddev"         type="float" mode="python">$pat_stddev         </pattern>
+            <pattern name="val_throughput"     type="float" mode="python">$pat_throughput     </pattern>
+        </patternset>
+
+        <! - - Analyse - - >
+        <analyser name="analyse">
+            <use>pattern</use>
+            <analyse step="run">
+                <file>$outlogfile</file>
+            </analyse>
+        </analyser>
+
+        <! - - Create result table - - >
+        <result>
+            <use>analyse</use>
+            <table name="result" style="pretty">
+                <column>executable</column>
+                <column>L</column>
+                <column>halo</column>
+                <column>num_fields</column>
+                <column>taskspernode</column>
+                <column>nodes</column>
+                <column>val_mean</column>
+                <column>val_throughput</column>
+            </table>
+            <! - -
+            <table name="result" style="pretty" sort="backend,variant,taskspernode,sub_domain_size,halo,fields,tra    nsport,nodes">
+                <column>system</column>
+                <column>backend</column>
+                <column>variant</column>
+                <column>transport</column>
+                <column>sub_domain_size</column>
+                <column>halo</column>
+                <column>fields</column>
+                <column>taskspernode</column>
+                <column>nodes</column>
+                <! - -
+                <column>bandwidth</column>
+                <column>time</column>
+                - - >
+                <column>bw_mean</column>
+                <column>bw_min</column>
+                <column>bw_max</column>
+                <column>bw_sd</column>
+                <column>time_mean</column>
+                <column>time_min</column>
+                <column>time_max</column>
+                <column>time_sd</column>
+            </table>
+            - - >
+        </result>
+
+        -->
+
+        <analyser name="analyse" init_with="@GHEXBENCH_DIR@/utils/analyse.xml:analyser">
+        </analyser>
+
+        <result init_with="@GHEXBENCH_DIR@/utils/analyse.xml:result">
+        </result>
 
     </benchmark>
 </jube>
