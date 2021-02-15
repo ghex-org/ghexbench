@@ -19,8 +19,9 @@
         <sub source="#FLAG#" dest="touch $done_file" />
         <sub source="#ENV#" dest="$env" />
         <sub source="#ADDITIONAL_JOB_CONFIG#" dest="$additional_job_config" />
-
-        <sub source="#EXECUTABLE#" dest="$exec" />
-        <sub source="#ARGS_EXECUTABLE#" dest="$args_exec" />
+        <sub source="#EXECUTABLE#" dest="$executable" />
+        <sub source="#EXECUTABLE_ARGS#" dest="$executable_args" />
+        <sub source="#RUN_CMD#" dest="$run_cmd" />
+        <sub source="#RUN_CMD_ARGS#" dest="$run_cmd_args" />
     </substituteset>
 </jube>

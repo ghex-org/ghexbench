@@ -13,7 +13,7 @@ exit_on_error() {
 }
 
 work_dir="."
-scratch_dir="."
+#scratch_dir="."
 output_dir="."
 bin_dir="."
 system=""
@@ -29,8 +29,8 @@ benchmark_ghex_comm_xpmem_mpi="benchmark_ghex_comm_xpmem_mpi"
 benchmark_ghex_comm_ucx="benchmark_ghex_comm_ucx"
 benchmark_ghex_comm_xpmem_ucx="benchmark_ghex_comm_xpmem_ucx"
 
-binaries_mpi="${benchmark_mpi_comm} ${benchmark_ghex_comm_mpi} ${benchmark_ghex_comm_xpmem_mpi}"
-binaries_ucx="${benchmark_ghex_comm_ucx} ${benchmark_ghex_comm_xpmem_ucx}"
+binaries_mpi="${benchmark_mpi_comm}, ${benchmark_ghex_comm_mpi}, ${benchmark_ghex_comm_xpmem_mpi}"
+binaries_ucx="${benchmark_ghex_comm_ucx}, ${benchmark_ghex_comm_xpmem_ucx}"
 
 benchmark_mpi_comm_path="."
 benchmark_ghex_comm_mpi_path="."
@@ -53,7 +53,7 @@ usage() {
     echo "    -h               Display this help message"
     echo "    -u               Enable ucx"
     echo "    -w work_dir      Set the path to the work directory"
-    echo "    -s scratch_dir   Set the path to the scratch directory"
+    #echo "    -s scratch_dir   Set the path to the scratch directory"
     echo "    -o output_dir    Set the path to the output directory"
     echo "    -b bin_dir       Set the path to the directory containing the binaries"
     echo "                     This directiory must contain the following binaries:"
@@ -81,7 +81,7 @@ summary() {
     echo "target machine           ${system}: ${subsystem}"
     echo "work directory           ${work_dir}"
     echo "output directory         ${output_dir}"
-    echo "scratch directory        ${scratch_dir}"
+    #echo "scratch directory        ${scratch_dir}"
     echo "binary directory         ${bin_dir}"
     echo " -  mpi_comm             ${benchmark_mpi_comm_path}"
     echo " -  ghex_comm mpi        ${benchmark_ghex_comm_mpi_path}"
@@ -121,7 +121,7 @@ check_binary() {
 }
 
 
-while getopts ":hw:s:o:b:u" opt; do
+while getopts ":hw:o:b:u" opt; do
     case ${opt} in
         h )
             exit_0
@@ -131,9 +131,6 @@ while getopts ":hw:s:o:b:u" opt; do
             ;;
         w )
             work_dir=${OPTARG}
-            ;;
-        s )
-            scratch_dir=${OPTARG}
             ;;
         o )
             output_dir=${OPTARG}
@@ -196,24 +193,26 @@ check_binary $bin_dir $benchmark_ghex_comm_mpi
 benchmark_ghex_comm_mpi_path=$path
 check_binary $bin_dir $benchmark_ghex_comm_xpmem_mpi
 benchmark_ghex_comm_xpmem_mpi_path=$path
+executables=${binaries_mpi}
 if [ $use_ucx -eq 1 ] ; then
     check_binary $bin_dir $benchmark_ghex_comm_ucx
     benchmark_ghex_comm_ucx_path=$path
     check_binary $bin_dir $benchmark_ghex_comm_xpmem_ucx
     benchmark_ghex_comm_xpmem_ucx_path=$path
+    executables="${binaries_mpi}, ${binaries_ucx}"
 fi
 
 check_mk_path $work_dir
 work_dir=$path
-check_mk_path $scratch_dir
-scratch_dir=$path
+#check_mk_path $scratch_dir
+#scratch_dir=$path
 check_mk_path $output_dir
 output_dir=$path
 
 check_mk_path "${work_dir}/ghexbench/work/${system}/${subsystem}"
 work_dir=$path
-check_mk_path "$scratch_dir/ghexbench/scratch/${system}/${subsystem}"
-scratch_dir=$path
+#check_mk_path "$scratch_dir/ghexbench/scratch/${system}/${subsystem}"
+#scratch_dir=$path
 check_mk_path "$output_dir/ghexbench/out/${system}/${subsystem}"
 output_dir=$path
 
@@ -225,11 +224,15 @@ sed -i "s/@OUTPUT_DIR@/${output_dir//\//\\/}/g" bench.xml
 exit_on_error $?
 sed -i "s/@WORK_DIR@/${work_dir//\//\\/}/g" bench.xml
 exit_on_error $?
+sed -i "s/@BINARY_DIR@/${bin_dir//\//\\/}/g" bench.xml
+exit_on_error $?
 sed -i "s/@GHEXBENCH_DIR@/${ghexbench_dir//\//\\/}/g" bench.xml
 exit_on_error $?
 sed -i "s/@GHEXBENCH_SYSTEM_DIR@/${ghexbench_system_dir//\//\\/}/g" bench.xml
 exit_on_error $?
 sed -i "s/@GHEXBENCH_SUBSYSTEM_DIR@/${ghexbench_subsystem_dir//\//\\/}/g" bench.xml
+exit_on_error $?
+sed -i "s/@EXECUTABLES@/${executables}/g" bench.xml
 exit_on_error $?
 
 summary

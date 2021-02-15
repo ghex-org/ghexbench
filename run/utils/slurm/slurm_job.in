@@ -13,6 +13,6 @@ print_summary () {
     echo "# tasks-per-node: #TASKSPERNODE#"
     echo "# tasks:          #TASKS#"
     echo "# cpus-per-task:  #CPUSPERTASK#"
-    echo "# openmp threads: #OMPTHREADS#"
-    echo "# MPI mode:       #MPITHREADSAFETY#"
+    #echo "# openmp threads: #OMPTHREADS#"
+    #echo "# MPI mode:       #MPITHREADSAFETY#"
 }
