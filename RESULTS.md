@@ -6,18 +6,18 @@
 
 ### hwloc info
 
-* depth 0:           1 Machine (type #0)
-*  depth 1:          2 Package (type #1)
-*   depth 2:         32 L3Cache (type #6)
-*    depth 3:        128 L2Cache (type #5)
-*     depth 4:       128 L1dCache (type #4)
-*      depth 5:      128 L1iCache (type #9)
-*       depth 6:     128 Core (type #2)
-*        depth 7:    256 PU (type #3)
-* Special depth -3:  2 NUMANode (type #13)
-* Special depth -4:  12 Bridge (type #14)
-* Special depth -5:  8 PCIDev (type #15)
-* Special depth -6:  7 OSDev (type #16)
+     depth 0:           1 Machine (type #0)
+      depth 1:          2 Package (type #1)
+       depth 2:         32 L3Cache (type #6)
+        depth 3:        128 L2Cache (type #5)
+         depth 4:       128 L1dCache (type #4)
+          depth 5:      128 L1iCache (type #9)
+           depth 6:     128 Core (type #2)
+            depth 7:    256 PU (type #3)
+     Special depth -3:  2 NUMANode (type #13)
+     Special depth -4:  12 Bridge (type #14)
+     Special depth -5:  8 PCIDev (type #15)
+     Special depth -6:  7 OSDev (type #16)
 
 ### case 1
 
