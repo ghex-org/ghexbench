@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jube>
-        <!-- Regex pattern: filter out results -->
-        <patternset name="pattern">
-            <!-- example output:
-            elapsed (s)       1.28642400e-03
-            mean (s)          1.28642400e-04
-            median (s)        1.27776000e-04
-            25% centile (s)   1.26604000e-04
-            75% centile (s)   1.29861000e-04
-            min (s)           1.24949000e-04
-            max (s)           1.34551000e-04
-            stddev (s)        3.27546924e-06
-            throughput (GB/s) 6.30635001e+00
-            -->
+    <!-- Regex pattern: filter out results -->
+    <patternset name="pattern">
+        <!-- example output:
+        elapsed (s)       1.28642400e-03
+        mean (s)          1.28642400e-04
+        median (s)        1.27776000e-04
+        25% centile (s)   1.26604000e-04
+        75% centile (s)   1.29861000e-04
+        min (s)           1.24949000e-04
+        max (s)           1.34551000e-04
+        stddev (s)        3.27546924e-06
+        throughput (GB/s) 6.30635001e+00
+        -->
 
-	    <!--<pattern name="pat_fp" type="float">(([-+]?\d*\.?\d+)(?:[eE]([-+]?\d+))?)</pattern>-->
-	    <pattern name="pat_fp" type="float">([-+]?\d\.\d+[Ee][+\-]\d\d?)</pattern>
-	    <pattern name="elapsed"        type="float">elapsed \(s\)       ${pat_fp}</pattern>
-            <pattern name="mean"           type="float">mean \(s\)          ${pat_fp}</pattern>
-	    <pattern name="median"         type="float">median \(s\(        ${pat_fp}</pattern>
-	    <pattern name="centile_25"     type="float">25% centile \(s\(   ${pat_fp}</pattern>
-	    <pattern name="centile_75"     type="float">75% centile \(s\(   ${pat_fp}</pattern>
-	    <pattern name="min"            type="float">min \(s\(           ${pat_fp}</pattern>
-	    <pattern name="max"            type="float">max \(s\(           ${pat_fp}</pattern>
-	    <pattern name="stddev"         type="float">stddev \(s\(        ${pat_fp}</pattern>
-            <pattern name="throughput"     type="float">throughput \(GB/s\) ${pat_fp}</pattern>
-        </patternset>
+        <!--<pattern name="pat_fp" type="float">(([-+]?\d*\.?\d+)(?:[eE]([-+]?\d+))?)</pattern>-->
+        <pattern name="pat_fp" type="float">([-+]?\d\.\d+[Ee][+\-]\d\d?)</pattern>
+        <pattern name="elapsed"        type="float">elapsed \(s\)       ${pat_fp}</pattern>
+        <pattern name="mean"           type="float">mean \(s\)          ${pat_fp}</pattern>
+        <pattern name="median"         type="float">median \(s\(        ${pat_fp}</pattern>
+        <pattern name="centile_25"     type="float">25% centile \(s\(   ${pat_fp}</pattern>
+        <pattern name="centile_75"     type="float">75% centile \(s\(   ${pat_fp}</pattern>
+        <pattern name="min"            type="float">min \(s\(           ${pat_fp}</pattern>
+        <pattern name="max"            type="float">max \(s\(           ${pat_fp}</pattern>
+        <pattern name="stddev"         type="float">stddev \(s\(        ${pat_fp}</pattern>
+        <pattern name="throughput"     type="float">throughput \(GB/s\) ${pat_fp}</pattern>
+    </patternset>
 </jube>

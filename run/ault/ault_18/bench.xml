@@ -9,11 +9,11 @@
             <parameter name="jobsystem_jobfile">slurm_job</parameter>
             <parameter name="system_jobfile">ault_job</parameter>
             <parameter name="jobfile">job</parameter>
-	    <parameter name="run_cmd">/users/boeschf/opt/ompi/bin/mpirun -bind-to core -map-by core</parameter>
-	    <!--<parameter name="run_cmd_args">-x UCX_LOG_LEVEL=ERROR -mca pml ucx -map-by core -bind-to core -mca coll_hcoll_enable 0 -np 64</parameter>-->
+            <parameter name="run_cmd">/users/boeschf/opt/ompi/bin/mpirun -bind-to core -map-by core</parameter>
+            <!--<parameter name="run_cmd_args">-x UCX_LOG_LEVEL=ERROR -mca pml ucx -map-by core -bind-to core -mca coll_hcoll_enable 0 -np 64</parameter>-->
             <parameter name="run_cmd_args"></parameter>
             <parameter name="submit_cmd_args">--nodelist=ault19 --exclusive</parameter>
-	    <parameter name="queue">normal</parameter>
+            <parameter name="queue">normal</parameter>
         </parameterset>
 
         <parameterset name="variants">
@@ -33,14 +33,14 @@
             <parameter name="halo" type="int">1</parameter>
             <parameter name="fields" type="int">1</parameter>
             <parameter name="num_reps" type="int">500</parameter>
-	    <!--
-	    <parameter name="order" type="string">XYZ,XZY,YXZ,YZX,ZXY,ZYX</parameter>
+            <!--
+            <parameter name="order" type="string">XYZ,XZY,YXZ,YZX,ZXY,ZYX</parameter>
             -->
-	    <parameter name="order" type="string">XYZ</parameter>
+            <parameter name="order" type="string">XYZ</parameter>
         </parameterset>
 
         <parameterset name="executable_args_set">
-		<parameter name="executable_args">--domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 1 1 --l3 1 4 4 --core 4 1 1 --order ${order}</parameter>
+                <parameter name="executable_args">--domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 1 1 --l3 1 4 4 --core 4 1 1 --order ${order}</parameter>
         </parameterset>
 
         <fileset name="copy_jobfiles">
@@ -72,7 +72,7 @@
 
             <do>cp ${jobfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work/${jobfile}"</do>
 
-	    <do done_file="$done_file">${submit_cmd} ${submit_cmd_args} ${jobfile}</do>
+            <do done_file="$done_file">${submit_cmd} ${submit_cmd_args} ${jobfile}</do>
 
             <do>cp ${outlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
             <do>cp ${errlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
@@ -93,7 +93,7 @@
                 <column>L</column>
                 <column>halo</column>
                 <column>fields</column>
-		<column>order</column>
+                <column>order</column>
                 <column>mean</column>
                 <column>throughput</column>
             </table>
@@ -101,4 +101,3 @@
 
     </benchmark>
 </jube>
-
