@@ -11,6 +11,7 @@
         <sub source="#NODES#" dest="$nodes" />
         <sub source="#TASKS#" dest="$tasks" />
         <sub source="#TASKSPERNODE#" dest="$taskspernode" />
+        <sub source="#TASKSPERCORE#" dest="$taskspercore" />
         <sub source="#TASKSPERSOCKET#" dest="$taskspersocket" />
         <sub source="#CPUSPERTASK#" dest="$cpuspertask" />
         <sub source="#OMPTHREADS#" dest="$ompthreads" />

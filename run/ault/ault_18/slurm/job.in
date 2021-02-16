@@ -1,7 +1,14 @@
 #!/bin/bash -l
 
-. slurm_job
-. ault_job
+#SBATCH --job-name=#BENCHNAME#
+#SBATCH --output=#STDOUTLOGFILE#
+#SBATCH --error=#STDERRLOGFILE#
+#SBATCH --time=#TIME_LIMIT#
+#SBATCH --nodes=#NODES#
+#SBATCH --ntasks-per-node=#TASKSPERNODE#
+#SBATCH --ntasks-per-socket=#TASKSPERSOCKET#
+#SBATCH --cpus-per-task=#CPUSPERTASK#
+#SBATCH --ntasks-per-core=#TASKSPERCORE#
 
 # constaints
 
@@ -9,10 +16,20 @@
 
 # GPU envs
 
-print_summary
+echo "# nodes:          #NODES#"
+echo "# tasks-per-node: #TASKSPERNODE#"
+echo "# tasks:          #TASKS#"
+echo "# cpus-per-task:  #CPUSPERTASK#"
+
+echo ""
+hostname
+echo ""
+hwloc-info
+echo ""
 
 # run job
-# #RUN_CMD# #RUN_CMD_ARGS# #EXECUTABLE# #EXECUTABLE_ARGS#
+#RUN_CMD# #RUN_CMD_ARGS# #EXECUTABLE# #EXECUTABLE_ARGS# --print
+#RUN_CMD# #RUN_CMD_ARGS# #EXECUTABLE# #EXECUTABLE_ARGS#
 
 # source jube flag creation
 . flag
