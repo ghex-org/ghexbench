@@ -17,7 +17,7 @@
 #include <iostream>
 extern "C"
 {
-#include <hwcart.h>
+#include <hwcart/hwcart.h>
 }
 #ifdef NDEBUG
 #define CARTEX_CHECK_MPI_RESULT(x) x;
