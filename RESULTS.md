@@ -1,23 +1,23 @@
 ## Results on Ault 18
 
-Node     Memory  #C/T     CPU VERSION              #ACCEL  ACCEL TYPE
--------  ------  ----     -----------              ------  ----------
-ault18   512 GB  128/256  AMD EPYC 7742 @ 2.25GHz  NO
+|Node   |Memory |#C/T    |CPU VERSION             | #ACCEL  |ACCEL TYPE|
+|:------|------:|-------:|:-----------------------|:--------|:---------|
+|ault18 |512 GB |128/256 |AMD EPYC 7742 @ 2.25GHz |NO       |          |
 
 ### hwloc info
 
-depth 0:           1 Machine (type #0)
- depth 1:          2 Package (type #1)
-  depth 2:         32 L3Cache (type #6)
-   depth 3:        128 L2Cache (type #5)
-    depth 4:       128 L1dCache (type #4)
-     depth 5:      128 L1iCache (type #9)
-      depth 6:     128 Core (type #2)
-       depth 7:    256 PU (type #3)
-Special depth -3:  2 NUMANode (type #13)
-Special depth -4:  12 Bridge (type #14)
-Special depth -5:  8 PCIDev (type #15)
-Special depth -6:  7 OSDev (type #16)
+* depth 0:           1 Machine (type #0)
+*  depth 1:          2 Package (type #1)
+*   depth 2:         32 L3Cache (type #6)
+*    depth 3:        128 L2Cache (type #5)
+*     depth 4:       128 L1dCache (type #4)
+*      depth 5:      128 L1iCache (type #9)
+*       depth 6:     128 Core (type #2)
+*        depth 7:    256 PU (type #3)
+* Special depth -3:  2 NUMANode (type #13)
+* Special depth -4:  12 Bridge (type #14)
+* Special depth -5:  8 PCIDev (type #15)
+* Special depth -6:  7 OSDev (type #16)
 
 ### case 1
 
@@ -29,7 +29,7 @@ Special depth -6:  7 OSDev (type #16)
 * decomposition: --socket 1 1 2 --numa 1 1 1 --l3 1 4 4 --core 4 1 1
 
 |                    executable |  L | halo | fields | order |           mean | throughput |
-|------------------------------:|---:|-----:|-------:|------:|---------------:|-----------:|
+|:------------------------------|---:|-----:|-------:|------:|:---------------|:-----------|
 |       benchmark_ghex_comm_mpi | 64 |    1 |      1 |   XYZ | 0.000167897762 | 154.620572 |
 |       benchmark_ghex_comm_mpi | 64 |    1 |      1 |   XZY | 0.000170886602 | 151.916228 |
 |       benchmark_ghex_comm_mpi | 64 |    1 |      1 |   YXZ | 0.000169793498 | 152.894241 |
