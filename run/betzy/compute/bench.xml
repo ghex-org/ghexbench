@@ -8,12 +8,32 @@
             <parameter name="jobsystem">slurm</parameter>
             <parameter name="jobsystem_jobfile">slurm_job</parameter>
             <parameter name="system_jobfile">betzy_job</parameter>
-            <parameter name="jobfile">job</parameter>
-            <parameter name="run_cmd" separator=";">time mpirun -x UCX_TLS=rc,sm,self -map-by ppr:32:socket:pe=2 -bind-to core</parameter>
-            <parameter name="run_cmd_args" type="string"></parameter>
-            <parameter name="submit_cmd_args">--qos=devel</parameter>
+            <parameter name="jobfile">job</parameter>       
             <parameter name="queue">normal</parameter>
             <parameter name="account">nn9263k</parameter>
+            <parameter name="mpi_tag" tag="ompi">ompi</parameter>
+            <parameter name="mpi_tag" tag="impi">impi</parameter>
+            <parameter name="rundir">${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work</parameter>
+        </parameterset>
+
+        <parameterset name="mpi_params_ompi">
+          <parameter name="run_cmd" tag="halfcores" separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=rc,sm,self -map-by ppr:32:socket:pe=2 -bind-to core</parameter>
+          <parameter name="run_cmd" tag="allcores"  separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=rc,sm,self -map-by ppr:64:socket:pe=1 -bind-to core</parameter>
+          <parameter name="run_setup" separator="">ml load openmpi/4.0.5-gcc-ifort-hpcx27-2020a</parameter>
+        </parameterset>
+
+        <parameterset name="mpi_params_impi">
+            <parameter name="run_cmd" tag="impi">time mpirun -np $tasks </parameter>
+            <parameter name="run_setup" tag="halfcores" separator="">
+ml load intel/2020a
+export UCX_WARN_UNUSED_ENV_VARS=n
+export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 2 127`
+            </parameter>
+            <parameter name="run_setup" tag="allcores" separator="">
+ml load intel/2020a
+export UCX_WARN_UNUSED_ENV_VARS=n
+export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
+            </parameter>
         </parameterset>
 
         <parameterset name="variants">
@@ -22,8 +42,10 @@
         </parameterset>
 
         <parameterset name="specs_single_node">
+            <parameter name="taskspernode" type="int"  tag="halfcores">64</parameter>
+            <parameter name="taskspernode" type="int"  tag="allcores">128</parameter>
+            <parameter name="submit_cmd_args">--qos=devel</parameter>
             <parameter name="nodes" type="int">1</parameter>
-            <parameter name="taskspernode" type="int">64</parameter>
             <parameter name="taskspersocket" type="int" mode="python">int($taskspernode/2)</parameter>
             <parameter name="cpuspertask" type="int">1</parameter>
             <parameter name="taskspercore" type="int">1</parameter>
@@ -32,15 +54,28 @@
             <parameter name="L" type="int">64</parameter>
             <parameter name="halo" type="int">1</parameter>
             <parameter name="fields" type="int">1</parameter>
-            <parameter name="num_reps" type="int">500</parameter>
+            <parameter name="num_reps" type="int">1000</parameter>
             <!--
             <parameter name="order" type="string">XYZ,XZY,YXZ,YZX,ZXY,ZYX</parameter>
             -->
             <parameter name="order" type="string">XYZ</parameter>
         </parameterset>
 
+        <parameterset name="domain_decomp1">
+          <parameter name="ddecomp" tag="halfcores">--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1</parameter>
+          <parameter name="ddecomp" tag="allcores" >--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 4 1 1</parameter>
+        </parameterset>
+
+        <parameterset name="domain_decomp2">
+          <parameter name="ddecomp" tag="halfcores">--socket 1 2 1 --numa 1 1 4 --l3 1 4 1 --core 2 1 1</parameter>
+          <parameter name="ddecomp" tag="allcores" >--socket 1 2 1 --numa 1 1 4 --l3 1 4 1 --core 4 1 1</parameter>
+        </parameterset>
+
         <parameterset name="executable_args_set">
-                <parameter name="executable_args">--domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1 --order ${order}</parameter>
+            <parameter name="exe_name" tag="ompi">$executable</parameter>
+            <parameter name="exe_name" tag="impi">${executable}_impi</parameter>
+            <parameter name="ddindex">1,2</parameter>
+            <parameter name="executable_args"> --domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --order ${order}</parameter>
         </parameterset>
 
         <fileset name="copy_jobfiles">
@@ -49,7 +84,7 @@
         </fileset>
 
         <fileset name="copy_exe">
-            <copy>@BINARY_DIR@/${executable}</copy>
+            <copy>@BINARY_DIR@/${exe_name}</copy>
         </fileset>
 
         <substituteset name="sub_flag" init_with="@GHEXBENCH_DIR@/utils/slurm/substitute.xml:slurm_sub">
@@ -62,6 +97,7 @@
 
         <step name="run" shared="shared_dir" work_dir="@WORK_DIR@/bench_${jube_benchmark_id}_${jube_wp_id}">
             <use>system</use>
+            <use>mpi_params_${mpi_tag}</use>
             <use>copy_jobfiles</use>
             <use>copy_exe</use>
             <use>sub_flag</use>
@@ -69,18 +105,19 @@
             <use>variants</use>
             <use>specs_${bench_type}</use>
             <use>executable_args_set</use>
+            <use>domain_decomp$ddindex</use>
 
             <do>cp ${jobfile} "${jube_benchmark_rundir}/run_shared_dir"</do>
             <do>echo cd $jube_wp_abspath >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
-            <do>echo "echo $executable $args_exec" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
-            <do>echo "$run_cmd $run_cmd_args $executable $executable_args >$outlogfile 2>$errlogfile" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
+            <do>echo "echo ./$exe_name $executable_args $ddecomp" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
+            <do>echo "$run_cmd $run_cmd_args ./$exe_name $executable_args $ddecomp >$outlogfile 2>$errlogfile" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
             <do>echo ". flag" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
             <do>echo "" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
             <do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do>
             <do done_file="$done_file"></do>
             <do>cp ${outlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
             <do>cp ${errlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
-            <do>cp ${executable} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
+            <do>cp ${exe_name} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
         </step>
 
         <analyser name="analyse">
@@ -92,14 +129,16 @@
 
         <result>
             <use>analyse</use>
-            <table name="result" style="pretty" sort="executable,L,halo,fields,order">
+            <table name="result" style="pretty" sort="executable,L,halo,fields,order,ddindex,rundir">
                 <column>executable</column>
                 <column>L</column>
                 <column>halo</column>
                 <column>fields</column>
                 <column>order</column>
+                <column>ddindex</column>
                 <column>mean</column>
                 <column>throughput</column>
+                <column>rundir</column>
             </table>
         </result>
 

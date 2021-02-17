@@ -4,8 +4,6 @@
     <parameterset name="jobsystem_params">
         <parameter name="submit_cmd">sbatch</parameter>
         <parameter name="done_file">ready</parameter>
-        <parameter name="run_cmd">srun</parameter>
-        <parameter name="run_cmd_args"></parameter>
         <parameter name="outlogfile">job.out</parameter>
         <parameter name="errlogfile">job.err</parameter>
     </parameterset>
