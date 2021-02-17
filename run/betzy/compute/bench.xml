@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <benchmark name="exchange" outpath="@OUTPUT_DIR@">
+
+        <parameterset name="system" init_with="@GHEXBENCH_DIR@/utils/slurm/execute.xml:jobsystem_params">
+            <parameter name="system">betzy</parameter>
+            <parameter name="subsystem">compute</parameter>
+            <parameter name="jobsystem">slurm</parameter>
+            <parameter name="jobsystem_jobfile">slurm_job</parameter>
+            <parameter name="system_jobfile">betzy_job</parameter>
+            <parameter name="jobfile">job</parameter>
+            <parameter name="run_cmd" separator=";">time mpirun -x UCX_TLS=rc,sm,self -map-by ppr:32:socket:pe=2 -bind-to core</parameter>
+            <parameter name="run_cmd_args" type="string"></parameter>
+            <parameter name="submit_cmd_args">--qos=devel</parameter>
+            <parameter name="queue">normal</parameter>
+            <parameter name="account">nn9263k</parameter>
+        </parameterset>
+
+        <parameterset name="variants">
+            <parameter name="executable">@EXECUTABLES@</parameter>
+            <parameter name="bench_type" tag="single_node">single_node</parameter>
+        </parameterset>
+
+        <parameterset name="specs_single_node">
+            <parameter name="nodes" type="int">1</parameter>
+            <parameter name="taskspernode" type="int">64</parameter>
+            <parameter name="taskspersocket" type="int" mode="python">int($taskspernode/2)</parameter>
+            <parameter name="cpuspertask" type="int">1</parameter>
+            <parameter name="taskspercore" type="int">1</parameter>
+            <parameter name="tasks" type="int" mode="python">int($nodes*$taskspernode)</parameter>
+            <parameter name="timelimit" type="string">01:00:00</parameter>
+            <parameter name="L" type="int">64</parameter>
+            <parameter name="halo" type="int">1</parameter>
+            <parameter name="fields" type="int">1</parameter>
+            <parameter name="num_reps" type="int">500</parameter>
+            <!--
+            <parameter name="order" type="string">XYZ,XZY,YXZ,YZX,ZXY,ZYX</parameter>
+            -->
+            <parameter name="order" type="string">XYZ</parameter>
+        </parameterset>
+
+        <parameterset name="executable_args_set">
+                <parameter name="executable_args">--domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1 --order ${order}</parameter>
+        </parameterset>
+
+        <fileset name="copy_jobfiles">
+            <copy>@GHEXBENCH_DIR@/utils/${jobsystem}/flag.in</copy>
+            <copy>@GHEXBENCH_SUBSYSTEM_DIR@/${jobsystem}/${jobfile}.in</copy>
+        </fileset>
+
+        <fileset name="copy_exe">
+            <copy>@BINARY_DIR@/${executable}</copy>
+        </fileset>
+
+        <substituteset name="sub_flag" init_with="@GHEXBENCH_DIR@/utils/slurm/substitute.xml:slurm_sub">
+            <iofile in="flag.in" out="flag" />
+        </substituteset>
+
+        <substituteset name="sub_job" init_with="@GHEXBENCH_DIR@/utils/slurm/substitute.xml:slurm_sub">
+            <iofile in="${jobfile}.in" out="$jobfile" />
+        </substituteset>
+
+        <step name="run" shared="shared_dir" work_dir="@WORK_DIR@/bench_${jube_benchmark_id}_${jube_wp_id}">
+            <use>system</use>
+            <use>copy_jobfiles</use>
+            <use>copy_exe</use>
+            <use>sub_flag</use>
+            <use>sub_job</use>
+            <use>variants</use>
+            <use>specs_${bench_type}</use>
+            <use>executable_args_set</use>
+
+            <do>cp ${jobfile} "${jube_benchmark_rundir}/run_shared_dir"</do>
+            <do>echo cd $jube_wp_abspath >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
+            <do>echo "echo $executable $args_exec" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
+            <do>time echo "$run_cmd $run_cmd_args $executable $executable_args >$outlogfile 2>$errlogfile" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
+            <do>echo ". flag" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
+            <do>echo "" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
+            <do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do>
+            <do done_file="$done_file"></do>
+            <do>cp ${outlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
+            <do>cp ${errlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
+            <do>cp ${executable} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
+        </step>
+
+        <analyser name="analyse">
+            <use from="@GHEXBENCH_DIR@/utils/analyse.xml">pattern</use>
+            <analyse step="run">
+                <file>$outlogfile</file>
+            </analyse>
+        </analyser>
+
+        <result>
+            <use>analyse</use>
+            <table name="result" style="pretty" sort="executable,L,halo,fields,order">
+                <column>executable</column>
+                <column>L</column>
+                <column>halo</column>
+                <column>fields</column>
+                <column>order</column>
+                <column>mean</column>
+                <column>throughput</column>
+            </table>
+        </result>
+
+    </benchmark>
+</jube>

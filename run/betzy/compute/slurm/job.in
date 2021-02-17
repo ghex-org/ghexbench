@@ -1,0 +1,35 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=#BENCHNAME#
+#SBATCH --output=#STDOUTLOGFILE#
+#SBATCH --error=#STDERRLOGFILE#
+#SBATCH --time=#TIME_LIMIT#
+#SBATCH --nodes=#NODES#
+#SBATCH --ntasks-per-node=#TASKSPERNODE#
+#SBATCH --ntasks-per-socket=#TASKSPERSOCKET#
+#SBATCH --cpus-per-task=#CPUSPERTASK#
+#SBATCH --ntasks-per-core=#TASKSPERCORE#
+#SBATCH --account=#ACCOUNT#
+
+# constaints
+
+# modules
+ml load openmpi/4.0.5-gcc-ifort-hpcx27-2020a
+
+# GPU envs
+
+echo "# nodes:          #NODES#"
+echo "# tasks-per-node: #TASKSPERNODE#"
+echo "# tasks:          #TASKS#"
+echo "# cpus-per-task:  #CPUSPERTASK#"
+
+echo ""
+hostname
+echo ""
+hwloc-info
+echo ""
+
+# run job
+/bin/bash #RUN_SCRIPT#
+
+#FLAG#

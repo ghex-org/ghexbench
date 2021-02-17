@@ -20,8 +20,8 @@ system=""
 subsystem=""
 use_ucx=0
 
-systems="daint ault"
-subsystems="daint_mc daint_gpu ault_18 ault_25"
+systems="daint ault betzy"
+subsystems="daint_mc daint_gpu ault_18 ault_25 compute"
 
 benchmark_mpi_comm="benchmark_mpi_comm"
 benchmark_ghex_comm_mpi="benchmark_ghex_comm_mpi"
@@ -48,6 +48,8 @@ usage() {
     echo "    ault"
     echo "      ault_18"
     echo "      ault_25"
+    echo "    betzy"
+    echo "      compute"
     echo ""
     echo "  options"
     echo "    -h               Display this help message"
