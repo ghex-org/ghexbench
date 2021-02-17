@@ -34,6 +34,8 @@ mark_as_advanced(GHEX_SKIP_MPICXX)
 mark_as_advanced(GHEX_USE_XPMEM)
 mark_as_advanced(GHEX_USE_UCP)
 mark_as_advanced(GHEX_USE_PMIX)
+mark_as_advanced(GHEX_COMM_OBJ_FAT_CALLBACKS)
+mark_as_advanced(GHEX_COMM_OBJ_U_PACK)
     
 set(CARTEX_RMA "none" CACHE STRING "select rma option")
 set_property(CACHE CARTEX_RMA PROPERTY STRINGS "none" "threads" "xpmem")
