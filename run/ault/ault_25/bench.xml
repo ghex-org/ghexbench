@@ -4,7 +4,7 @@
 
         <parameterset name="system" init_with="@GHEXBENCH_DIR@/utils/slurm/execute.xml:jobsystem_params">
             <parameter name="system">ault</parameter>
-            <parameter name="subsystem">ault_18</parameter>
+            <parameter name="subsystem">ault_25</parameter>
             <parameter name="jobsystem">slurm</parameter>
             <parameter name="jobsystem_jobfile">slurm_job</parameter>
             <parameter name="system_jobfile">ault_job</parameter>
@@ -12,7 +12,7 @@
             <parameter name="run_cmd">/users/boeschf/opt/ompi/bin/mpirun -bind-to core -map-by core</parameter>
             <!--<parameter name="run_cmd_args">-x UCX_LOG_LEVEL=ERROR -mca pml ucx -map-by core -bind-to core -mca coll_hcoll_enable 0 -np 64</parameter>-->
             <parameter name="run_cmd_args"></parameter>
-            <parameter name="submit_cmd_args">--nodelist=ault19 --exclusive</parameter>
+            <parameter name="submit_cmd_args">--nodelist=ault25 --exclusive</parameter>
             <parameter name="queue">normal</parameter>
         </parameterset>
 
@@ -30,14 +30,14 @@
             <parameter name="tasks" type="int" mode="python">int($nodes*$taskspernode)</parameter>
             <parameter name="timelimit" type="string">00:10:00</parameter>
             <parameter name="L" type="int">64</parameter>
-            <parameter name="halo" type="int">1,2,3,4,5</parameter>
-            <parameter name="fields" type="int">1,2,3,4,5,6,7,8</parameter>
+            <parameter name="halo" type="int">1</parameter>
+            <parameter name="fields" type="int">1</parameter>
             <parameter name="num_reps" type="int">1000</parameter>
             <parameter name="order" type="string">XYZ</parameter>
             <!--
             <parameter name="order" type="string">XYZ,XZY,YXZ,YZX,ZXY,ZYX</parameter>
             -->
-            <parameter name="executable_args">--domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 1 1 --l3 1 4 4 --core 4 1 1 --order ${order}</parameter>
+            <parameter name="executable_args">--domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 2 2 --l3 1 2 2 --core 4 1 1 --order ${order}</parameter>
         </parameterset>
 
         <fileset name="copy_jobfiles">
