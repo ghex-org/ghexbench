@@ -73,7 +73,7 @@
             <do>cp ${jobfile} "${jube_benchmark_rundir}/run_shared_dir"</do>
             <do>echo cd $jube_wp_abspath >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
             <do>echo "echo $executable $args_exec" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
-            <do>time echo "$run_cmd $run_cmd_args $executable $executable_args >$outlogfile 2>$errlogfile" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
+            <do>echo "$run_cmd $run_cmd_args $executable $executable_args >$outlogfile 2>$errlogfile" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
             <do>echo ". flag" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
             <do>echo "" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
             <do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do>
