@@ -51,12 +51,11 @@ runtime::impl::impl(cartex::runtime& base, options_values const& options)
     m_pattern = std::unique_ptr<pattern_type>{
         new pattern_type{make_pattern<structured::grid>(m_context, m_halo_gen, m_local_domains)}};
     const auto end = clock_type::now();
-    if (m_comm.rank()==0)
-    std::cout 
-        << "setup time: "
-        << (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count()*1.0e-9)
-        << " s"
-        << std::endl;
+    if (m_comm.rank() == 0)
+        std::cout << "setup time: "
+                  << (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() *
+                         1.0e-9)
+                  << " s" << std::endl;
 }
 
 void
