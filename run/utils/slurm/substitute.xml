@@ -25,5 +25,6 @@
         <sub source="#RUN_CMD#" dest="$run_cmd" />
         <sub source="#RUN_CMD_ARGS#" dest="$run_cmd_args" />
         <sub source="#RUN_SCRIPT#" dest="${jube_benchmark_rundir}/run_shared_dir/runs.sh" />
+        <sub source="#RUN_SETUP#" dest="$run_setup" />
     </substituteset>
 </jube>

@@ -14,7 +14,9 @@
 # constaints
 
 # modules
-ml load openmpi/4.0.5-gcc-ifort-hpcx27-2020a
+ml purge
+#RUN_SETUP#
+ml list
 
 # GPU envs
 
