@@ -9,6 +9,9 @@
  *
  */
 
+#include <chrono>
+#include <iostream>
+
 #include <cartex/runtime/ghex_comm/runtime.hpp>
 #include "../runtime_inc.cpp"
 
@@ -43,8 +46,17 @@ runtime::impl::impl(cartex::runtime& base, options_values const& options)
                 dom.domain_coord[1] + dom.domain_ext[1] - 1,
                 dom.domain_coord[2] + dom.domain_ext[2] - 1}});
     }
+    using clock_type = std::chrono::high_resolution_clock;
+    const auto start = clock_type::now();
     m_pattern = std::unique_ptr<pattern_type>{
         new pattern_type{make_pattern<structured::grid>(m_context, m_halo_gen, m_local_domains)}};
+    const auto end = clock_type::now();
+    if (m_comm.rank()==0)
+    std::cout 
+        << "setup time: "
+        << (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count()*1.0e-9)
+        << " s"
+        << std::endl;
 }
 
 void
