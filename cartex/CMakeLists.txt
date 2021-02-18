@@ -43,24 +43,21 @@ function(compile_as_cuda)
   endif()
 endfunction()
 
-add_library(cartex_common INTERFACE)
-target_include_directories(cartex_common INTERFACE
+add_library(cartex INTERFACE)
+add_library(CartEx::cartex ALIAS cartex)
+target_include_directories(cartex INTERFACE
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
   $<INSTALL_INTERFACE:include>
 )
-target_compile_definitions(cartex_common INTERFACE
+target_compile_definitions(cartex INTERFACE
 # CARTEX_RUNTIME=${CARTEX_RUNTIME}
 # CARTEX_RUNTIME_$<UPPER_CASE:${CARTEX_RUNTIME}>
   CARTEX_FLOAT=${CARTEX_FLOAT}
 )
 set_target_properties(
-  cartex_common
+  cartex
   PROPERTIES
     INTERFACE_POSITION_INDEPENDENT_CODE ON)
-
-add_library(cartex)
-add_library(CartEx::cartex ALIAS cartex)
-target_link_libraries(cartex PUBLIC cartex_common)
 
 add_subdirectory(src)
 
