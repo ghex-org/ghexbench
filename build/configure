@@ -1,0 +1,234 @@
+#!/bin/bash
+
+exit_on_error() {
+    exit_code=$1
+    desc=$2
+    #${@:2}
+    if [ $exit_code -ne 0 ]; then
+        if [ $# -eq 2 ]; then
+            >&2 echo "${2}"
+        fi
+        exit $exit_code
+    fi
+}
+
+use_ucx=0
+work_dir="."
+bin_dir="."
+system=""
+systems="betzy"
+mpilib="impi ompi"
+
+benchmark_mpi_comm="benchmark_mpi_comm"
+benchmark_ghex_comm_mpi="benchmark_ghex_comm_mpi"
+benchmark_ghex_comm_xpmem_mpi="benchmark_ghex_comm_xpmem_mpi"
+benchmark_ghex_comm_ucx="benchmark_ghex_comm_ucx"
+benchmark_ghex_comm_xpmem_ucx="benchmark_ghex_comm_xpmem_ucx"
+
+usage() {
+    echo "Usage: [Options] system mpilib"
+    echo ""
+    echo "  system and subsystem can be one of these values"
+    echo "    betzy"
+    echo "      impi"
+    echo "      ompi"
+    echo ""
+    echo "  options"
+    echo "    -h               Display this help message"
+    echo "    -u               Enable ucx"
+    echo "    -w work_dir      Set the path to the work directory"
+    echo "    -b bin_dir       Set the path to the directory containing the binaries"
+    echo "                     After the build his directiory must contain the following binaries:"
+    echo "                       ${benchmark_mpi_comm}"
+    echo "                       ${benchmark_ghex_comm_mpi}"
+    echo "                       ${benchmark_ghex_comm_xpmem_mpi}"
+    echo "                     If ucx is enabled (see -u), it will additionally contain:"
+    echo "                       ${benchmark_ghex_comm_ucx}"
+    echo "                       ${benchmark_ghex_comm_xpmem_ucx}"
+}
+
+exit_0() {
+    usage
+    exit 0
+}
+
+exit_1() {
+    usage
+    exit 1
+}
+
+summary() {
+    echo "configured for target"
+    echo "====================="
+    echo "target machine           ${system}"
+    echo "work directory           ${work_dir}"
+    echo "binary directory         ${bin_dir}"
+    echo " -  mpi_comm             ${benchmark_mpi_comm_path}"
+    echo " -  ghex_comm mpi        ${benchmark_ghex_comm_mpi_path}"
+    echo " -  ghex_comm xpmem mpi  ${benchmark_ghex_comm_xpmem_mpi_path}"
+    if [ $use_ucx -eq 1 ] ; then
+        echo " -  ghex_comm ucx        ${benchmark_ghex_comm_ucx_path}"
+        echo " -  ghex_comm xpmem ucx  ${benchmark_ghex_comm_xpmem_ucx_path}"
+    fi
+}
+
+check_mk_path() {
+    mkdir -p ${1}
+    exit_on_error $?
+    cd $1
+    path=$(pwd)
+    cd -  > /dev/null 2>&1
+}
+
+check_path() {
+    if [ -d "${1}" ] ; then
+        cd $1
+        path=$(pwd)
+        cd -  > /dev/null 2>&1
+    else
+        echo "could not find ${1}"
+        exit 1
+    fi
+}
+
+check_binary() {
+    if [ ! -f "${1}/${2}" ] ; then
+        echo "Couldn't find binary ${2} in ${1}"
+        exit 1
+    else
+        path="${1}/${2}"
+    fi
+}
+
+
+while getopts ":hw:o:b:u" opt; do
+    case ${opt} in
+        h )
+            exit_0
+            ;;
+        u )
+            use_ucx=1
+            ;;
+        w )
+            work_dir=${OPTARG}
+            ;;
+        b )
+            bin_dir=${OPTARG}
+            ;;
+        \? )
+            echo "Invalid option: $OPTARG" 1>&2
+            exit_1
+            ;;
+        : )
+            echo "Invalid option: $OPTARG requires an argument" 1>&2
+            exit_1
+            ;;
+    esac
+done
+shift $((OPTIND -1))
+
+if [ "$#" -ne 2 ]; then
+    echo "Illegal number of parameters"
+    exit_1
+fi
+
+
+if [[ ! $systems =~ (^|[[:space:]])${1}($|[[:space:]]) ]] ; then
+    echo "Target machine ${1} not recognized"
+    exit_1
+else
+    system=${1}
+fi
+
+if [[ ! $mpilib =~ (^|[[:space:]])${2}($|[[:space:]]) ]] ; then
+    echo "Target mpi library ${1} not recognized"
+    exit_1
+else
+    system_mpilib=${2}
+fi
+
+ghexbench_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+this_dir=$(pwd)
+
+ghexbench_system_dir="${ghexbench_dir}/${system}"
+check_path $ghexbench_system_dir
+
+check_mk_path $bin_dir
+bin_dir=$path
+
+check_mk_path $work_dir
+work_dir=$path
+
+if [ $use_ucx -eq 1 ] ; then
+   CONFIG_RUNTIME=("mpi_comm" "ghex_comm" "ghex_comm" "ghex_comm" "ghex_comm")
+   CONFIG_RMA=("none" "none" "none" "xpmem" "xpmem")
+   CONFIG_UCX=("OFF" "OFF" "ON" "OFF" "ON")
+else
+   CONFIG_RUNTIME=("mpi_comm" "ghex_comm" "ghex_comm")
+   CONFIG_RMA=("none" "none" "xpmem")
+   CONFIG_UCX=("OFF" "OFF" "OFF")
+fi
+
+# init compile environment
+. ${ghexbench_system_dir}/config.${system_mpilib}
+
+for i in ${!CONFIG_RUNTIME[@]}; do
+    runtime_type=${CONFIG_RUNTIME[$i]}
+    rma_type=${CONFIG_RMA[$i]}
+    use_type=${CONFIG_UCX[$i]}
+    echo build configuration: ${runtime_type} ${rma_type} ${use_ucx}
+
+    # copy jobfiles
+    cp "${ghexbench_system_dir}/config.cmake" ${this_dir}
+    exit_on_error $? "copy failed"
+    sed -i "s/@RMA@/${rma_type}/g" config.cmake
+    exit_on_error $?
+    sed -i "s/@RUNTIME@/${runtime_type}/g" config.cmake
+    exit_on_error $?
+    sed -i "s/@USEUCX@/${use_type}/g" config.cmake
+    exit_on_error $?
+    sed -i "s/@CFLAGS@/${CFLAGS}/g" config.cmake
+    exit_on_error $?
+    sed -i "s/@CXXFLAGS@/${CXXFLAGS}/g" config.cmake
+    exit_on_error $?
+    
+    cmake -C config.cmake ${ghexbench_dir}/../cartex
+    cmake -C config.cmake ${ghexbench_dir}/../cartex
+    make clean
+    make -j
+
+    suffix=""
+    if [[ ${rma_type} != "none" ]]; then
+       suffix=${suffix}"_"${rma_type}
+    fi
+    if [[ ${runtime_type} == "ghex_comm" ]]; then
+        if [[ ${use_ucx} != "OFF" ]]; then
+           suffix=${suffix}"_ucx"
+       else
+           suffix=${suffix}"_mpi"
+       fi
+    fi
+
+    if [[ ${system_mpilib} == "impi" ]]; then
+	suffix=${suffix}"_intel"
+    fi
+
+    mv src/bin/benchmark ${bin_dir}/benchmark_${runtime_type}${suffix}
+done
+
+check_binary $bin_dir $benchmark_mpi_comm
+benchmark_mpi_comm_path=$path
+check_binary $bin_dir $benchmark_ghex_comm_mpi
+benchmark_ghex_comm_mpi_path=$path
+check_binary $bin_dir $benchmark_ghex_comm_xpmem_mpi
+benchmark_ghex_comm_xpmem_mpi_path=$path
+executables=${binaries_mpi}
+if [ $use_ucx -eq 1 ] ; then
+    check_binary $bin_dir $benchmark_ghex_comm_ucx
+    benchmark_ghex_comm_ucx_path=$path
+    check_binary $bin_dir $benchmark_ghex_comm_xpmem_ucx
+    benchmark_ghex_comm_xpmem_ucx_path=$path
+    executables="${binaries_mpi}, ${binaries_ucx}"
+fi
+
+summary

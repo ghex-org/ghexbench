@@ -1,0 +1,8 @@
+ml purge
+ml load CMake/3.16.4-GCCcore-9.3.0
+ml load openmpi/4.0.5-gcc-ifort-hpcx27-2020a
+export CC=mpicc
+export CXX=mpicxx
+export FC=mpifort
+export CFLAGS="-Wall -Wextra -Wpedantic -Wno-unknown-pragmas -march=znver2 -funroll-all-loops"
+export CXXFLAGS="-Wall -Wextra -Wpedantic -Wno-unknown-pragmas -march=znver2 -funroll-all-loops"
