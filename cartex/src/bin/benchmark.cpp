@@ -177,6 +177,8 @@ main(int argc, char** argv)
             return 0;
         }
 
+        CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+
         cartex::runtime r(options, *decomp_ptr);
 
         if (rank == 0)
