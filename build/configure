@@ -216,17 +216,21 @@ for i in ${!CONFIG_RUNTIME[@]}; do
     mv src/bin/benchmark ${bin_dir}/benchmark_${runtime_type}${suffix}
 done
 
-check_binary $bin_dir $benchmark_mpi_comm
+if [[ ${system_mpilib} == "impi" ]]; then
+    suffix="_intel"
+fi
+
+check_binary $bin_dir $benchmark_mpi_comm$suffix
 benchmark_mpi_comm_path=$path
-check_binary $bin_dir $benchmark_ghex_comm_mpi
+check_binary $bin_dir $benchmark_ghex_comm_mpi$suffix
 benchmark_ghex_comm_mpi_path=$path
-check_binary $bin_dir $benchmark_ghex_comm_xpmem_mpi
+check_binary $bin_dir $benchmark_ghex_comm_xpmem_mpi$suffix
 benchmark_ghex_comm_xpmem_mpi_path=$path
 executables=${binaries_mpi}
 if [ $use_ucx -eq 1 ] ; then
-    check_binary $bin_dir $benchmark_ghex_comm_ucx
+    check_binary $bin_dir $benchmark_ghex_comm_ucx$suffix
     benchmark_ghex_comm_ucx_path=$path
-    check_binary $bin_dir $benchmark_ghex_comm_xpmem_ucx
+    check_binary $bin_dir $benchmark_ghex_comm_xpmem_ucx$suffix
     benchmark_ghex_comm_xpmem_ucx_path=$path
     executables="${binaries_mpi}, ${binaries_ucx}"
 fi
