@@ -175,8 +175,8 @@ fi
 for i in ${!CONFIG_RUNTIME[@]}; do
     runtime_type=${CONFIG_RUNTIME[$i]}
     rma_type=${CONFIG_RMA[$i]}
-    use_type=${CONFIG_UCX[$i]}
-    echo build configuration: ${runtime_type} ${rma_type} ${use_ucx}
+    ucx_type=${CONFIG_UCX[$i]}
+    echo build configuration: ${runtime_type} ${rma_type} ${ucx_type}
 
     # copy jobfiles
     cp "${ghexbench_system_dir}/config.cmake" ${this_dir}
@@ -185,7 +185,7 @@ for i in ${!CONFIG_RUNTIME[@]}; do
     exit_on_error $?
     sed -i "s/@RUNTIME@/${runtime_type}/g" config.cmake
     exit_on_error $?
-    sed -i "s/@USEUCX@/${use_type}/g" config.cmake
+    sed -i "s/@USEUCX@/${ucx_type}/g" config.cmake
     exit_on_error $?
     sed -i "s/@CFLAGS@/${CFLAGS}/g" config.cmake
     exit_on_error $?
@@ -202,7 +202,7 @@ for i in ${!CONFIG_RUNTIME[@]}; do
        suffix=${suffix}"_"${rma_type}
     fi
     if [[ ${runtime_type} == "ghex_comm" ]]; then
-        if [[ ${use_ucx} != "OFF" ]]; then
+        if [[ ${ucx_type} != "OFF" ]]; then
            suffix=${suffix}"_ucx"
        else
            suffix=${suffix}"_mpi"
@@ -210,9 +210,9 @@ for i in ${!CONFIG_RUNTIME[@]}; do
     fi
 
     if [[ ${system_mpilib} == "impi" ]]; then
-	suffix=${suffix}"_intel"
+        suffix=${suffix}"_intel"
     fi
-
+    
     mv src/bin/benchmark ${bin_dir}/benchmark_${runtime_type}${suffix}
 done
 
