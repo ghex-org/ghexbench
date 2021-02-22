@@ -50,7 +50,7 @@ runtime::exchange(int j)
 
     if (j == 0)
     {
-        int num_elements, local_num_elements = 0;
+        unsigned long long int num_elements, local_num_elements = 0;
         for (int i = 0; i < m_num_threads; ++i)
         {
             local_num_elements += (m_domains[i].domain_ext[0] + m_halos[0] + m_halos[1]) *
@@ -59,14 +59,14 @@ runtime::exchange(int j)
                                   (m_domains[i].domain_ext[0]) * (m_domains[i].domain_ext[1]) *
                                       (m_domains[i].domain_ext[2]);
         }
-        CARTEX_CHECK_MPI_RESULT(MPI_Reduce(&local_num_elements, &num_elements, 1, MPI_INT, MPI_SUM,
-            0, m_decomposition.mpi_comm()));
+        CARTEX_CHECK_MPI_RESULT(MPI_Reduce(&local_num_elements, &num_elements, 1,
+            MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0, m_decomposition.mpi_comm()));
         if (m_rank == 0)
         {
-            const auto   elapsed_time_s = hist.sum();
-            const auto   num_bytes = m_num_fields * num_elements * sizeof(real_type);
-            const double load = 2 * num_bytes;
-            const auto   GB_per_s = m_num_reps * load / (elapsed_time_s * 1.0e9);
+            const auto elapsed_time_s = hist.sum();
+            const auto num_bytes = (double)num_elements * (m_num_fields * sizeof(real_type));
+            const auto load = 2 * num_bytes;
+            const auto GB_per_s = m_num_reps * load / (elapsed_time_s * 1.0e9);
             std::cout << "elapsed (s)       " << std::scientific << std::setprecision(8)
                       << elapsed_time_s << "\n";
             std::cout << "mean (s)          " << std::scientific << std::setprecision(8)
