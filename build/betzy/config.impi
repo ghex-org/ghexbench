@@ -1,0 +1,8 @@
+ml purge
+ml load CMake/3.16.4-GCCcore-9.3.0
+ml load intel/2020a
+export CC=mpiicc
+export CXX=mpiicc
+export FC=mpiifort
+export CFLAGS="-march=core-avx2 -fma -ftz -fomit-frame-pointer"
+export CXXFLAGS="-march=core-avx2 -fma -ftz -fomit-frame-pointer"

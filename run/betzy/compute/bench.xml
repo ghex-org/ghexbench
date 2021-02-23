@@ -38,14 +38,18 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
 
         <parameterset name="variants">
             <parameter name="executable">@EXECUTABLES@</parameter>
-            <parameter name="bench_type" tag="single_node">single_node</parameter>
         </parameterset>
 
-        <parameterset name="specs_single_node">
+        <parameterset name="jobspecs">
             <parameter name="taskspernode" type="int"  tag="halfcores">64</parameter>
             <parameter name="taskspernode" type="int"  tag="allcores">128</parameter>
-            <parameter name="submit_cmd_args">--qos=devel</parameter>
-            <parameter name="nodes" type="int">1</parameter>
+            <parameter name="submit_cmd_args" tag="single_node">--qos=devel</parameter>
+            <parameter name="submit_cmd_args" tag="27_nodes"></parameter>
+            <parameter name="nodes" type="int" tag="single_node">1</parameter>
+            <parameter name="nodes" type="int" tag="27_nodes">27</parameter>
+            <parameter name="node_decomp" tag="single_node">--node 1 1 1</parameter>
+            <parameter name="node_decomp" tag="27_nodes">--node 3 3 3</parameter>
+
             <parameter name="taskspersocket" type="int" mode="python">int($taskspernode/2)</parameter>
             <parameter name="cpuspertask" type="int">1</parameter>
             <parameter name="taskspercore" type="int">1</parameter>
@@ -55,20 +59,17 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             <parameter name="halo" type="int">1</parameter>
             <parameter name="fields" type="int">1</parameter>
             <parameter name="num_reps" type="int">1000</parameter>
-            <!--
-            <parameter name="order" type="string">XYZ,XZY,YXZ,YZX,ZXY,ZYX</parameter>
-            -->
             <parameter name="order" type="string">XYZ</parameter>
         </parameterset>
 
         <parameterset name="domain_decomp1">
-          <parameter name="ddecomp" tag="halfcores">--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1</parameter>
-          <parameter name="ddecomp" tag="allcores" >--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 4 1 1</parameter>
+          <parameter name="ddecomp" tag="halfcores">${node_decomp} --socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1</parameter>
+          <parameter name="ddecomp" tag="allcores" >${node_decomp} --socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 4 1 1</parameter>
         </parameterset>
 
         <parameterset name="domain_decomp2">
-          <parameter name="ddecomp" tag="halfcores">--socket 1 2 1 --numa 1 1 4 --l3 1 4 1 --core 2 1 1</parameter>
-          <parameter name="ddecomp" tag="allcores" >--socket 1 2 1 --numa 1 1 4 --l3 1 4 1 --core 4 1 1</parameter>
+          <parameter name="ddecomp" tag="halfcores">${node_decomp} --socket 1 2 1 --numa 1 1 4 --l3 1 4 1 --core 2 1 1</parameter>
+          <parameter name="ddecomp" tag="allcores" >${node_decomp} --socket 1 2 1 --numa 1 1 4 --l3 1 4 1 --core 4 1 1</parameter>
         </parameterset>
 
         <parameterset name="executable_args_set">
@@ -103,7 +104,7 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             <use>sub_flag</use>
             <use>sub_job</use>
             <use>variants</use>
-            <use>specs_${bench_type}</use>
+            <use>jobspecs</use>
             <use>executable_args_set</use>
             <use>domain_decomp$ddindex</use>
 
@@ -113,7 +114,7 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             <do>echo "$run_cmd $run_cmd_args ./$exe_name $executable_args $ddecomp >$outlogfile 2>$errlogfile" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
             <do>echo ". flag" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
             <do>echo "" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
-            <do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do>
+            <!--do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do-->
             <do done_file="$done_file"></do>
             <do>cp ${outlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
             <do>cp ${errlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
