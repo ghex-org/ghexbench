@@ -1,7 +1,71 @@
+## `halfcores` single-node results
 
+Comparison of results for 64^3 per-rank grids, `halfcores` (64 ranks per compute node, `hwcart` decomposition  
+`--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1`.
 
-----------------------------------------------
-grid 64^3, XYZ
+Tables present execution time [s] of 10000 exchange calls.
+
+### Chosen results
+
+Chosen halo width and number of fileds: `halo (1,5) X fields (1,8)`, (`hXfY`).
+
+Cartesian communicator numbering order: **XYZ**
+
+```
+ompi
+                                      h1f1      h5f1      h1f8      h5f8 
+                                     ______    ______    ______    ______
+
+    benchmark_ghex_comm_mpi          1.5331    5.2716     10.13    98.578
+    benchmark_ghex_comm_ucx           1.517    5.3212    10.001    96.462
+    benchmark_ghex_comm_xpmem_mpi    2.4552    5.1894    15.133    59.959
+    benchmark_ghex_comm_xpmem_ucx    2.3787    5.1484    15.193     60.61
+    benchmark_mpi_comm               1.4763    6.1309    11.957    63.083
+
+impi
+                                      h1f1      h5f1      h1f8      h5f8 
+                                     ______    ______    ______    ______
+
+    benchmark_ghex_comm_mpi          1.9561    9.5071    16.072    115.86
+    benchmark_ghex_comm_ucx          2.2907    7.1981    15.799    94.536
+    benchmark_ghex_comm_xpmem_mpi    2.4069    4.3976    16.271    55.506
+    benchmark_ghex_comm_xpmem_ucx    2.4463    4.5558    16.211    56.246
+    benchmark_mpi_comm               1.4015    3.8625    11.222    49.293
+```
+
+Cartesian communicator numbering order: **ZYX**
+
+```
+ompi
+                                      h1f1      h5f1      h1f8      h5f8 
+                                     ______    ______    ______    ______
+
+    benchmark_ghex_comm_mpi          1.4594     5.278     10.22    98.682
+    benchmark_ghex_comm_ucx          1.6214    5.3684    10.059    97.127
+    benchmark_ghex_comm_xpmem_mpi     2.419     5.087    15.367    58.717
+    benchmark_ghex_comm_xpmem_ucx    2.4194    5.0158    15.294    58.881
+    benchmark_mpi_comm               1.4823    6.8061    12.069    69.365
+
+impi
+                                      h1f1      h5f1      h1f8      h5f8 
+                                     ______    ______    ______    ______
+
+    benchmark_ghex_comm_mpi          1.9449    9.4687    16.252    115.59
+    benchmark_ghex_comm_ucx          2.2867    7.3279    15.794    94.404
+    benchmark_ghex_comm_xpmem_mpi    2.5469    4.3019    16.444    55.033
+    benchmark_ghex_comm_xpmem_ucx    2.5601    4.4837    16.391    53.982
+    benchmark_mpi_comm               1.3813    3.8829    11.322    52.954
+```
+
+### Full results
+
+All halo widths and field numbers:  `halo (1,2,4,5) X fields (1,2,4,8)`.
+Table rows are halo width. Table columns are number of fields. Table columns without a suffix
+are results for the `ompi` toolchain.
+
+Cartesian communicator numbering order: **XYZ**
+
+```
 benchmark_ghex_comm_mpi
            1         2         4         8       1 (impi)    2 (impi)    4 (impi)    8 (impi)
          ______    ______    ______    ______    ________    ________    ________    ________
@@ -46,9 +110,10 @@ benchmark_mpi_comm
     2    2.4599    4.9366     10.09    20.281     1.9257      3.8823      7.7322      15.901 
     4    5.2103    10.463    20.979    47.002     3.0439      7.5695       12.43      30.443 
     5    6.8061    13.704     27.57    69.365     3.8829      9.8964      15.835      52.954 
+```
 
-----------------------------------------------
-grid 64^3, ZYX
+Cartesian communicator numbering order: **ZYX**
+```
 benchmark_ghex_comm_mpi
            1         2         4         8       1 (impi)    2 (impi)    4 (impi)    8 (impi)
          ______    ______    ______    ______    ________    ________    ________    ________
@@ -93,3 +158,4 @@ benchmark_mpi_comm
     2    2.3846    4.8089    9.6341    19.219     1.9063      4.4073      7.6782      15.725 
     4    4.7087    9.4188    18.867    42.327     3.0324      7.5779      15.503      30.663 
     5    6.1309    12.291    25.098    63.083     3.8625      9.8757      15.879      49.293 
+```

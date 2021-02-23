@@ -1,15 +1,3 @@
-## JUBE results
-
-Run command:
-
-`jube run bench.xml --tag single_node impi halfcores hwcart`
-
-Rank decomposition:
-
-`--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1`
-
-64^3 grid points per rank
-
 |                   executable |  L | halo | fields | order | ddindex |           mean | throughput |                 rundir|
 |------------------------------|----|------|--------|-------|---------|----------------|------------|-----------------------|
 |      benchmark_ghex_comm_mpi | 64 |    1 |      1 |   XYZ |       1 | 0.000194492777 | 66.7388486 | 000002/000001_run/work|
@@ -172,4 +160,3 @@ Rank decomposition:
 |           benchmark_mpi_comm | 64 |    5 |      4 |   ZYX |       1 |  0.00158790362 | 184.537547 | 000002/000145_run/work|
 |           benchmark_mpi_comm | 64 |    5 |      8 |   XYZ |       1 |   0.0052953714 | 110.673197 | 000002/000150_run/work|
 |           benchmark_mpi_comm | 64 |    5 |      8 |   ZYX |       1 |   0.0049293129 | 118.891962 | 000002/000155_run/work|
-

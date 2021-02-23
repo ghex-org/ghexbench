@@ -1,0 +1,34 @@
+|        executable |  L | halo | fields | order | ddindex |           mean | throughput |                                                                                                   rundir|
+|-------------------|----|------|--------|-------|---------|----------------|------------|---------------------------------------------------------------------------------------------------------|
+|benchmark_mpi_comm | 64 |    1 |      1 |   XYZ |       1 | 0.000300465552 | 1166.41008 | 000003/000000_run/work|
+|benchmark_mpi_comm | 64 |    1 |      1 |   ZYX |       1 | 0.000181374016 | 1932.28366 | 000003/000001_run/work|
+|benchmark_mpi_comm | 64 |    1 |      2 |   XYZ |       1 | 0.000359887409 | 1947.64273 | 000003/000002_run/work|
+|benchmark_mpi_comm | 64 |    1 |      2 |   ZYX |       1 | 0.000363709083 | 1927.17787 | 000003/000003_run/work|
+|benchmark_mpi_comm | 64 |    1 |      4 |   XYZ |       1 | 0.000753324726 | 1860.90293 | 000003/000004_run/work|
+|benchmark_mpi_comm | 64 |    1 |      4 |   ZYX |       1 | 0.000734479458 | 1908.64997 | 000003/000005_run/work|
+|benchmark_mpi_comm | 64 |    1 |      8 |   XYZ |       1 |  0.00146994505 | 1907.36951 | 000003/000006_run/work|
+|benchmark_mpi_comm | 64 |    1 |      8 |   ZYX |       1 |  0.00147322915 | 1903.11765 | 000003/000007_run/work|
+|benchmark_mpi_comm | 64 |    2 |      1 |   XYZ |       1 | 0.000347818514 | 2078.17952 | 000003/000008_run/work|
+|benchmark_mpi_comm | 64 |    2 |      1 |   ZYX |       1 | 0.000353994823 | 2041.92057 | 000003/000009_run/work|
+|benchmark_mpi_comm | 64 |    2 |      2 |   XYZ |       1 | 0.000699197487 |   2067.597 | 000003/000010_run/work|
+|benchmark_mpi_comm | 64 |    2 |      2 |   ZYX |       1 | 0.000717652566 | 2014.42689 | 000003/000011_run/work|
+|benchmark_mpi_comm | 64 |    2 |      4 |   XYZ |       1 |   0.0014166623 | 2040.93611 | 000003/000012_run/work|
+|benchmark_mpi_comm | 64 |    2 |      4 |   ZYX |       1 |  0.00140170399 |   2062.716 | 000003/000013_run/work|
+|benchmark_mpi_comm | 64 |    2 |      8 |   XYZ |       1 |  0.00281912559 | 2051.21564 | 000003/000014_run/work|
+|benchmark_mpi_comm | 64 |    2 |      8 |   ZYX |       1 |  0.00283789936 | 2037.64607 | 000003/000015_run/work|
+|benchmark_mpi_comm | 64 |    4 |      1 |   XYZ |       1 | 0.000717078426 | 2141.88803 | 000003/000016_run/work|
+|benchmark_mpi_comm | 64 |    4 |      1 |   ZYX |       1 | 0.000719331744 | 2135.17853 | 000003/000017_run/work|
+|benchmark_mpi_comm | 64 |    4 |      2 |   XYZ |       1 |  0.00143743027 | 2137.01037 | 000003/000018_run/work|
+|benchmark_mpi_comm | 64 |    4 |      2 |   ZYX |       1 |   0.0014462214 | 2124.02014 | 000003/000019_run/work|
+|benchmark_mpi_comm | 64 |    4 |      4 |   XYZ |       1 |  0.00291142596 | 2110.17106 | 000003/000020_run/work|
+|benchmark_mpi_comm | 64 |    4 |      4 |   ZYX |       1 |  0.00290434615 | 2115.31494 | 000003/000021_run/work|
+|benchmark_mpi_comm | 64 |    4 |      8 |   XYZ |       1 |  0.00613651307 | 2002.31197 | 000003/000022_run/work|
+|benchmark_mpi_comm | 64 |    4 |      8 |   ZYX |       1 |  0.00613875832 | 2001.57962 | 000003/000023_run/work|
+|benchmark_mpi_comm | 64 |    5 |      1 |   XYZ |       1 |  0.00092817967 | 2130.98604 | 000003/000024_run/work|
+|benchmark_mpi_comm | 64 |    5 |      1 |   ZYX |       1 | 0.000924866509 |  2138.6199 | 000003/000025_run/work|
+|benchmark_mpi_comm | 64 |    5 |      2 |   XYZ |       1 |  0.00185206886 | 2135.92265 | 000003/000026_run/work|
+|benchmark_mpi_comm | 64 |    5 |      2 |   ZYX |       1 |  0.00185332112 | 2134.47944 | 000003/000027_run/work|
+|benchmark_mpi_comm | 64 |    5 |      4 |   XYZ |       1 |  0.00375980676 | 2104.29743 | 000003/000028_run/work|
+|benchmark_mpi_comm | 64 |    5 |      4 |   ZYX |       1 |  0.00375513256 | 2106.91675 | 000003/000029_run/work|
+|benchmark_mpi_comm | 64 |    5 |      8 |   XYZ |       1 |  0.00821049289 | 1927.22941 | 000003/000030_run/work|
+|benchmark_mpi_comm | 64 |    5 |      8 |   ZYX |       1 |  0.00820632572 | 1928.20805 | 000003/000031_run/work|

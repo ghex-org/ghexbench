@@ -56,47 +56,49 @@ only required specifying the global rank grid dimensions, e.g., ``--MPICart 12 1
 With the `hwcart` configuration the ranks were remapped to a memory domain specific rank grid.
 For example, `--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1`.
 
-## Benchmark setup
+## Benchmark results
+The computational grid was periodic in all dimensions. Single precision, 32-bit floats were used.
 
-The computational grid was periodic in all dimensions.
-
-Single precision, 32-bit floats were used.
-
-
-## Single-node tests
+### Setup 1
 
 Results for a 64^3 domain with different halos (1,2,4,5) and different number of fields
-(1 2 4 8). The in-node rank grid was `[4 4 4]` for `halfcodes` tests, and `[4 8 4]` for
-`allcores` tests.
+(1 2 4 8).
 
-[`jube run bench.xml --tag single_node ompi halfcores hwcart`](jube_single_node_0.md)
+For `halfcores` tests the in-node rank grid was `[4 4 4]`, with `hwcart` decomposition  
+`--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1`.
 
-[`jube run bench.xml --tag single_node ompi allcores hwcart`](jube_single_node_1.md)
+For `allcores` tests the in-node rank grid was `[4 8 4]`, with `hwcart` decomposition  
+`--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 4 1 1`.
 
-[`jube run bench.xml --tag single_node impi halfcores hwcart`](jube_single_node_2.md)
+For 27-node runs the node grid dimensions were `[3 3 3]`.
 
-[`jube run bench.xml --tag single_node impi allcores hwcart`](jube_single_node_3.md)
+#### Single-node tests
 
-## 27-node tests
+[`jube run bench.xml --tag single_node ompi halfcores hwcart`](single_node/jube_0.md)  
+[`jube run bench.xml --tag single_node ompi allcores hwcart`](single_node/jube_1.md)  
+[`jube run bench.xml --tag single_node impi halfcores hwcart`](single_node/jube_2.md)  
+[`jube run bench.xml --tag single_node impi allcores hwcart`](single_node/jube_3.md)  
 
-```
-# short, only halo 1 fields 1
-jube run bench.xml --tag 27_nodes ompi halfcores mpicart
-jube run bench.xml --tag 27_nodes impi halfcores mpicart
+The following tables present a human-readable comparison of the different benchmark results.
 
-# full runs: halo 1 2 4 5, fields 1 2 4 8
-jube run bench.xml --tag 27_nodes ompi halfcores hwcart
-jube run bench.xml --tag 27_nodes impi halfcores hwcart
+[`hwcart halfcores`](single_node/halo_fields_halfcores.md)  
+[`hwcart allcores`](single_node/halo_fields_allcores.md)  
 
-# short: halo 1 5, fields 1 8
-jube run bench.xml --tag 27_nodes ompi allcores hwcart
-jube run bench.xml --tag 27_nodes impi allcores hwcart
+#### 27-node tests
 
-# short, only halo 5 fields 8
-jube run bench.xml --tag 27_nodes impi halfcores mpicart
-jube run bench.xml --tag 27_nodes ompi halfcores mpicart
+[`jube run bench.xml --tag 27_nodes ompi halfcores mpicart`](27_nodes/jube_0.md)  
+[`jube run bench.xml --tag 27_nodes impi halfcores mpicart`](27_nodes/jube_1.md)  
+[`jube run bench.xml --tag 27_nodes ompi halfcores hwcart`](27_nodes/jube_2.md)  
+[`jube run bench.xml --tag 27_nodes impi halfcores hwcart`](27_nodes/jube_3.md)  
+[`jube run bench.xml --tag 27_nodes ompi allcores hwcart`](27_nodes/jube_4.md)  
+[`jube run bench.xml --tag 27_nodes impi allcores hwcart`](27_nodes/jube_5.md)  
+[`jube run bench.xml --tag 27_nodes impi halfcores mpicart`](27_nodes/jube_6.md)  
+[`jube run bench.xml --tag 27_nodes ompi halfcores mpicart`](27_nodes/jube_7.md)  
+[`jube run bench.xml --tag 27_nodes impi allcores mpicart`](27_nodes/jube_8.md)  
+[`jube run bench.xml --tag 27_nodes ompi allcores mpicart`](27_nodes/jube_9.md)  
 
-# short: halo 1 5, fields 1 8
-jube run bench.xml --tag 27_nodes impi allcores mpicart
-jube run bench.xml --tag 27_nodes ompi allcores mpicart
-```
+The following tables present a human-readable comparison of the different benchmark results.
+
+[`hwcart halfcores`](27_nodes/halo_fields_halfcores.md)  
+[`hwcart allcores`](27_nodes/halo_fields_allcores.md)  
+[`mpicart` vs `hwcart`](27_nodes/mpicart_vs_hwcart.md)  
