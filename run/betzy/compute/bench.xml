@@ -17,27 +17,34 @@
         </parameterset>
 
         <parameterset name="mpi_params_ompi">
-          <parameter name="run_cmd" tag="halfcores" separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=rc,sm,self -map-by ppr:32:socket:pe=2 -bind-to core</parameter>
-          <parameter name="run_cmd" tag="allcores"  separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=rc,sm,self -map-by ppr:64:socket:pe=1 -bind-to core</parameter>
+	  <parameter name="ucx_tls">ud</parameter>
+          <parameter name="run_cmd" tag="halfcores" separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=${ucx_tls},sm,self -map-by ppr:32:socket:pe=2 -bind-to core</parameter>
+          <parameter name="run_cmd" tag="allcores"  separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=${ucx_tls},sm,self -map-by ppr:64:socket:pe=1 -bind-to core</parameter>
           <parameter name="run_setup" separator="">ml load openmpi/4.0.5-gcc-ifort-hpcx27-2020a</parameter>
         </parameterset>
 
         <parameterset name="mpi_params_impi">
             <parameter name="run_cmd" tag="impi">time mpirun -np $tasks </parameter>
             <parameter name="run_setup" tag="halfcores" separator="">
-ml load intel/2020a
+ml load intel/2020b
+export I_MPI_DEBUG=1
+export I_MPI_FABRICS=shm:ofi
 export UCX_WARN_UNUSED_ENV_VARS=n
 export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 2 127`
             </parameter>
             <parameter name="run_setup" tag="allcores" separator="">
-ml load intel/2020a
+ml load intel/2020b
+export I_MPI_DEBUG=1
+export I_MPI_FABRICS=shm:ofi
 export UCX_WARN_UNUSED_ENV_VARS=n
 export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             </parameter>
         </parameterset>
 
         <parameterset name="variants">
-            <parameter name="executable">@EXECUTABLES@</parameter>
+            <parameter name="executable" tag="ompi">@EXECUTABLES@</parameter>
+            <parameter name="executable" tag="impi+single_node">@EXECUTABLES@</parameter>
+            <parameter name="executable" tag="impi+27_nodes">benchmark_mpi_comm</parameter>
         </parameterset>
 
         <parameterset name="jobspecs">
@@ -45,10 +52,16 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             <parameter name="taskspernode" type="int"  tag="allcores">128</parameter>
             <parameter name="submit_cmd_args" tag="single_node">--qos=devel</parameter>
             <parameter name="submit_cmd_args" tag="27_nodes"></parameter>
-            <parameter name="nodes" type="int" tag="single_node">1</parameter>
-            <parameter name="nodes" type="int" tag="27_nodes">27</parameter>
-            <parameter name="node_decomp" tag="single_node">--node 1 1 1</parameter>
-            <parameter name="node_decomp" tag="27_nodes">--node 3 3 3</parameter>
+
+	    <parameter name="nodex" type="int" tag="single_node">1</parameter>
+	    <parameter name="nodey" type="int" tag="single_node">1</parameter>
+	    <parameter name="nodez" type="int" tag="single_node">1</parameter>
+	    <parameter name="nodex" type="int" tag="27_nodes">3</parameter>
+	    <parameter name="nodey" type="int" tag="27_nodes">3</parameter>
+	    <parameter name="nodez" type="int" tag="27_nodes">3</parameter>
+
+            <parameter name="node_decomp">--node $nodex $nodey $nodez</parameter>
+            <parameter name="nodes" type="int" mode="python">int($nodex*$nodey*$nodez)</parameter>
 
             <parameter name="taskspersocket" type="int" mode="python">int($taskspernode/2)</parameter>
             <parameter name="cpuspertask" type="int">1</parameter>
@@ -56,10 +69,18 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             <parameter name="tasks" type="int" mode="python">int($nodes*$taskspernode)</parameter>
             <parameter name="timelimit" type="string">01:00:00</parameter>
             <parameter name="L" type="int">64</parameter>
-            <parameter name="halo" type="int">1</parameter>
-            <parameter name="fields" type="int">1</parameter>
+
+            <parameter name="halo" tag="mpicart" type="int">1,5</parameter>
+            <parameter name="fields" tag="mpicart" type="int">1,8</parameter>
+
+            <parameter name="halo" tag="hwcart+allcores" type="int">1,5</parameter>
+            <parameter name="fields" tag="hwcart+allcores" type="int">1,8</parameter>
+
+            <parameter name="halo" tag="hwcart+halfcores" type="int">1,2,4,5</parameter>
+            <parameter name="fields" tag="hwcart+halfcores" type="int">1,2,4,8</parameter>
+
             <parameter name="num_reps" type="int">1000</parameter>
-            <parameter name="order" type="string">XYZ</parameter>
+            <parameter name="order" type="string">XYZ,ZYX</parameter>
         </parameterset>
 
         <parameterset name="domain_decomp1">
@@ -72,10 +93,19 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
           <parameter name="ddecomp" tag="allcores" >${node_decomp} --socket 1 2 1 --numa 1 1 4 --l3 1 4 1 --core 4 1 1</parameter>
         </parameterset>
 
+        <parameterset name="domain_decomp3">
+	  <parameter name="gdimx" type="int" tag="halfcores" mode="python">int($nodex*4)</parameter>
+	  <parameter name="gdimx" type="int" tag="allcores" mode="python">int($nodex*8)</parameter>
+	  <parameter name="gdimy" type="int" mode="python">int($nodey*4)</parameter>
+	  <parameter name="gdimz" type="int" mode="python">int($nodez*4)</parameter>
+          <parameter name="ddecomp">--MPICart $gdimx $gdimy $gdimz</parameter>
+        </parameterset>
+
         <parameterset name="executable_args_set">
             <parameter name="exe_name" tag="ompi">$executable</parameter>
-            <parameter name="exe_name" tag="impi">${executable}_impi</parameter>
-            <parameter name="ddindex">1,2</parameter>
+            <parameter name="exe_name" tag="impi">${executable}_intel</parameter>
+            <parameter name="ddindex"  tag="hwcart">1</parameter>
+            <parameter name="ddindex"  tag="mpicart">3</parameter>
             <parameter name="executable_args"> --domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --order ${order}</parameter>
         </parameterset>
 
@@ -114,7 +144,7 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             <do>echo "$run_cmd $run_cmd_args ./$exe_name $executable_args $ddecomp >$outlogfile 2>$errlogfile" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
             <do>echo ". flag" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
             <do>echo "" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
-            <!--do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do-->
+            <do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do>
             <do done_file="$done_file"></do>
             <do>cp ${outlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
             <do>cp ${errlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
