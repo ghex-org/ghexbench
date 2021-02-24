@@ -10,6 +10,7 @@
  */
 
 #include <chrono>
+#include <algorithm>
 #include <iostream>
 
 #include <cartex/runtime/ghex_comm/runtime.hpp>
@@ -48,8 +49,30 @@ runtime::impl::impl(cartex::runtime& base, options_values const& options)
     }
     using clock_type = std::chrono::high_resolution_clock;
     const auto start = clock_type::now();
+#ifndef CARTEX_GHEX_STAGED
     m_pattern = std::unique_ptr<pattern_type>{
         new pattern_type{make_pattern<structured::grid>(m_context, m_halo_gen, m_local_domains)}};
+#else
+    m_pattern = structured::regular::make_staged_pattern(
+        m_context, m_local_domains,
+        [&base](auto id, auto const& offset) {
+            const auto n = base.m_decomposition.neighbor(
+                std::find_if(base.m_domains.begin(), base.m_domains.end(),
+                    [id](auto const& x) { return x.id == id; })
+                    ->thread,
+                offset[0], offset[1], offset[2]);
+            struct _neighbor
+            {
+                int m_id;
+                int m_rank;
+                int id() const noexcept { return m_id; }
+                int rank() const noexcept { return m_rank; }
+            };
+            return _neighbor{n.id, n.rank};
+        },
+        std::array<int, 3>{0, 0, 0}, base.m_decomposition.last_domain_coord(), base.m_halos,
+        std::array<bool, 3>{true, true, true});
+#endif
     const auto end = clock_type::now();
     if (m_comm.rank() == 0)
         std::cout << "setup time: "
@@ -76,13 +99,16 @@ runtime::impl::init(int j)
 #endif
     }
 
-    auto bco = bulk_communication_object<structured::rma_range_generator, pattern_type,
+    using bco_type = bulk_communication_object<structured::rma_range_generator, pattern_type,
 #ifndef __CUDACC__
         field_type
 #else
         gpu_field_type
 #endif
-        >(m_comms[j], m_node_local);
+        >;
+
+#ifndef CARTEX_GHEX_STAGED
+    bco_type bco(m_comms[j], m_node_local);
 #ifndef __CUDACC__
     for (int i = 0; i < m_base.m_num_fields; ++i)
         bco.add_field(m_pattern->operator()(m_fields[j][i]));
@@ -91,12 +117,43 @@ runtime::impl::init(int j)
         bco.add_field(m_pattern->operator()(m_fields_gpu[j][i]));
 #endif
     m_cos[j] = std::move(bco);
+
+#else
+
+    bco_type bco_x(m_comms[j], m_node_local);
+    bco_type bco_y(m_comms[j], m_node_local);
+    bco_type bco_z(m_comms[j], m_node_local);
+#ifndef __CUDACC__
+    for (int i = 0; i < m_base.m_num_fields; ++i)
+    {
+        bco_x.add_field(m_pattern[0]->operator()(m_fields[j][i]));
+        bco_y.add_field(m_pattern[1]->operator()(m_fields[j][i]));
+        bco_z.add_field(m_pattern[2]->operator()(m_fields[j][i]));
+    }
+#else
+    for (int i = 0; i < m_base.m_num_fields; ++i)
+    {
+        bco_x.add_field(m_pattern[0]->operator()(m_fields_gpu[j][i]));
+        bco_y.add_field(m_pattern[1]->operator()(m_fields_gpu[j][i]));
+        bco_z.add_field(m_pattern[2]->operator()(m_fields_gpu[j][i]));
+    }
+#endif
+    m_cos[j][0] = std::move(bco_x);
+    m_cos[j][1] = std::move(bco_y);
+    m_cos[j][2] = std::move(bco_z);
+#endif
 }
 
 void
 runtime::impl::step(int j)
 {
+#ifndef CARTEX_GHEX_STAGED
     m_cos[j].exchange().wait();
+#else
+    m_cos[j][0].exchange().wait();
+    m_cos[j][1].exchange().wait();
+    m_cos[j][2].exchange().wait();
+#endif
 }
 
 } // namespace cartex

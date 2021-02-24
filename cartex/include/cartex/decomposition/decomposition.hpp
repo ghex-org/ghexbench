@@ -175,13 +175,7 @@ class decomposition
     int                   num_domains() const noexcept { return threads_per_rank() * size(); }
     domain_t              domain(int thread_id) const noexcept;
     domain_t              neighbor(int thread_id, int dx, int dy, int dz) const noexcept;
-    std::vector<domain_t> domains() const noexcept
-    {
-        std::vector<domain_t> res;
-        res.reserve(threads_per_rank());
-        for (int i = 0; i < threads_per_rank(); ++i) res.push_back(domain(i));
-        return res;
-    }
+    std::vector<domain_t> domains() const noexcept;
     void print();
 };
 

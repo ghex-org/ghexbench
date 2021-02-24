@@ -171,4 +171,13 @@ decomposition::neighbor(int thread_id, int dx, int dy, int dz) const noexcept
     }
 }
 
+std::vector<decomposition::domain_t>
+decomposition::domains() const noexcept
+{
+    std::vector<domain_t> res;
+    res.reserve(threads_per_rank());
+    for (int i = 0; i < threads_per_rank(); ++i) res.push_back(domain(i));
+    return res;
+}
+
 } // namespace cartex

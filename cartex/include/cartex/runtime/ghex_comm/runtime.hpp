@@ -31,6 +31,9 @@ using transport = gridtools::ghex::tl::ucx_tag;
 #include <ghex/structured/regular/domain_descriptor.hpp>
 #include <ghex/structured/regular/field_descriptor.hpp>
 #include <ghex/structured/regular/halo_generator.hpp>
+#ifdef CARTEX_GHEX_STAGED
+#include <ghex/structured/regular/make_pattern.hpp>
+#endif
 
 #include <cartex/runtime/runtime.hpp>
 
@@ -65,12 +68,20 @@ class runtime::impl
 #endif
     typename context_type::communicator_type              m_comm;
     std::vector<typename context_type::communicator_type> m_comms;
-    std::vector<generic_bulk_communication_object>        m_cos;
-    bool                                                  m_node_local;
+#ifndef CARTEX_GHEX_STAGED
+    std::vector<generic_bulk_communication_object> m_cos;
+#else
+    std::vector<std::array<generic_bulk_communication_object, 3>> m_cos;
+#endif
+    bool m_node_local;
 
     using pattern_type = std::remove_reference_t<decltype(
         make_pattern<structured::grid>(m_context, m_halo_gen, m_local_domains))>;
+#ifndef CARTEX_GHEX_STAGED
     std::unique_ptr<pattern_type> m_pattern;
+#else
+    std::array<std::unique_ptr<pattern_type>, 3>                  m_pattern;
+#endif
 
   public:
     impl(runtime& base, options_values const& options);

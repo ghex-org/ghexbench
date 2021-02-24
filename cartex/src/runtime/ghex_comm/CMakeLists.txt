@@ -36,9 +36,14 @@ mark_as_advanced(GHEX_USE_UCP)
 mark_as_advanced(GHEX_USE_PMIX)
 mark_as_advanced(GHEX_COMM_OBJ_FAT_CALLBACKS)
 mark_as_advanced(GHEX_COMM_OBJ_U_PACK)
-    
+
 set(CARTEX_RMA "none" CACHE STRING "select rma option")
 set_property(CACHE CARTEX_RMA PROPERTY STRINGS "none" "threads" "xpmem")
+
+set(CARTEX_STAGED_EXCHANGE OFF CACHE BOOL "use 6-way exchange")
+if (CARTEX_STAGED_EXCHANGE)
+  target_compile_definitions(runtime PRIVATE CARTEX_GHEX_STAGED)
+endif()
 
 set(CARTEX_FAT_CALLBACKS ON CACHE BOOL "use fat callbacks")
 if (CARTEX_FAT_CALLBACKS)
