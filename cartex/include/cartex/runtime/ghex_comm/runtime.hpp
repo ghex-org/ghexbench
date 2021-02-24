@@ -16,15 +16,20 @@
 #include <type_traits>
 #include <sstream>
 
-#ifndef GHEX_USE_UCP
-#include <ghex/transport_layer/mpi/context.hpp>
-using transport = gridtools::ghex::tl::mpi_tag;
-//#pragma message "using mpi for transport"
-#else
+#if defined(GHEX_USE_UCP)
 #include <ghex/transport_layer/ucx/context.hpp>
 using transport = gridtools::ghex::tl::ucx_tag;
 //#pragma message "using ucp for transport"
+#elif defined(GHEX_USE_LIBFABRIC)
+#include <ghex/transport_layer/libfabric/context.hpp>
+using transport = gridtools::ghex::tl::libfabric_tag;
+//#pragma message "using libfabric for transport"
+#else
+#include <ghex/transport_layer/mpi/context.hpp>
+using transport = gridtools::ghex::tl::mpi_tag;
+//#pragma message "using mpi for transport"
 #endif
+
 #include <ghex/bulk_communication_object.hpp>
 #include <ghex/structured/pattern.hpp>
 #include <ghex/structured/rma_range_generator.hpp>
