@@ -1,6 +1,6 @@
 ## `halfcores` results: staged vs. standard algorithm
 
-The following tables present execution times of the standard algorighm, in which each rank exchanges explicit
+The following tables present execution times of the standard algorithm, in which each rank exchanges explicit
 messages with each of it's 26 neighbors, with the staged algorithm, in which the halos are exchanged in 3
 one-dimentional stages, with a synchronization point between each step / dimension. The staged algorithm
 exchanges only 6 messages, while the standard algorithm exchanges 26 messages.
