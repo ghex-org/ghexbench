@@ -12,18 +12,20 @@
         max (s)           1.34551000e-04
         stddev (s)        3.27546924e-06
         throughput (GB/s) 6.30635001e+00
+        tp. stddev (GB/s) 2.61212923e+00
         -->
 
         <!--<pattern name="pat_fp" type="float">(([-+]?\d*\.?\d+)(?:[eE]([-+]?\d+))?)</pattern>-->
         <pattern name="pat_fp" type="float">([-+]?\d\.\d+[Ee][+\-]\d\d?)</pattern>
-        <pattern name="elapsed"        type="float">elapsed \(s\)       ${pat_fp}</pattern>
-        <pattern name="mean"           type="float">mean \(s\)          ${pat_fp}</pattern>
-        <pattern name="median"         type="float">median \(s\(        ${pat_fp}</pattern>
-        <pattern name="centile_25"     type="float">25% centile \(s\(   ${pat_fp}</pattern>
-        <pattern name="centile_75"     type="float">75% centile \(s\(   ${pat_fp}</pattern>
-        <pattern name="min"            type="float">min \(s\(           ${pat_fp}</pattern>
-        <pattern name="max"            type="float">max \(s\(           ${pat_fp}</pattern>
-        <pattern name="stddev"         type="float">stddev \(s\(        ${pat_fp}</pattern>
-        <pattern name="throughput"     type="float">throughput \(GB/s\) ${pat_fp}</pattern>
+        <pattern name="elapsed"           type="float">elapsed \(s\)       ${pat_fp}</pattern>
+        <pattern name="mean"              type="float">mean \(s\)          ${pat_fp}</pattern>
+        <pattern name="median"            type="float">median \(s\)        ${pat_fp}</pattern>
+        <pattern name="centile_25"        type="float">25% centile \(s\)   ${pat_fp}</pattern>
+        <pattern name="centile_75"        type="float">75% centile \(s\)   ${pat_fp}</pattern>
+        <pattern name="min"               type="float">min \(s\)           ${pat_fp}</pattern>
+        <pattern name="max"               type="float">max \(s\)           ${pat_fp}</pattern>
+        <pattern name="stddev"            type="float">stddev \(s\)        ${pat_fp}</pattern>
+        <pattern name="throughput"        type="float">throughput \(GB/s\) ${pat_fp}</pattern>
+        <pattern name="throughput_stddev" type="float">tp\. stddev \(GB/s\) ${pat_fp}</pattern>
     </patternset>
 </jube>

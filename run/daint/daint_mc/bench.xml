@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+    <benchmark name="exchange" outpath="@OUTPUT_DIR@">
+
+        <parameterset name="system" init_with="@GHEXBENCH_DIR@/utils/slurm/execute.xml:jobsystem_params">
+            <parameter name="system">daint</parameter>
+            <parameter name="subsystem">daint_mc</parameter>
+            <parameter name="jobsystem">slurm</parameter>
+            <parameter name="jobsystem_jobfile">slurm_job</parameter>
+            <parameter name="system_jobfile">daint_job</parameter>
+            <parameter name="jobfile">job</parameter>
+            <parameter name="submit_cmd_args"></parameter>
+            <parameter name="run_cmd">srun</parameter>
+            <parameter name="queue">normal</parameter>
+        </parameterset>
+
+        <parameterset name="variants">
+            <!--<parameter name="executable">@EXECUTABLES@</parameter>-->
+            <parameter name="executable">benchmark_mpi_comm, benchmark_ghex_comm_mpi, benchmark_ghex_comm_mpi_staged, benchmark_ghex_comm_thread_mpi, benchmark_ghex_comm_thread_mpi_staged, benchmark_ghex_comm_xpmem_mpi, benchmark_ghex_comm_xpmem_mpi_staged</parameter>
+            <!--<parameter name="executable">benchmark_ghex_comm_xpmem_mpi_staged</parameter>-->
+            <parameter name="bench_type" tag="single_node">single_node</parameter>
+        </parameterset>
+
+        <parameterset name="specs_single_node">
+            <!-- general parameters -->
+            <parameter name="nodes" type="int">1</parameter>
+            <parameter name="taskspercore" type="int">1</parameter>
+            <parameter name="tasks" type="int" mode="python">int($nodes*$taskspernode)</parameter>
+            <parameter name="timelimit" type="string">00:10:00</parameter>
+            <parameter name="L" type="int">64</parameter>
+            <parameter name="halo" type="int">1,2,3,4,5</parameter>
+            <parameter name="fields" type="int">1,2,3,4,5,6,7,8</parameter>
+            <parameter name="num_reps" type="int">5000</parameter>
+            <parameter name="order" type="string">XYZ</parameter>
+            <!-- ranks only parameters -->
+            <parameter name="additional_job_config" tag="!threads"></parameter>
+            <parameter name="run_cmd_args" tag="!threads">--cpu-bind=cores</parameter>
+            <parameter name="taskspernode" type="int" tag="!threads">36</parameter>
+            <parameter name="taskspersocket" type="int" tag="!threads">18</parameter>
+            <parameter name="cpuspertask" type="int" tag="!threads">1</parameter>
+            <parameter name="executable_args" tag="!threads">--domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 1 1 --l3 1 1 1 --core 3 3 2 --thread 1 1 1 --order ${order}</parameter>
+            <!-- threads parameters -->
+            <parameter name="additional_job_config" tag="threads">export MPICH_MAX_THREAD_SAFETY=multiple</parameter>
+            <parameter name="run_cmd_args" tag="threads">--cpu-bind=socket</parameter>
+            <parameter name="taskspernode" type="int" tag="threads">2</parameter>
+            <parameter name="taskspersocket" type="int" tag="threads">1</parameter>
+            <parameter name="cpuspertask" type="int" tag="threads">18</parameter>
+            <parameter name="executable_args" tag="threads">--domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 1 1 --l3 1 1 1 --core 1 1 1 --thread 3 3 2 --order ${order}</parameter>
+        </parameterset>
+
+        <fileset name="copy_jobfiles">
+            <copy>@GHEXBENCH_DIR@/utils/${jobsystem}/flag.in</copy>
+            <copy>@GHEXBENCH_SUBSYSTEM_DIR@/${jobsystem}/${jobfile}.in</copy>
+        </fileset>
+
+        <fileset name="copy_exe">
+            <copy>@BINARY_DIR@/${executable}</copy>
+        </fileset>
+
+        <substituteset name="sub_flag" init_with="@GHEXBENCH_DIR@/utils/slurm/substitute.xml:slurm_sub">
+            <iofile in="flag.in" out="flag" />
+        </substituteset>
+
+        <substituteset name="sub_job" init_with="@GHEXBENCH_DIR@/utils/slurm/substitute.xml:slurm_sub">
+            <iofile in="${jobfile}.in" out="$jobfile" />
+        </substituteset>
+
+        <step name="run" work_dir="@WORK_DIR@/bench_${jube_benchmark_id}_${jube_wp_id}">
+            <use>system</use>
+            <use>variants</use>
+            <use>copy_jobfiles</use>
+            <use>copy_exe</use>
+            <use>sub_flag</use>
+            <use>sub_job</use>
+            <use>specs_${bench_type}</use>
+
+            <do>cp ${jobfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work/${jobfile}"</do>
+
+            <do done_file="$done_file">${submit_cmd} ${submit_cmd_args} ${jobfile}</do>
+
+            <do>cp ${outlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
+            <do>cp ${errlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
+            <do>cp ${executable} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
+        </step>
+
+        <analyser name="analyse">
+            <use from="@GHEXBENCH_DIR@/utils/analyse.xml">pattern</use>
+            <analyse step="run">
+                <file>$outlogfile</file>
+            </analyse>
+        </analyser>
+
+        <result>
+            <use>analyse</use>
+            <table name="result" style="pretty" sort="executable,L,halo,fields,order">
+                <column>executable</column>
+                <column>L</column>
+                <column>halo</column>
+                <column>fields</column>
+                <column>mean</column>
+                <column>stddev</column>
+                <column>throughput</column>
+                <column>throughput_stddev</column>
+            </table>
+        </result>
+
+    </benchmark>
+</jube>

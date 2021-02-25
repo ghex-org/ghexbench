@@ -80,7 +80,6 @@ thread_pool::thread_pool(int n)
                 job = std::move(t.m_queue.front());
                 t.m_queue.pop();
             }
-            std::cout << "thread " << thread_id << ", cpu: " << sched_getcpu() << std::endl;
             job(thread_id);
         }
     };
