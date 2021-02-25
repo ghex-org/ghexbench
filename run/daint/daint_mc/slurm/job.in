@@ -31,9 +31,13 @@ hostname
 echo ""
 hwloc-info
 echo ""
+lscpu --all --extended
+echo ""
 
 # run job
-# #RUN_CMD# #RUN_CMD_ARGS# #EXECUTABLE# #EXECUTABLE_ARGS# --print
+#RUN_CMD# #RUN_CMD_ARGS# #EXECUTABLE# #EXECUTABLE_ARGS# --print
+echo ""
+echo ""
 #RUN_CMD# #RUN_CMD_ARGS# #EXECUTABLE# #EXECUTABLE_ARGS#
 
 # source jube flag creation
