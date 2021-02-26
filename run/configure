@@ -12,6 +12,9 @@ exit_on_error() {
     fi
 }
 
+invocation="$(printf %q "$BASH_SOURCE")$((($#)) && printf ' %q' "$@")"
+echo ${invocation} > config.log
+
 work_dir="."
 #scratch_dir="."
 output_dir="."
