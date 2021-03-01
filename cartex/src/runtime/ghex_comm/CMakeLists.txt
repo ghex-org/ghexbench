@@ -45,6 +45,11 @@ if (CARTEX_STAGED_EXCHANGE)
   target_compile_definitions(runtime PRIVATE CARTEX_GHEX_STAGED)
 endif()
 
+set(CARTEX_FIELD_BY_FIELD OFF CACHE BOOL "exchange field by field")
+if (CARTEX_FIELD_BY_FIELD)
+  target_compile_definitions(runtime PRIVATE CARTEX_GHEX_FIELD_BY_FIELD)
+endif()
+
 set(CARTEX_FAT_CALLBACKS OFF CACHE BOOL "use fat callbacks")
 if (CARTEX_FAT_CALLBACKS)
   target_compile_definitions(runtime PRIVATE GHEX_COMM_OBJ_USE_FAT_CALLBACKS)

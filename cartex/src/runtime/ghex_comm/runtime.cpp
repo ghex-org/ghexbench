@@ -36,7 +36,11 @@ runtime::impl::impl(cartex::runtime& base, options_values const& options)
 #endif
 , m_comm{m_context.get_serial_communicator()}
 , m_comms(base.m_num_threads, m_comm)
+#ifdef CARTEX_GHEX_FIELD_BY_FIELD
+, m_cos(base.m_num_threads * base.m_num_fields)
+#else
 , m_cos(base.m_num_threads)
+#endif
 , m_node_local(options.is_set("node-local"))
 {
     m_local_domains.reserve(m_base.m_num_threads);
@@ -107,6 +111,8 @@ runtime::impl::init(int j)
 #endif
         >;
 
+#ifndef CARTEX_GHEX_FIELD_BY_FIELD
+
 #ifndef CARTEX_GHEX_STAGED
     bco_type bco(m_comms[j], m_node_local);
 #ifndef __CUDACC__
@@ -142,17 +148,67 @@ runtime::impl::init(int j)
     m_cos[j][1] = std::move(bco_y);
     m_cos[j][2] = std::move(bco_z);
 #endif
+
+#else
+
+#ifndef CARTEX_GHEX_STAGED
+    for (int i = 0; i < m_base.m_num_fields; ++i)
+    {
+        bco_type bco(m_comms[j], m_node_local);
+#ifndef __CUDACC__
+        bco.add_field(m_pattern->operator()(m_fields[j][i]));
+#else
+        bco.add_field(m_pattern->operator()(m_fields_gpu[j][i]));
+#endif
+        m_cos[j * m_base.m_num_fields + i] = std::move(bco);
+    }
+#else
+
+    for (int i = 0; i < m_base.m_num_fields; ++i)
+    {
+        bco_type bco_x(m_comms[j], m_node_local);
+        bco_type bco_y(m_comms[j], m_node_local);
+        bco_type bco_z(m_comms[j], m_node_local);
+#ifndef __CUDACC__
+        bco_x.add_field(m_pattern[0]->operator()(m_fields[j][i]));
+        bco_y.add_field(m_pattern[1]->operator()(m_fields[j][i]));
+        bco_z.add_field(m_pattern[2]->operator()(m_fields[j][i]));
+#else
+        bco_x.add_field(m_pattern[0]->operator()(m_fields_gpu[j][i]));
+        bco_y.add_field(m_pattern[1]->operator()(m_fields_gpu[j][i]));
+        bco_z.add_field(m_pattern[2]->operator()(m_fields_gpu[j][i]));
+#endif
+        m_cos[j * m_base.m_num_fields + i][0] = std::move(bco_x);
+        m_cos[j * m_base.m_num_fields + i][1] = std::move(bco_y);
+        m_cos[j * m_base.m_num_fields + i][2] = std::move(bco_z);
+    }
+#endif
+
+#endif
 }
 
 void
 runtime::impl::step(int j)
 {
+#ifndef CARTEX_GHEX_FIELD_BY_FIELD
 #ifndef CARTEX_GHEX_STAGED
     m_cos[j].exchange().wait();
 #else
     m_cos[j][0].exchange().wait();
     m_cos[j][1].exchange().wait();
     m_cos[j][2].exchange().wait();
+#endif
+#else
+    for (int i = 0; i < m_base.m_num_fields; ++i)
+    {
+#ifndef CARTEX_GHEX_STAGED
+        m_cos[j * m_base.m_num_fields + i].exchange().wait();
+#else
+        m_cos[j * m_base.m_num_fields + i][0].exchange().wait();
+        m_cos[j * m_base.m_num_fields + i][1].exchange().wait();
+        m_cos[j * m_base.m_num_fields + i][2].exchange().wait();
+#endif
+    }
 #endif
 }
 
