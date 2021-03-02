@@ -12,6 +12,7 @@
 #include <thread>
 
 #include <cartex/common/options.hpp>
+#include <cartex/common/thread_pool.hpp>
 #include <cartex/runtime/runtime.hpp>
 
 int
@@ -190,11 +191,9 @@ main(int argc, char** argv)
         if (decomp_ptr->threads_per_rank() == 1) r.exchange(0);
         else
         {
-            std::vector<std::thread> threads;
-            threads.reserve(num_threads);
+            cartex::thread_pool tp(num_threads);
             for (int j = 0; j < num_threads; ++j)
-                threads.push_back(std::thread([&r, j]() { r.exchange(j); }));
-            for (auto& t : threads) t.join();
+                tp.schedule(j, [&r](int j) { r.exchange(j); });
         }
 
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
