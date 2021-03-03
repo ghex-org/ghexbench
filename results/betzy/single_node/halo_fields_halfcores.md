@@ -5,6 +5,10 @@ Comparison of results for 64^3 per-rank grids, `halfcores` (64 ranks per compute
 
 Tables present execution time [s] of 10000 exchange calls.
 
+### Plots
+
+![ompi vs. impi](betzy_ompi_vs_impi.png)
+
 ### Chosen results
 
 Chosen halo width and number of fileds: `halo (1,5) X fields (1,8)`, (`hXfY`).
