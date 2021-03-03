@@ -6,7 +6,7 @@ set(CARTEX_RUNTIME "@RUNTIME@" CACHE STRING "" FORCE)
 set(CARTEX_UCP "@USEUCX@" CACHE BOOL "" FORCE)
 set(CARTEX_FIELD_BY_FIELD "ON" CACHE BOOL "" FORCE)
 set(CARTEX_FAT_CALLBACKS "OFF" CACHE BOOL "" FORCE)
-set(CARTEX_STAGED_EXCHANGE "ON" CACHE BOOL "" FORCE)
+set(CARTEX_STAGED_EXCHANGE "OFF" CACHE BOOL "" FORCE)
 
 set(HWCART_USE_HWLOC "ON" CACHE BOOL "" FORCE)
 set(MPI_CXX_SKIP_MPICXX "TRUE" CACHE BOOL "" FORCE)
@@ -23,4 +23,3 @@ set(pkgcfg_lib_PC_HWLOC_hwloc "/usr/lib64/libhwloc.so" CACHE FILEPATH "" FORCE)
 set(pkgcfg_lib_PC_UCX_ucp "/cluster/software/hpcx/2.7.0/ucx/mt/lib/libucp.so" CACHE FILEPATH "" FORCE)
 set(pkgcfg_lib_PC_UCX_ucs "/cluster/software/hpcx/2.7.0/ucx/mt/lib/libucs.so" CACHE FILEPATH "" FORCE)
 set(pkgcfg_lib_PC_UCX_uct "/cluster/software/hpcx/2.7.0/ucx/mt/lib/libuct.so" CACHE FILEPATH "" FORCE)
-

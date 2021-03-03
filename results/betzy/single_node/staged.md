@@ -12,7 +12,7 @@ Tables present execution time [s] of 10000 exchange calls.
 
 ### Plots
 
-![standard vs. staged](betzy_stages.png)
+![compact vs. staged](betzy_compact_vs_stages.png)
 
 ### Chosen results
 

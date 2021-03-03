@@ -144,7 +144,7 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             <do>echo "$run_cmd $run_cmd_args ./$exe_name $executable_args $ddecomp >$outlogfile 2>$errlogfile" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
             <do>echo ". flag" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
             <do>echo "" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
-            <do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do>
+            <!--do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do-->
             <do done_file="$done_file"></do>
             <do>cp ${outlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
             <do>cp ${errlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
