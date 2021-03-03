@@ -20,7 +20,7 @@
 	  <parameter name="ucx_tls">ud</parameter>
           <parameter name="run_cmd" tag="halfcores" separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=${ucx_tls},sm,self -map-by ppr:32:socket:pe=2 -bind-to core</parameter>
           <parameter name="run_cmd" tag="allcores"  separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=${ucx_tls},sm,self -map-by ppr:64:socket:pe=1 -bind-to core</parameter>
-          <parameter name="run_setup" separator="">ml load openmpi/4.0.5-gcc-ifort-hpcx27-2020a</parameter>
+          <parameter name="run_setup" separator="">ml load OpenMPI/4.0.5-GCC-10.2.0</parameter>
         </parameterset>
 
         <parameterset name="mpi_params_impi">
@@ -43,8 +43,8 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
 
         <parameterset name="variants">
             <parameter name="executable" tag="ompi">@EXECUTABLES@</parameter>
-            <parameter name="executable" tag="impi+single_node">@EXECUTABLES@</parameter>
-            <parameter name="executable" tag="impi+27_nodes">benchmark_mpi_comm</parameter>
+            <parameter name="executable" tag="impi">@EXECUTABLES@</parameter>
+            <!--parameter name="executable" tag="impi+27_nodes">benchmark_mpi_comm</parameter-->
         </parameterset>
 
         <parameterset name="jobspecs">

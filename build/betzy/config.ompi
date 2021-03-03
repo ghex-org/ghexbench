@@ -1,6 +1,7 @@
 ml purge
-ml load CMake/3.16.4-GCCcore-9.3.0
-ml load openmpi/4.0.5-gcc-ifort-hpcx27-2020a
+ml load CMake/3.18.4-GCCcore-10.2.0
+ml load OpenMPI/4.0.5-GCC-10.2.0
+ml list
 export CC=mpicc
 export CXX=mpicxx
 export FC=mpifort

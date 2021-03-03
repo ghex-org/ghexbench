@@ -1,6 +1,7 @@
 ml purge
-ml load CMake/3.16.4-GCCcore-9.3.0
-ml load intel/2020a
+ml load CMake/3.18.4-GCCcore-10.2.0
+ml load intel/2020b
+ml list
 export CC=mpiicc
 export CXX=mpiicc
 export FC=mpiifort
