@@ -104,4 +104,5 @@ The following tables present a human-readable comparison of the different benchm
 [`hwcart halfcores`](27_nodes/halo_fields_halfcores.md)  
 [`hwcart allcores`](27_nodes/halo_fields_allcores.md)  
 [`mpicart` vs `hwcart`](27_nodes/mpicart_vs_hwcart.md)  
-[`staged` vs `standard`, `halfcores`](27_nodes/staged.md)  
+[`compact` vs `staged`, `halfcores`](27_nodes/staged.md)  
+[`compact` vs `field-by-field`, `halfcores`](27_nodes/sequence.md)  
