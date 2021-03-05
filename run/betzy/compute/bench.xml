@@ -17,19 +17,24 @@
         </parameterset>
 
         <parameterset name="mpi_params_ompi">
-	  <parameter name="ucx_tls">ud</parameter>
+	  <parameter name="ucx_tls">ud,dc</parameter>
           <parameter name="run_cmd" tag="halfcores" separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=${ucx_tls},sm,self -map-by ppr:32:socket:pe=2 -bind-to core</parameter>
           <parameter name="run_cmd" tag="allcores"  separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=${ucx_tls},sm,self -map-by ppr:64:socket:pe=1 -bind-to core</parameter>
-          <parameter name="run_setup" separator="">ml load OpenMPI/4.0.5-GCC-10.2.0</parameter>
+          <parameter name="run_setup" separator="">
+ml load xpmem/master
+ml load OpenMPI/4.0.5-GCC-10.2.0
+	  </parameter>
         </parameterset>
 
         <parameterset name="mpi_params_impi">
+	    <parameter name="ucx_tls">all</parameter>
             <parameter name="run_cmd" tag="impi">time mpirun -np $tasks </parameter>
             <parameter name="run_setup" tag="halfcores" separator="">
 ml load intel/2020b
 export I_MPI_DEBUG=1
 export I_MPI_FABRICS=shm:ofi
 export UCX_WARN_UNUSED_ENV_VARS=n
+export UCX_TLS=${ucx_tls}
 export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 2 127`
             </parameter>
             <parameter name="run_setup" tag="allcores" separator="">
@@ -37,6 +42,7 @@ ml load intel/2020b
 export I_MPI_DEBUG=1
 export I_MPI_FABRICS=shm:ofi
 export UCX_WARN_UNUSED_ENV_VARS=n
+export UCX_TLS=${ucx_tls}
 export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             </parameter>
         </parameterset>
@@ -80,7 +86,7 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             <parameter name="fields" tag="hwcart+halfcores" type="int">1,2,4,8</parameter>
 
             <parameter name="num_reps" type="int">1000</parameter>
-            <parameter name="order" type="string">XYZ,ZYX</parameter>
+            <parameter name="order" type="string">ZYX</parameter>
         </parameterset>
 
         <parameterset name="domain_decomp1">
@@ -144,7 +150,7 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
             <do>echo "$run_cmd $run_cmd_args ./$exe_name $executable_args $ddecomp >$outlogfile 2>$errlogfile" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh" </do>
             <do>echo ". flag" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
             <do>echo "" >> "${jube_benchmark_rundir}/run_shared_dir/runs.sh"</do>
-            <do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do>
+            <!--do shared="true">${submit_cmd} ${submit_cmd_args} ${jobfile}</do-->
             <do done_file="$done_file"></do>
             <do>cp ${outlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
             <do>cp ${errlogfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work"</do>
@@ -160,13 +166,12 @@ export I_MPI_PIN_PROCESSOR_LIST=`seq -s, 0 1 127`
 
         <result>
             <use>analyse</use>
-            <table name="result" style="pretty" sort="executable,L,halo,fields,order,ddindex,rundir">
+            <table name="result" style="pretty" sort="executable,L,halo,fields,ucx_tls">
                 <column>executable</column>
                 <column>L</column>
                 <column>halo</column>
                 <column>fields</column>
-                <column>order</column>
-                <column>ddindex</column>
+                <column>ucx_tls</column>
                 <column>mean</column>
                 <column>throughput</column>
                 <column>rundir</column>

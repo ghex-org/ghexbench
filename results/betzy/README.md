@@ -74,11 +74,6 @@ For 27-node runs the node grid dimensions were `[3 3 3]`.
 
 #### Single-node tests
 
-[`jube run bench.xml --tag single_node ompi halfcores hwcart`](single_node/jube_0.md)  
-[`jube run bench.xml --tag single_node ompi allcores hwcart`](single_node/jube_1.md)  
-[`jube run bench.xml --tag single_node impi halfcores hwcart`](single_node/jube_2.md)  
-[`jube run bench.xml --tag single_node impi allcores hwcart`](single_node/jube_3.md)  
-
 The following tables present a human-readable comparison of the different benchmark results.
 
 [`hwcart halfcores`](single_node/halo_fields_halfcores.md)  
@@ -86,18 +81,16 @@ The following tables present a human-readable comparison of the different benchm
 [`compact` vs `staged`, `halfcores`](single_node/staged.md)  
 [`compact` vs `field-by-field`, `halfcores`](single_node/sequence.md)  
 
+Original JUBE output
+
+[`jube run bench.xml --tag single_node ompi halfcores hwcart`](single_node/jube_0.md)  
+[`jube run bench.xml --tag single_node ompi allcores hwcart`](single_node/jube_1.md)  
+[`jube run bench.xml --tag single_node impi halfcores hwcart`](single_node/jube_2.md)  
+[`jube run bench.xml --tag single_node impi allcores hwcart`](single_node/jube_3.md)  
+
 #### 27-node tests
 
-[`jube run bench.xml --tag 27_nodes ompi halfcores mpicart`](27_nodes/jube_0.md)  
-[`jube run bench.xml --tag 27_nodes impi halfcores mpicart`](27_nodes/jube_1.md)  
-[`jube run bench.xml --tag 27_nodes ompi halfcores hwcart`](27_nodes/jube_2.md)  
-[`jube run bench.xml --tag 27_nodes impi halfcores hwcart`](27_nodes/jube_3.md)  
-[`jube run bench.xml --tag 27_nodes ompi allcores hwcart`](27_nodes/jube_4.md)  
-[`jube run bench.xml --tag 27_nodes impi allcores hwcart`](27_nodes/jube_5.md)  
-[`jube run bench.xml --tag 27_nodes impi halfcores mpicart`](27_nodes/jube_6.md)  
-[`jube run bench.xml --tag 27_nodes ompi halfcores mpicart`](27_nodes/jube_7.md)  
-[`jube run bench.xml --tag 27_nodes impi allcores mpicart`](27_nodes/jube_8.md)  
-[`jube run bench.xml --tag 27_nodes ompi allcores mpicart`](27_nodes/jube_9.md)  
+All sorts of [`comparison plots`](27_nodes/plots.md)  
 
 The following tables present a human-readable comparison of the different benchmark results.
 
