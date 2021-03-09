@@ -18,7 +18,7 @@
 
         <parameterset name="mpi_params_ompi">
 	  <parameter name="ucx_tls">ud,dc</parameter>
-          <parameter name="run_cmd" tag="halfcores" separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=${ucx_tls},sm,self -map-by ppr:32:socket:pe=2 -bind-to core</parameter>
+          <parameter name="run_cmd" tag="halfcores" separator="">time mpirun -x UCX_RNDV_THRESH=262144 -x UCX_ZCOPY_THRESH=262144 -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=${ucx_tls},sm,self -map-by ppr:32:socket:pe=2 -bind-to core</parameter>
           <parameter name="run_cmd" tag="allcores"  separator="">time mpirun -x UCX_WARN_UNUSED_ENV_VARS=n -x UCX_TLS=${ucx_tls},sm,self -map-by ppr:64:socket:pe=1 -bind-to core</parameter>
           <parameter name="run_setup" separator="">
 ml load xpmem/master
