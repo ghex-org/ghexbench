@@ -47,7 +47,7 @@ endif()
 
 set(CARTEX_RMA_REGION OFF CACHE BOOL "use pointer container for rma")
 if (CARTEX_RMA_REGION)
-    target_compile_definitions(runtime PRIVATE CARTEX_RMA_REGION)
+    target_compile_definitions(runtime PRIVATE GHEX_RMA_REGION)
 endif()
 
 set(CARTEX_FIELD_BY_FIELD OFF CACHE BOOL "exchange field by field")
