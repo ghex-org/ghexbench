@@ -69,7 +69,7 @@ runtime::exchange(int j)
             const auto elapsed_time_s = hist.sum();
             const auto num_bytes = (double)num_elements * (m_num_fields * sizeof(real_type));
             const auto load = 2 * num_bytes;
-            const auto tp = (load * 1.0e-9) * bw_acc.mean();
+            const auto tp = (load * 1.0e-9) / hist.mean();
             const auto tp_stddev = (load * 1.0e-9) * bw_acc.stddev();
             std::cout << "elapsed (s)       " << std::scientific << std::setprecision(8)
                       << elapsed_time_s << "\n";
