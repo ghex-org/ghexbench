@@ -45,6 +45,11 @@ if (CARTEX_STAGED_EXCHANGE)
   target_compile_definitions(runtime PRIVATE CARTEX_GHEX_STAGED)
 endif()
 
+set(CARTEX_RMA_REGION OFF CACHE BOOL "use pointer container for rma")
+if (CARTEX_RMA_REGION)
+    target_compile_definitions(runtime PRIVATE CARTEX_RMA_REGION)
+endif()
+
 set(CARTEX_FIELD_BY_FIELD OFF CACHE BOOL "exchange field by field")
 if (CARTEX_FIELD_BY_FIELD)
   target_compile_definitions(runtime PRIVATE CARTEX_GHEX_FIELD_BY_FIELD)
