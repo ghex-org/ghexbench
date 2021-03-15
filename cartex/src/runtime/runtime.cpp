@@ -73,6 +73,8 @@ runtime::exchange(int j)
             const auto tp_stddev = (load * 1.0e-9) * bw_acc.stddev();
             std::cout << "elapsed (s)       " << std::scientific << std::setprecision(8)
                       << elapsed_time_s << "\n";
+            std::cout << "bytes/exchange    " << std::scientific << std::setprecision(8)
+                      << load << "\n";
             std::cout << "mean (s)          " << std::scientific << std::setprecision(8)
                       << hist.mean() << "\n";
             std::cout << "median (s)        " << std::scientific << std::setprecision(8)
