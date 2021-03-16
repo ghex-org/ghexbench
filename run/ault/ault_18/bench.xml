@@ -9,35 +9,49 @@
             <parameter name="jobsystem_jobfile">slurm_job</parameter>
             <parameter name="system_jobfile">ault_job</parameter>
             <parameter name="jobfile">job</parameter>
-            <parameter name="run_cmd">/users/boeschf/opt/ompi/bin/mpirun -bind-to core -map-by core</parameter>
-            <!--<parameter name="run_cmd_args">-x UCX_LOG_LEVEL=ERROR -mca pml ucx -map-by core -bind-to core -mca coll_hcoll_enable 0 -np 64</parameter>-->
-            <parameter name="run_cmd_args"></parameter>
             <parameter name="submit_cmd_args">--nodelist=ault19 --exclusive</parameter>
+            <parameter name="run_cmd">/users/boeschf/opt/ompi/bin/mpirun</parameter>
             <parameter name="queue">normal</parameter>
         </parameterset>
 
         <parameterset name="variants">
-            <parameter name="executable">@EXECUTABLES@</parameter>
+            <parameter name="float_type" tag="!double">float</parameter>
+            <parameter name="float_type" tag="double">double</parameter>
+            <!-- <parameter name="executable">@EXECUTABLES@</parameter> -->
+            <parameter name="executable">benchmark_${float_type}_ghex_comm_mpi_none_nostage_allfield, benchmark_${float_type}_ghex_comm_mpi_none_nostage_onefield, benchmark_${float_type}_ghex_comm_mpi_none_stage_allfield, benchmark_${float_type}_ghex_comm_mpi_none_stage_onefield, benchmark_${float_type}_ghex_comm_mpi_xpmem_nostage_allfield, benchmark_${float_type}_ghex_comm_mpi_xpmem_nostage_onefield, benchmark_${float_type}_ghex_comm_mpi_xpmem_stage_allfield, benchmark_${float_type}_ghex_comm_mpi_xpmem_stage_onefield, benchmark_${float_type}_ghex_comm_ucx_none_nostage_allfield, benchmark_${float_type}_ghex_comm_ucx_none_nostage_onefield, benchmark_${float_type}_ghex_comm_ucx_none_stage_allfield, benchmark_${float_type}_ghex_comm_ucx_none_stage_onefield, benchmark_${float_type}_ghex_comm_ucx_xpmem_nostage_allfield, benchmark_${float_type}_ghex_comm_ucx_xpmem_nostage_onefield, benchmark_${float_type}_ghex_comm_ucx_xpmem_stage_allfield, benchmark_${float_type}_ghex_comm_ucx_xpmem_stage_onefield, benchmark_${float_type}_mpi_comm</parameter>
             <parameter name="bench_type" tag="single_node">single_node</parameter>
         </parameterset>
 
         <parameterset name="specs_single_node">
+            <!-- general parameters -->
             <parameter name="nodes" type="int">1</parameter>
-            <parameter name="taskspernode" type="int">128</parameter>
-            <parameter name="taskspersocket" type="int">64</parameter>
-            <parameter name="cpuspertask" type="int">1</parameter>
             <parameter name="taskspercore" type="int">1</parameter>
-            <parameter name="tasks" type="int" mode="python">int($nodes*$taskspernode)</parameter>
             <parameter name="timelimit" type="string">00:10:00</parameter>
             <parameter name="L" type="int">64</parameter>
             <parameter name="halo" type="int">1,2,3,4,5</parameter>
             <parameter name="fields" type="int">1,2,3,4,5,6,7,8</parameter>
             <parameter name="num_reps" type="int">1000</parameter>
+            <parameter name="ex_time" type="int">10</parameter>
             <parameter name="order" type="string">XYZ</parameter>
             <!--
             <parameter name="order" type="string">XYZ,XZY,YXZ,YZX,ZXY,ZYX</parameter>
             -->
-            <parameter name="executable_args">--domain ${L} ${L} ${L} --nrep ${num_reps} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 1 1 --l3 1 4 4 --core 4 1 1 --order ${order}</parameter>
+            <!-- ranks only parameters -->
+            <parameter name="run_cmd_args" tag="!threads">-bind-to core -map-by core</parameter>
+            <parameter name="taskspernode" type="int" tag="!threads">128</parameter>
+            <parameter name="taskspersocket" type="int" tag="!threads">64</parameter>
+            <parameter name="cpuspertask" type="int" tag="!threads">1</parameter>
+            <parameter name="executable_args" tag="!threads">--domain ${L} ${L} ${L} --time ${ex_time} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 1 1 --l3 1 4 4 --core 4 1 1 --thread 1 1 1 --order ${order}</parameter>
+            <!-- threads parameters -->
+            <parameter name="run_cmd_args" tag="threads">--map-by ppr:2:socket:pe=64</parameter>
+            <parameter name="taskspernode" type="int" tag="threads">2</parameter>
+            <parameter name="taskspersocket" type="int" tag="threads">1</parameter>
+            <parameter name="cpuspertask" type="int" tag="threads">64</parameter>
+            <parameter name="executable_args" tag="threads">--domain ${L} ${L} ${L} --time ${ex_time} --nfields ${fields} --halo ${halo} --check --socket 1 1 2 --numa 1 1 1 --thread 4 4 4 --order ${order}</parameter>
+            <!-- general parameters -->
+            <parameter name="tasks" type="int" mode="python">int($nodes*$taskspernode)</parameter>
+            <!--<parameter name="run_cmd_args">-x UCX_LOG_LEVEL=ERROR -mca pml ucx -map-by core -bind-to core -mca coll_hcoll_enable 0 -np 64</parameter>-->
+            <!--<parameter name="run_cmd_args"></parameter>-->
         </parameterset>
 
         <fileset name="copy_jobfiles">
@@ -59,11 +73,11 @@
 
         <step name="run" work_dir="@WORK_DIR@/bench_${jube_benchmark_id}_${jube_wp_id}">
             <use>system</use>
+            <use>variants</use>
             <use>copy_jobfiles</use>
             <use>copy_exe</use>
             <use>sub_flag</use>
             <use>sub_job</use>
-            <use>variants</use>
             <use>specs_${bench_type}</use>
 
             <do>cp ${jobfile} "${jube_benchmark_rundir}/${jube_wp_padid}_${jube_step_name}/work/${jobfile}"</do>
@@ -84,14 +98,26 @@
 
         <result>
             <use>analyse</use>
-            <table name="result" style="pretty" sort="executable,L,halo,fields,order">
+            <table name="result" style="pretty" sort="executable,L,halo,fields">
                 <column>executable</column>
                 <column>L</column>
                 <column>halo</column>
                 <column>fields</column>
-                <column>order</column>
-                <column>mean</column>
-                <column>throughput</column>
+                <column>load</column>
+                <column>n_repetitions</column>
+                <!--<column>order</column>-->
+                <column>t_mean</column>
+                <column>t_stddev</column>
+                <column>t_median</column>
+                <column>t_centile_5</column>
+                <column>t_centile_25</column>
+                <column>t_centile_75</column>
+                <column>t_centile_95</column>
+                <column>tp_median</column>
+                <column>tp_centile_5</column>
+                <column>tp_centile_25</column>
+                <column>tp_centile_75</column>
+                <column>tp_centile_95</column>
             </table>
         </result>
 
