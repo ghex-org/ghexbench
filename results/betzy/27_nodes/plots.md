@@ -25,6 +25,7 @@ Plots present cumulative effective memory bandwidth of the exchange operation (m
     * [Standard vs. sequenced](#standard-vs-sequenced)  
     * [Staged vs. sequenced+staged](#staged-vs-sequencedstaged)
 * [`single` vs `double`](#single-vs-double)  
+* [Fortran interface](#fortran-interface)  
 
 ### Standard algorithm
 
@@ -163,3 +164,20 @@ The gap between GHEX performance and raw MPI performance is even larger in this 
 `single` precision         |  `double` precision
 :-------------------------:|:-------------------------:
 ![](betzy_staged+ucx+dc_vs_staged+mpi+dc.png)  |  ![](betzy_double_staged+ucx+dc_vs_staged+mpi+dc.png)
+
+
+### Fortran interface
+
+Fortran interface shows exactly the same qualitative properties as the C++ interface, so there are
+no unwanted overheads. Minor differences in performance are run-specific: for the C++ benchmark we plot
+median time, while for the Fortran benchmark - mean time, which is more affected by the slow outliers.
+Even so, the standard Fortran implementation was slightly faster than the C++ implementation for
+large halos.
+
+![](betzy_staged+dc_vs_fortran+dc.png)
+
+Comparison of Fortran GHEX interface to native Fortran halo exchange implemented in Bifrost looks very
+favorable for GHEX. Both implmenentation used in Bifrost perform worse. It is surprising though that 
+the MPI subarray implementation in Fortran is worse than the same implementation in C++.
+
+![](betzy_staged+dc_vs_fortran_all+dc.png)
