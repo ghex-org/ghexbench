@@ -25,23 +25,23 @@
         -->
 
         <!--<pattern name="pat_fp" type="float">(([-+]?\d*\.?\d+)(?:[eE]([-+]?\d+))?)</pattern>-->
-        <pattern name="load"          type="float">load \(bytes\)      ${pat_fp}</pattern>
-        <pattern name="t_elapsed"     type="float">elapsed \(s\)       ${pat_fp}</pattern>
-        <pattern name="t_mean"        type="float">mean \(s\)          ${pat_fp}</pattern>
-        <pattern name="t_stddev"      type="float">stddev \(s\)        ${pat_fp}</pattern>
-        <pattern name="t_median"      type="float">median \(s\)        ${pat_fp}</pattern>
-        <pattern name="t_centile_5"   type="float">5% centile \(s\)    ${pat_fp}</pattern>
-        <pattern name="t_centile_25"  type="float">25% centile \(s\)   ${pat_fp}</pattern>
-        <pattern name="t_centile_75"  type="float">75% centile \(s\)   ${pat_fp}</pattern>
-        <pattern name="t_centile_95"  type="float">95% centile \(s\)   ${pat_fp}</pattern>
-        <pattern name="t_min"         type="float">min \(s\)           ${pat_fp}</pattern>
-        <pattern name="t_max"         type="float">max \(s\)           ${pat_fp}</pattern>
-        <pattern name="tp_median"     type="float">tp\. median \(GB/s\) ${pat_fp}</pattern>
-        <pattern name="tp_centile_5"  type="float">tp\. 5% c\. \(GB/s\)  ${pat_fp}</pattern>
-        <pattern name="tp_centile_25" type="float">tp\. 25% c\. \(GB/s\) ${pat_fp}</pattern>
-        <pattern name="tp_centile_75" type="float">tp\. 75% c\. \(GB/s\) ${pat_fp}</pattern>
-        <pattern name="tp_centile_95" type="float">tp\. 95% c\. \(GB/s\) ${pat_fp}</pattern>
-        <pattern name="tp_min"        type="float">tp\. min \(GB/s\)    ${pat_fp}</pattern>
-        <pattern name="tp_max"        type="float">tp\. max \(GB/s\)    ${pat_fp}</pattern>
+        <pattern name="load"          type="float">load \(bytes\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_elapsed"     type="float">elapsed \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_mean"        type="float">mean \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_stddev"      type="float">stddev \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_median"      type="float">median \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_centile_5"   type="float">5% centile \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_centile_25"  type="float">25% centile \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_centile_75"  type="float">75% centile \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_centile_95"  type="float">95% centile \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_min"         type="float">min \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_max"         type="float">max \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_median"     type="float">tp\. median \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_centile_5"  type="float">tp\. 5% c\. \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_centile_25" type="float">tp\. 25% c\. \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_centile_75" type="float">tp\. 75% c\. \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_centile_95" type="float">tp\. 95% c\. \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_min"        type="float">tp\. min \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_max"        type="float">tp\. max \(GB/s\)[ ]+${pat_fp}</pattern>
     </patternset>
 </jube>
