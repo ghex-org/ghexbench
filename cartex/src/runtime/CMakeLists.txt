@@ -2,6 +2,7 @@ find_package(MPI REQUIRED COMPONENTS CXX)
 
 add_library(runtime)
 target_link_libraries(runtime PRIVATE cartex)
+target_link_libraries(runtime PRIVATE sync_loop)
 target_link_libraries(runtime PRIVATE MPI::MPI_CXX)
 target_link_libraries(runtime PRIVATE HWCART::hwcart)
 

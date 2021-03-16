@@ -36,17 +36,33 @@ runtime::exchange(int j)
         check(j);
     }
 
-    // warm up
-    for (int t = 0; t < 50; ++t) step(j);
+    histogram hist(1.0e-9, 20, 2, 100000);
 
-    histogram hist(1.0e-9, 20, 2, m_num_reps);
-    for (int t = 0; t < m_num_reps; ++t)
-    {
+    auto warm_up_step = [j, this]() { step(j); };
+
+    auto main_step = [j, this, &hist]() {
         const auto start = clock_type::now();
         step(j);
-        const auto   end = clock_type::now();
+        const auto end = clock_type::now();
+
         const double dt = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
         hist(dt);
+    };
+
+    std::size_t reps = 0;
+    if (m_use_timer)
+    {
+        // warm up
+        m_loop.repeat_for(warm_up_step, 0.1 * m_time, j, 50, 10);
+        // main loop
+        reps = m_loop.repeat_for(main_step, 0.9 * m_time, j, m_num_reps, 100);
+    }
+    else
+    {
+        // warm up
+        for (int t = 0; t < 50; ++t) warm_up_step();
+        // main loop
+        for (int t = 0; t < m_num_reps; ++t) main_step();
     }
 
     if (j == 0)
@@ -71,7 +87,7 @@ runtime::exchange(int j)
             const auto num_bytes = (double)num_elements * (m_num_fields * sizeof(real_type));
             const auto load = 2 * num_bytes;
             const auto load_Gb = 1.0e-9 * load;
-            std::cout << "repetitions       " << m_num_reps << "\n";
+            std::cout << "repetitions       " << reps << "\n";
             print("load (bytes)", load);
             print("elapsed (s)", hist.sum());
             print("mean (s)", hist.mean());

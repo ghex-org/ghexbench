@@ -19,6 +19,7 @@
 #include <cartex/common/memory.hpp>
 #include <cartex/common/options.hpp>
 #include <cartex/decomposition/decomposition.hpp>
+#include <cartex/common/sync_loop.hpp>
 
 namespace cartex
 {
@@ -34,6 +35,8 @@ class runtime
     const int                             m_rank;
     const int                             m_size;
     const int                             m_num_reps;
+    bool                                  m_use_timer;
+    double                                m_time;
     const int                             m_num_threads;
     const bool                            m_mt;
     const int                             m_num_fields;
@@ -44,6 +47,7 @@ class runtime
     std::vector<domain_type>              m_domains;
     std::vector<std::vector<memory_type>> m_raw_fields;
     std::mutex                            m_mutex;
+    sync_loop                             m_loop;
     class impl;
     friend class impl;
     std::unique_ptr<impl> m_impl;
