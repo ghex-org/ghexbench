@@ -138,8 +138,6 @@ class options
         return add(name, description, variable, default_str_values, default_str_values.size());
     }
 
-    std::string help_message(std::string const& command) const;
-
   private:
     options& add(std::string const& name, std::string const& description)
     {
@@ -155,6 +153,8 @@ class options
         m_options.push_back({name, description, variable, default_values, nargs});
         return *this;
     }
+
+    std::string help_message(std::string const& command) const;
 };
 
 } // namespace cartex

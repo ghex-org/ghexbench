@@ -52,17 +52,14 @@ runtime::exchange(int j)
     std::size_t reps = 0;
     if (m_use_timer)
     {
-        // warm up
         m_loop.repeat_for(warm_up_step, 0.1 * m_time, j, 50, 10);
-        // main loop
         reps = m_loop.repeat_for(main_step, 0.9 * m_time, j, m_num_reps, 100);
     }
     else
     {
-        // warm up
         for (int t = 0; t < 50; ++t) warm_up_step();
-        // main loop
         for (int t = 0; t < m_num_reps; ++t) main_step();
+        reps = m_num_reps;
     }
 
     if (j == 0)

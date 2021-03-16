@@ -22,7 +22,7 @@ main(int argc, char** argv)
     auto opts = cartex::options()
         ("domain",        "local domain size (default: 64 64 64)", "X Y Z",    3)
         ("global-domain", "global domain size",                    "X Y Z",    3)
-        ("nrep",          "number of repetitions",                 "r",        1)
+        ("nrep",          "number of repetitions (default: 10)",   "r",        1)
         ("time",          "execution time",                        "t",        1)
         ("nfields",       "number of fields",                      "n",        {1})
         ("halo",          "halo size",                             "h",        {1})
@@ -39,13 +39,6 @@ main(int argc, char** argv)
         ("check",         "check results");
     /* clang-format on */
     const auto options = cartex::runtime::add_options(opts).parse(argc, argv);
-
-    if (!options.has("nrep") && !options.has("time"))
-    {
-        std::cerr << "Error: either --nrep or --time must be specified" << std::endl;
-        std::cout << opts.help_message(argv[0]);
-        std::exit(1);
-    }
 
     const auto threads = options.get<std::array<int, 3>>("thread");
     const auto num_threads = threads[0] * threads[1] * threads[2];
@@ -200,8 +193,7 @@ main(int argc, char** argv)
         else
         {
             cartex::thread_pool tp(num_threads);
-            for (int j = 0; j < num_threads; ++j)
-                tp.schedule(j, [&r](int j) { r.exchange(j); });
+            for (int j = 0; j < num_threads; ++j) tp.schedule(j, [&r](int j) { r.exchange(j); });
         }
 
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
