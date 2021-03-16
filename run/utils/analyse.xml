@@ -3,29 +3,45 @@
     <!-- Regex pattern: filter out results -->
     <patternset name="pattern">
         <!-- example output:
-        elapsed (s)       1.28642400e-03
-        mean (s)          1.28642400e-04
-        median (s)        1.27776000e-04
-        25% centile (s)   1.26604000e-04
-        75% centile (s)   1.29861000e-04
-        min (s)           1.24949000e-04
-        max (s)           1.34551000e-04
-        stddev (s)        3.27546924e-06
-        throughput (GB/s) 6.30635001e+00
-        tp. stddev (GB/s) 2.61212923e+00
+        repetitions       101
+        load (bytes)      8.11264000e+05
+        elapsed (s)       1.17481460e-02
+        mean (s)          1.16318277e-04
+        stddev (s)        1.59774741e-05
+        median (s)        1.10316000e-04
+        5% centile (s)    1.01071000e-04
+        25% centile (s)   1.04712000e-04
+        75% centile (s)   1.25514000e-04
+        95% centile (s)   1.51215000e-04
+        min (s)           9.85580000e-05
+        max (s)           1.68808000e-04
+        tp. median (GB/s) 7.35400123e+00
+        tp. 5% c. (GB/s)  5.36497041e+00
+        tp. 25% c. (GB/s) 6.46353395e+00
+        tp. 75% c. (GB/s) 7.74757430e+00
+        tp. 95% c. (GB/s) 8.02667432e+00
+        tp. min (GB/s)    4.80583859e+00
+        tp. max (GB/s)    8.23133586e+00
         -->
 
         <!--<pattern name="pat_fp" type="float">(([-+]?\d*\.?\d+)(?:[eE]([-+]?\d+))?)</pattern>-->
-        <pattern name="pat_fp" type="float">([-+]?\d\.\d+[Ee][+\-]\d\d?)</pattern>
-        <pattern name="elapsed"           type="float">elapsed \(s\)       ${pat_fp}</pattern>
-        <pattern name="mean"              type="float">mean \(s\)          ${pat_fp}</pattern>
-        <pattern name="median"            type="float">median \(s\)        ${pat_fp}</pattern>
-        <pattern name="centile_25"        type="float">25% centile \(s\)   ${pat_fp}</pattern>
-        <pattern name="centile_75"        type="float">75% centile \(s\)   ${pat_fp}</pattern>
-        <pattern name="min"               type="float">min \(s\)           ${pat_fp}</pattern>
-        <pattern name="max"               type="float">max \(s\)           ${pat_fp}</pattern>
-        <pattern name="stddev"            type="float">stddev \(s\)        ${pat_fp}</pattern>
-        <pattern name="throughput"        type="float">throughput \(GB/s\) ${pat_fp}</pattern>
-        <pattern name="throughput_stddev" type="float">tp\. stddev \(GB/s\) ${pat_fp}</pattern>
+        <pattern name="load"          type="float">load \(bytes\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_elapsed"     type="float">elapsed \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_mean"        type="float">mean \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_stddev"      type="float">stddev \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_median"      type="float">median \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_centile_5"   type="float">5% centile \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_centile_25"  type="float">25% centile \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_centile_75"  type="float">75% centile \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_centile_95"  type="float">95% centile \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_min"         type="float">min \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="t_max"         type="float">max \(s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_median"     type="float">tp\. median \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_centile_5"  type="float">tp\. 5% c\. \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_centile_25" type="float">tp\. 25% c\. \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_centile_75" type="float">tp\. 75% c\. \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_centile_95" type="float">tp\. 95% c\. \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_min"        type="float">tp\. min \(GB/s\)[ ]+${pat_fp}</pattern>
+        <pattern name="tp_max"        type="float">tp\. max \(GB/s\)[ ]+${pat_fp}</pattern>
     </patternset>
 </jube>

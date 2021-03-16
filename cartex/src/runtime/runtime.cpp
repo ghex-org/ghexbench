@@ -40,15 +40,13 @@ runtime::exchange(int j)
     for (int t = 0; t < 50; ++t) step(j);
 
     histogram hist(1.0e-9, 20, 2, m_num_reps);
-    accumulator bw_acc;
     for (int t = 0; t < m_num_reps; ++t)
     {
         const auto start = clock_type::now();
         step(j);
-        const auto end = clock_type::now();
+        const auto   end = clock_type::now();
         const double dt = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
         hist(dt);
-        bw_acc(1.0e9/dt);
     }
 
     if (j == 0)
@@ -66,33 +64,32 @@ runtime::exchange(int j)
             MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0, m_decomposition.mpi_comm()));
         if (m_rank == 0)
         {
-            const auto elapsed_time_s = hist.sum();
+            auto print = [](char const* name, double value) {
+                std::cout << std::setw(18) << std::left << name << std::scientific
+                          << std::setprecision(8) << value << "\n";
+            };
             const auto num_bytes = (double)num_elements * (m_num_fields * sizeof(real_type));
             const auto load = 2 * num_bytes;
-            const auto tp = (load * 1.0e-9) / hist.mean();
-            const auto tp_stddev = (load * 1.0e-9) * bw_acc.stddev();
-            std::cout << "elapsed (s)       " << std::scientific << std::setprecision(8)
-                      << elapsed_time_s << "\n";
-            std::cout << "bytes/exchange    " << std::scientific << std::setprecision(8)
-                      << load << "\n";
-            std::cout << "mean (s)          " << std::scientific << std::setprecision(8)
-                      << hist.mean() << "\n";
-            std::cout << "median (s)        " << std::scientific << std::setprecision(8)
-                      << hist.median() << "\n";
-            std::cout << "25% centile (s)   " << std::scientific << std::setprecision(8)
-                      << hist.percentile(25) << "\n";
-            std::cout << "75% centile (s)   " << std::scientific << std::setprecision(8)
-                      << hist.percentile(75) << "\n";
-            std::cout << "min (s)           " << std::scientific << std::setprecision(8)
-                      << hist.min() << "\n";
-            std::cout << "max (s)           " << std::scientific << std::setprecision(8)
-                      << hist.max() << "\n";
-            std::cout << "stddev (s)        " << std::scientific << std::setprecision(8)
-                      << hist.stddev() << "\n";
-            std::cout << "throughput (GB/s) " << std::scientific << std::setprecision(8) << tp
-                      << std::endl;
-            std::cout << "tp. stddev (GB/s) " << std::scientific << std::setprecision(8) << tp_stddev
-                      << std::endl;
+            const auto load_Gb = 1.0e-9 * load;
+            std::cout << "repetitions       " << m_num_reps << "\n";
+            print("load (bytes)", load);
+            print("elapsed (s)", hist.sum());
+            print("mean (s)", hist.mean());
+            print("stddev (s)", hist.stddev());
+            print("median (s)", hist.median());
+            print("5% centile (s)", hist.percentile(5));
+            print("25% centile (s)", hist.percentile(25));
+            print("75% centile (s)", hist.percentile(75));
+            print("95% centile (s)", hist.percentile(95));
+            print("min (s)", hist.min());
+            print("max (s)", hist.max());
+            print("tp. median (GB/s)", load_Gb / hist.median());
+            print("tp. 5% c. (GB/s)", load_Gb / hist.percentile(95));
+            print("tp. 25% c. (GB/s)", load_Gb / hist.percentile(75));
+            print("tp. 75% c. (GB/s)", load_Gb / hist.percentile(25));
+            print("tp. 95% c. (GB/s)", load_Gb / hist.percentile(5));
+            print("tp. min (GB/s)", load_Gb / hist.max());
+            print("tp. max (GB/s)", load_Gb / hist.min());
             std::cout << "\n" << hist << std::endl;
         }
     }
