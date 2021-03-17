@@ -17,10 +17,9 @@
             depth 8:	72 PU (type #6)
 
 
-L=64                      | L=128
-:------------------------:|:-------------------------:
-![](daint_mc_001_64.png)  | ![](daint_mc_001_128.png)
-                          |
-![](daint_mc_027_64.png)  | ![](daint_mc_027_128.png) 
-                          |
-![](daint_mc_064_64.png)  |
+
+<img src="daint_mc_001_64.png" width="425"/> <img src="daint_mc_001_128.png" width="425"/>
+
+<img src="daint_mc_027_64.png" width="425"/> <img src="daint_mc_027_128.png" width="425"/>
+
+<img src="daint_mc_064_64.png" width="425"/> <img src="daint_mc_064_128.png" width="425"/>
