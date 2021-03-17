@@ -18,8 +18,8 @@
 
 
 
-<img src="daint_mc_001_64.png" width="425"/> <img src="daint_mc_001_128.png" width="425"/>
+<img src="daint_mc_001_64.png" width="480"/> <img src="daint_mc_001_128.png" width="480"/>
 
-<img src="daint_mc_027_64.png" width="425"/> <img src="daint_mc_027_128.png" width="425"/>
+<img src="daint_mc_027_64.png" width="480"/> <img src="daint_mc_027_128.png" width="480"/>
 
-<img src="daint_mc_064_64.png" width="425"/> <img src="daint_mc_064_128.png" width="425"/>
+<img src="daint_mc_064_64.png" width="480"/> <img src="daint_mc_064_128.png" width="480"/>
