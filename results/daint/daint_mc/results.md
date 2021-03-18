@@ -29,7 +29,7 @@
 
 L=64 | L=128
 :---:|:----:
-![](daint_mc_001_64.png) | ![](daint_mc_001_128.png)
+![](daint_mc_0001_064.png) | ![](daint_mc_0001_128.png)
 [single](daint_mc_0001_064_float.md), [double](daint_mc_0001_064_double.md) | [single](daint_mc_0001_128_float.md), [double](daint_mc_0001_128_double.md)
 ![](daint_mc_0027_064.png) | ![](daint_mc_0027_128.png)
 [single](daint_mc_0027_064_float.md), [double](daint_mc_0027_064_double.md) | [single](daint_mc_0027_128_float.md), [double](daint_mc_0027_128_double.md)
