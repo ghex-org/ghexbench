@@ -18,8 +18,22 @@
 
 
 
+
+<!--
 <img src="daint_mc_001_64.png" width="480"/> <img src="daint_mc_001_128.png" width="480"/>
 
 <img src="daint_mc_027_64.png" width="480"/> <img src="daint_mc_027_128.png" width="480"/>
 
 <img src="daint_mc_064_64.png" width="480"/> <img src="daint_mc_064_128.png" width="480"/>
+-->
+
+L=64 | L=128
+:---:|:----:
+![](daint_mc_001_64.png) | ![](daint_mc_001_128.png)
+[single](daint_mc_0001_064_float.md), [double](daint_mc_0001_064_double.md) | [single](daint_mc_0001_128_float.md), [double](daint_mc_0001_128_double.md)
+![](daint_mc_0027_064.png) | ![](daint_mc_0027_128.png)
+[single](daint_mc_0027_064_float.md), [double](daint_mc_0027_064_double.md) | [single](daint_mc_0027_128_float.md), [double](daint_mc_0027_128_double.md)
+![](daint_mc_0064_064.png) | ![](daint_mc_0064_128.png)
+[single](daint_mc_0064_064_float.md), [double](daint_mc_0064_064_double.md) | [single](daint_mc_0064_128_float.md), [double](daint_mc_0064_128_double.md)
+
+
