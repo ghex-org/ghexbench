@@ -25,6 +25,7 @@
         -->
 
         <!--<pattern name="pat_fp" type="float">(([-+]?\d*\.?\d+)(?:[eE]([-+]?\d+))?)</pattern>-->
+        <pattern name="pat_fp" type="float">([-+]?\d\.\d+[Ee][+\-]\d\d?)</pattern>
         <pattern name="n_repetitions" type="int">repetitions[ ]+${jube_pat_int}</pattern>
         <pattern name="load"          type="float">load \(bytes\)[ ]+${pat_fp}</pattern>
         <pattern name="t_elapsed"     type="float">elapsed \(s\)[ ]+${pat_fp}</pattern>
