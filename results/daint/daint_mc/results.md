@@ -30,10 +30,10 @@
 L=64 | L=128
 :---:|:----:
 ![](daint_mc_0001_064.png) | ![](daint_mc_0001_128.png)
-[single](daint_mc_0001_064_float.md), [double](daint_mc_0001_064_double.md) | [single](daint_mc_0001_128_float.md), [double](daint_mc_0001_128_double.md)
+[single](daint_mc_0001_064_float.md), [single threads](daint_mc_0001_064_float_threads.md), [double](daint_mc_0001_064_double.md), [double threads](daint_mc_0001_064_double_threads.md) | [single](daint_mc_0001_128_float.md), [single threads](daint_mc_0001_128_float_threads.md), [double](daint_mc_0001_128_double.md), [double threads](daint_mc_0001_128_double_threads.md)
 ![](daint_mc_0027_064.png) | ![](daint_mc_0027_128.png)
-[single](daint_mc_0027_064_float.md), [double](daint_mc_0027_064_double.md) | [single](daint_mc_0027_128_float.md), [double](daint_mc_0027_128_double.md)
+[single](daint_mc_0027_064_float.md), [single threads](daint_mc_0027_064_float_threads.md), [double](daint_mc_0027_064_double.md), [double threads](daint_mc_0027_064_double_threads.md) | [single](daint_mc_0027_128_float.md), [single threads](daint_mc_0027_128_float_threads.md), [double](daint_mc_0027_128_double.md), [double threads](daint_mc_0027_128_double_threads.md)
 ![](daint_mc_0064_064.png) | ![](daint_mc_0064_128.png)
-[single](daint_mc_0064_064_float.md), [double](daint_mc_0064_064_double.md) | [single](daint_mc_0064_128_float.md), [double](daint_mc_0064_128_double.md)
+[single](daint_mc_0064_064_float.md), [single threads](daint_mc_0064_064_float_threads.md), [double](daint_mc_0064_064_double.md), [double threads](daint_mc_0064_064_double_threads.md) | [single](daint_mc_0064_128_float.md), [single threads](daint_mc_0064_128_float_threads.md), [double](daint_mc_0064_128_double.md), [double threads](daint_mc_0064_128_double_threads.md)
 
 
