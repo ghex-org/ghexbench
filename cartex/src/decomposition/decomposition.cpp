@@ -154,7 +154,9 @@ decomposition::neighbor(int thread_id, int dx, int dy, int dz) const noexcept
     const int t_id =
         ct[0] + m_thread_decomposition[0] * (ct[1] + m_thread_decomposition[1] * ct[2]);
 
-    if (c0[0] == m_coord[0] && c0[1] == m_coord[1] && c0[2] == m_coord[2])
+    if (c0[0] * m_thread_decomposition[0] == m_coord[0] &&
+        c0[1] * m_thread_decomposition[1] == m_coord[1] &&
+        c0[2] * m_thread_decomposition[2] == m_coord[2])
     { return {id, m_rank, t_id, c, domain_coord, domain_ext}; }
     else
     {
