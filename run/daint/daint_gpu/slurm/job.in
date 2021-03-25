@@ -1,0 +1,43 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=#BENCHNAME#
+#SBATCH --account=csstaff
+#SBATCH --constraint=gpu
+#SBATCH --partition=#QUEUE#
+#SBATCH --output=#STDOUTLOGFILE#
+#SBATCH --error=#STDERRLOGFILE#
+#SBATCH --time=#TIME_LIMIT#
+#SBATCH --nodes=#NODES#
+#SBATCH --ntasks-per-node=#TASKSPERNODE#
+#SBATCH --ntasks-per-socket=#TASKSPERSOCKET#
+#SBATCH --cpus-per-task=#CPUSPERTASK#
+#SBATCH --ntasks-per-core=#TASKSPERCORE#
+#SBATCH --hint=nomultithread
+
+# constaints
+#ADDITIONAL_JOB_CONFIG#
+
+# modules
+
+# GPU envs
+export CRAY_CUDA_MPS=1
+export MPICH_RDMA_ENABLED_CUDA=1
+export MPICH_G2G_PIPELINE=30
+
+echo "# nodes:          #NODES#"
+echo "# tasks-per-node: #TASKSPERNODE#"
+echo "# tasks:          #TASKS#"
+echo "# cpus-per-task:  #CPUSPERTASK#"
+
+echo ""
+hostname
+echo ""
+hwloc-info
+echo ""
+lscpu --all --extended
+echo ""
+
+# run job
+. #RUN_SCRIPT2#
+
+#FLAG#
