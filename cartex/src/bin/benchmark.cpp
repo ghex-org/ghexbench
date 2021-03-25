@@ -181,20 +181,35 @@ main(int argc, char** argv)
 
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
 
-        cartex::runtime r(options, *decomp_ptr);
+//#ifdef __CUDACC__
+//        int device_count = 1;
+//        if (cudaGetDeviceCount(&device_count) != cudaSuccess)
+//            throw std::runtime_error("cudaGetDeviceCount failed");
+//        if (cudaSetDevice(0) != cudaSuccess)
+//            throw std::runtime_error("cudaSetDevice failed");
+//#endif
 
+        cartex::runtime r(options, *decomp_ptr);
         if (rank == 0)
         {
             std::cout << r.info() << std::endl;
             std::cout << "running on " << size << " ranks" << std::endl;
         }
 
-        if (decomp_ptr->threads_per_rank() == 1) r.exchange(0);
-        else
+        if (decomp_ptr->threads_per_rank() == 1)
         {
-            cartex::thread_pool tp(num_threads);
-            for (int j = 0; j < num_threads; ++j) tp.schedule(j, [&r](int j) { r.exchange(j); });
+            r.init(0);
+            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+            r.exchange(0);
         }
+//        else
+//        {
+//            cartex::thread_pool tp(num_threads);
+//            for (int j = 0; j < num_threads; ++j) tp.schedule(j, [&r](int j) { r.init(j); });
+//            tp.sync();
+//            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+//            for (int j = 0; j < num_threads; ++j) tp.schedule(j, [&r](int j) { r.exchange(j); });
+//        }
 
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
     }

@@ -19,6 +19,11 @@
 
 namespace cartex
 {
+decomposition::~decomposition()
+{
+    hwcart_comm_free(&m_comm);
+}
+
 void
 decomposition::init_domain(const arr& domain_, bool local)
 {

@@ -24,10 +24,6 @@ runtime::exchange(int j)
 {
     using clock_type = std::chrono::high_resolution_clock;
 
-    // prepare fields
-    make_fields(j);
-    init(j);
-
     // check for correctness
     if (m_check_res)
     {
@@ -134,6 +130,9 @@ runtime::make_fields(int j)
                             m_num_fields +
                         i;
                 }
+#ifdef __CUDACC__
+        m_raw_fields[j].back().clone_to_device();
+#endif
     }
 }
 

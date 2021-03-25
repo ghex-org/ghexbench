@@ -54,6 +54,12 @@ class decomposition
         {
             if (hwcart_init(&m)) throw std::runtime_error("hwcart init failed");
         }
+        ~hw_topo_t()
+        {
+            hwcart_topo_free(&m);
+        }
+        hw_topo_t(const hw_topo_t&) = delete;
+        hw_topo_t(hw_topo_t&&) = delete;
     };
 
     static hwcart_order_t parse_order(std::string const& order_str)
@@ -164,7 +170,8 @@ class decomposition
     {
     }
     decomposition(const decomposition&) = delete;
-    ~decomposition() { hwcart_free(&m_hw_topo.m, &m_comm); }
+    ~decomposition();
+
     MPI_Comm              mpi_comm() const noexcept { return m_comm; }
     int                   rank() const noexcept { return m_rank; }
     int                   size() const noexcept { return m_size; }
