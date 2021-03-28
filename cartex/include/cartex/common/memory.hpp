@@ -28,7 +28,6 @@
 
 namespace cartex
 {
-
 template<typename T>
 struct memory
 {

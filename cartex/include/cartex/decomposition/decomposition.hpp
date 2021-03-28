@@ -54,10 +54,7 @@ class decomposition
         {
             if (hwcart_init(&m)) throw std::runtime_error("hwcart init failed");
         }
-        ~hw_topo_t()
-        {
-            hwcart_topo_free(&m);
-        }
+        ~hw_topo_t() { hwcart_topo_free(&m); }
         hw_topo_t(const hw_topo_t&) = delete;
         hw_topo_t(hw_topo_t&&) = delete;
     };
@@ -183,7 +180,7 @@ class decomposition
     domain_t              domain(int thread_id) const noexcept;
     domain_t              neighbor(int thread_id, int dx, int dy, int dz) const noexcept;
     std::vector<domain_t> domains() const noexcept;
-    void print();
+    void                  print();
 };
 
 } // namespace cartex

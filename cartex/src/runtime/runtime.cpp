@@ -19,13 +19,6 @@
 
 namespace cartex
 {
-//#ifdef __CUDACC__
-//#include <stdio.h>
-//template <typename T>
-//__global__ void print_kernel(T* ptr, unsigned int idx) {
-//    printf("Hello from block %d, thread %d, value=%f\n", blockIdx.x, threadIdx.x, ptr[idx]);
-//}
-//#endif
 void
 runtime::exchange(int j)
 {
@@ -140,14 +133,6 @@ runtime::make_fields(int j)
 #ifdef __CUDACC__
         m_raw_fields[j].back().clone_to_device();
 #endif
-//#ifdef __CUDACC__
-//        // launch print kernel
-//        print_kernel<<<1, 1>>>(m_raw_fields[j].back().hd_data(),
-//            m_halos[0]
-//                + (m_domains[j].domain_ext[0] + m_halos[0] + m_halos[1]) * (m_halos[2]
-//                    + (m_domains[j].domain_ext[1] + m_halos[2] + m_halos[3]) * m_halos[4]));
-//        cudaDeviceSynchronize();
-//#endif
     }
 }
 
@@ -186,11 +171,6 @@ runtime::check(int j)
 #ifdef __CUDACC__
         m_raw_fields[j][i].clone_to_host();
 #endif
-//#ifdef __CUDACC__
-//        // launch print kernel
-//        print_kernel<<<1, 1>>>(m_raw_fields[j][i].hd_data(),0);
-//        cudaDeviceSynchronize();
-//#endif
         view_type v(&m_raw_fields[j][i], m_domains[j].domain_ext[0] + m_halos[0] + m_halos[1],
             m_domains[j].domain_ext[1] + m_halos[2] + m_halos[3],
             m_domains[j].domain_ext[2] + m_halos[4] + m_halos[5]);
