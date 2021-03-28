@@ -57,6 +57,9 @@ main(int argc, char** argv)
         std::terminate();
     }
 
+#ifdef __CUDACC__
+    cudaSetDevice(0);
+#endif
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -202,14 +205,14 @@ main(int argc, char** argv)
             CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
             r.exchange(0);
         }
-//        else
-//        {
-//            cartex::thread_pool tp(num_threads);
-//            for (int j = 0; j < num_threads; ++j) tp.schedule(j, [&r](int j) { r.init(j); });
-//            tp.sync();
-//            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
-//            for (int j = 0; j < num_threads; ++j) tp.schedule(j, [&r](int j) { r.exchange(j); });
-//        }
+        else
+        {
+            cartex::thread_pool tp(num_threads);
+            for (int j = 0; j < num_threads; ++j) tp.schedule(j, [&r](int j) { r.init(j); });
+            tp.sync();
+            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+            for (int j = 0; j < num_threads; ++j) tp.schedule(j, [&r](int j) { r.exchange(j); });
+        }
 
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
     }
