@@ -173,6 +173,7 @@ class decomposition
     int                   rank() const noexcept { return m_rank; }
     int                   size() const noexcept { return m_size; }
     arr                   coord(int thread_id) const noexcept;
+    const arr&            rank_decomposition() const noexcept { return m_global_decomposition; }
     const arr&            last_coord() const noexcept { return m_last_coord; }
     const arr&            last_domain_coord() const noexcept { return m_last_domain_coord; }
     int                   threads_per_rank() const noexcept { return m_threads_per_rank; }

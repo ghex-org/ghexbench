@@ -37,16 +37,20 @@ runtime::check_options(options_values const& opts)
     // only MPICart allowed
     if (!opts.has("MPICart"))
     {
-        std::cerr << "GCL backend only supports MPICart" << std::endl;
-        return false;
+        const auto order = opts.get_or("order", std::string("XYZ"));
+        if (order != "ZYX")
+        {
+            std::cerr << "GCL backend only supports MPICart or ZYX order" << std::endl;
+            return false;
+        }
     }
     return true;
 }
 
 runtime::impl::impl(runtime& base, options_values const& options)
 : m_base(base)
-, m_pattern(typename pattern_type::grid_type::period_type{true, true, true},
-      m_base.m_decomposition.mpi_comm())
+, m_cart(options, base.m_decomposition)
+, m_pattern(typename pattern_type::grid_type::period_type{true, true, true}, m_cart.m_comm)
 //, m_pattern_v(make_pattern(options, base.m_decomposition.mpi_comm()))
 {
     const auto halo = options.get<int>("halo");

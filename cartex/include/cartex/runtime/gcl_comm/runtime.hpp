@@ -66,9 +66,39 @@ class runtime::impl
 #endif
         >;
 
+    struct mpi_cart_holder
+    {
+        bool     m_create = false;
+        MPI_Comm m_comm;
+        mpi_cart_holder(options_values const& options, decomposition const& d)
+        {
+            if (!options.has("MPICart"))
+            {
+                const int periods[3] = {1, 1, 1};
+                m_create = true;
+                MPI_Cart_create(d.mpi_comm(), 3, &d.rank_decomposition()[0], periods, 0, &m_comm);
+            }
+            else
+            {
+                m_comm = d.mpi_comm();
+            }
+        }
+        mpi_cart_holder(const mpi_cart_holder&) = delete;
+        mpi_cart_holder(mpi_cart_holder&& other)
+        : m_create(std::exchange(other.m_create, false))
+        , m_comm(other.m_comm)
+        {
+        }
+        ~mpi_cart_holder()
+        {
+            if (m_create) MPI_Comm_free(&m_comm);
+        }
+    };
+
   private:
-    runtime&     m_base;
-    pattern_type m_pattern;
+    runtime&        m_base;
+    mpi_cart_holder m_cart;
+    pattern_type    m_pattern;
     //pattern_variant_t                m_pattern_v;
     std::vector<runtime::real_type*> m_field_ptrs;
 
