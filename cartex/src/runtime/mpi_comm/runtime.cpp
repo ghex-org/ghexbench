@@ -20,6 +20,12 @@ runtime::add_options(options& opts)
     return opts;
 }
 
+bool
+runtime::check_options(options_values const &)
+{
+    return true;
+}
+
 runtime::impl::neighborhood::neighborhood(
     int i, decomposition& decomp, MPI_Datatype mpi_T, std::array<int, 6> const& halos)
 : comm(decomp.mpi_comm())

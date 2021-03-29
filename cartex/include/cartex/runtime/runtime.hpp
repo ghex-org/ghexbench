@@ -54,6 +54,7 @@ class runtime
 
   public:
     static options& add_options(options& opts);
+    static bool     check_options(options_values const& opts);
 
   public:
     runtime(const options_values& options, decomposition& decomp_);

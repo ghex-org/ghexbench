@@ -39,6 +39,10 @@ main(int argc, char** argv)
         ("check",         "check results");
     /* clang-format on */
     const auto options = cartex::runtime::add_options(opts).parse(argc, argv);
+    if (!cartex::runtime::check_options(options))
+    {
+        std::terminate();
+    }
 
     const auto threads = options.get<std::array<int, 3>>("thread");
     const auto num_threads = threads[0] * threads[1] * threads[2];

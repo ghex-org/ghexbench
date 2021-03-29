@@ -24,6 +24,12 @@ runtime::add_options(options& opts)
     return opts("node-local", "use non-compact node-local transport");
 }
 
+bool
+runtime::check_options(options_values const &)
+{
+    return true;
+}
+
 runtime::impl::impl(cartex::runtime& base, options_values const& options)
 : m_base{base}
 , m_context_ptr{tl::context_factory<transport>::create(base.m_decomposition.mpi_comm())}
