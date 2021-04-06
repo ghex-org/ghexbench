@@ -39,8 +39,8 @@ runtime::check_options(options_values const& opts)
 
 runtime::impl::impl(runtime& base, options_values const& options)
 : m_base(base)
-, m_cart(options, base.m_decomposition)
-, m_pattern(typename pattern_type::grid_type::period_type{true, true, true}, m_cart.m_comm)
+, m_pattern(typename pattern_type::grid_type::period_type{true, true, true},
+      base.m_decomposition.mpi_cart_comm())
 {
     const auto halo = options.get<int>("halo");
     m_pattern.add_halo<0>(halo, halo, halo, m_base.m_domains[0].domain_ext[0] + halo - 1,

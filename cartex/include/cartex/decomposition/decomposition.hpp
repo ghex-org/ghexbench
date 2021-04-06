@@ -87,6 +87,7 @@ class decomposition
     std::vector<int>                m_topo;
     std::vector<hwcart_split_t>     m_levels;
     MPI_Comm                        m_comm;
+    MPI_Comm                        m_cart_comm;
     arr                             m_global_decomposition;
     arr                             m_last_coord;
     int                             m_threads_per_rank;
@@ -170,6 +171,7 @@ class decomposition
     ~decomposition();
 
     MPI_Comm              mpi_comm() const noexcept { return m_comm; }
+    MPI_Comm              mpi_cart_comm() const noexcept { return m_cart_comm; }
     int                   rank() const noexcept { return m_rank; }
     int                   size() const noexcept { return m_size; }
     arr                   coord(int thread_id) const noexcept;
