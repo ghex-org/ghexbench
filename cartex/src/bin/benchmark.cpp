@@ -62,6 +62,7 @@ main(int argc, char** argv)
     }
 
 #ifdef __CUDACC__
+    // TODO: make benchmark use multiple GPUs if available
     cudaSetDevice(0);
 #endif
     int rank, size;
@@ -187,14 +188,6 @@ main(int argc, char** argv)
         }
 
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
-
-//#ifdef __CUDACC__
-//        int device_count = 1;
-//        if (cudaGetDeviceCount(&device_count) != cudaSuccess)
-//            throw std::runtime_error("cudaGetDeviceCount failed");
-//        if (cudaSetDevice(0) != cudaSuccess)
-//            throw std::runtime_error("cudaSetDevice failed");
-//#endif
 
         cartex::runtime r(options, *decomp_ptr);
         if (rank == 0)
