@@ -72,7 +72,6 @@ endif()
 
 set(CARTEX_UCP OFF CACHE BOOL "use UCP tranport")
 
-#compile_as_cuda(runtime.cpp TARGET_DIRECTORY runtime)
 target_sources(runtime PRIVATE runtime.cpp)
 target_link_libraries(runtime PUBLIC GHEX::ghexlib)
 target_compile_options(runtime PUBLIC "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--default-stream per-thread>")
