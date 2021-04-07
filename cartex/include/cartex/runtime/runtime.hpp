@@ -54,16 +54,17 @@ class runtime
 
   public:
     static options& add_options(options& opts);
+    static bool     check_options(options_values const& opts);
 
   public:
     runtime(const options_values& options, decomposition& decomp_);
     ~runtime();
     runtime(const runtime&) = delete;
+    void        init(int);
     void        exchange(int j);
     std::string info() const;
 
   private:
-    void init(int);
     void step(int);
     void make_fields(int j);
     void print_fields(int j);

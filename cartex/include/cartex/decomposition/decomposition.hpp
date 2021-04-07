@@ -54,6 +54,9 @@ class decomposition
         {
             if (hwcart_init(&m)) throw std::runtime_error("hwcart init failed");
         }
+        ~hw_topo_t() { hwcart_topo_free(&m); }
+        hw_topo_t(const hw_topo_t&) = delete;
+        hw_topo_t(hw_topo_t&&) = delete;
     };
 
     static hwcart_order_t parse_order(std::string const& order_str)
@@ -84,6 +87,7 @@ class decomposition
     std::vector<int>                m_topo;
     std::vector<hwcart_split_t>     m_levels;
     MPI_Comm                        m_comm;
+    MPI_Comm                        m_cart_comm;
     arr                             m_global_decomposition;
     arr                             m_last_coord;
     int                             m_threads_per_rank;
@@ -164,11 +168,14 @@ class decomposition
     {
     }
     decomposition(const decomposition&) = delete;
-    ~decomposition() { hwcart_free(&m_hw_topo.m, &m_comm); }
+    ~decomposition();
+
     MPI_Comm              mpi_comm() const noexcept { return m_comm; }
+    MPI_Comm              mpi_cart_comm() const noexcept { return m_cart_comm; }
     int                   rank() const noexcept { return m_rank; }
     int                   size() const noexcept { return m_size; }
     arr                   coord(int thread_id) const noexcept;
+    const arr&            rank_decomposition() const noexcept { return m_global_decomposition; }
     const arr&            last_coord() const noexcept { return m_last_coord; }
     const arr&            last_domain_coord() const noexcept { return m_last_domain_coord; }
     int                   threads_per_rank() const noexcept { return m_threads_per_rank; }
@@ -176,7 +183,7 @@ class decomposition
     domain_t              domain(int thread_id) const noexcept;
     domain_t              neighbor(int thread_id, int dx, int dy, int dz) const noexcept;
     std::vector<domain_t> domains() const noexcept;
-    void print();
+    void                  print();
 };
 
 } // namespace cartex

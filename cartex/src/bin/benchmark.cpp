@@ -39,6 +39,10 @@ main(int argc, char** argv)
         ("check",         "check results");
     /* clang-format on */
     const auto options = cartex::runtime::add_options(opts).parse(argc, argv);
+    if (!cartex::runtime::check_options(options))
+    {
+        std::terminate();
+    }
 
     const auto threads = options.get<std::array<int, 3>>("thread");
     const auto num_threads = threads[0] * threads[1] * threads[2];
@@ -57,6 +61,10 @@ main(int argc, char** argv)
         std::terminate();
     }
 
+#ifdef __CUDACC__
+    // TODO: make benchmark use multiple GPUs if available
+    cudaSetDevice(0);
+#endif
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -182,17 +190,24 @@ main(int argc, char** argv)
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
 
         cartex::runtime r(options, *decomp_ptr);
-
         if (rank == 0)
         {
             std::cout << r.info() << std::endl;
             std::cout << "running on " << size << " ranks" << std::endl;
         }
 
-        if (decomp_ptr->threads_per_rank() == 1) r.exchange(0);
+        if (decomp_ptr->threads_per_rank() == 1)
+        {
+            r.init(0);
+            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+            r.exchange(0);
+        }
         else
         {
             cartex::thread_pool tp(num_threads);
+            for (int j = 0; j < num_threads; ++j) tp.schedule(j, [&r](int j) { r.init(j); });
+            tp.sync();
+            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
             for (int j = 0; j < num_threads; ++j) tp.schedule(j, [&r](int j) { r.exchange(j); });
         }
 

@@ -28,7 +28,6 @@
 
 namespace cartex
 {
-
 template<typename T>
 struct memory
 {
@@ -37,12 +36,7 @@ struct memory
 #ifdef __CUDACC__
     struct cuda_deleter
     {
-        // no delete since this messes up the rma stuff
-        // when doing 2 tests in a row!!!
-        //void operator()(T* ptr) const { cudaFree(ptr); }
-        void operator()(T*) const
-        { /* do nothing */
-        }
+        void operator()(T* ptr) const { cudaFree(ptr); }
     };
     std::unique_ptr<T[], cuda_deleter> m_device_memory;
 #endif

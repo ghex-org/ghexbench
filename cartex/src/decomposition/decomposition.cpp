@@ -19,6 +19,12 @@
 
 namespace cartex
 {
+decomposition::~decomposition()
+{
+    hwcart_comm_free(&m_comm);
+    if (!m_mpi_cart) MPI_Comm_free(&m_cart_comm);
+}
+
 void
 decomposition::init_domain(const arr& domain_, bool local)
 {
@@ -62,6 +68,8 @@ decomposition::decomposition(const std::string& order, const arr& thread_d, std:
     CARTEX_CHECK_MPI_RESULT(MPI_Comm_rank(m_comm, &m_rank));
     CARTEX_CHECK_MPI_RESULT(MPI_Comm_size(m_comm, &m_size));
     hwcart_rank2coord(m_comm, m_global_decomposition.data(), m_rank, m_order, m_coord.data());
+    int periodic[3] = {1, 1, 1};
+    hwcart2mpicart(m_comm, m_levels.size(), m_topo.data(), periodic, m_order, &m_cart_comm);
     init_domain(domain_, local);
 }
 
@@ -84,6 +92,7 @@ decomposition::decomposition(
     CARTEX_CHECK_MPI_RESULT(MPI_Comm_rank(m_comm, &m_rank));
     CARTEX_CHECK_MPI_RESULT(MPI_Comm_size(m_comm, &m_size));
     CARTEX_CHECK_MPI_RESULT(MPI_Cart_coords(m_comm, m_rank, 3, m_coord.data()));
+    m_cart_comm = m_comm;
     init_domain(domain_, local);
 }
 

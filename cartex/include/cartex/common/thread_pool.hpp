@@ -53,6 +53,8 @@ class thread_pool
 
     void join();
 
+    void sync();
+
     template<typename Function>
     bool schedule(int thread_id, Function&& fct)
     {

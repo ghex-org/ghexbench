@@ -1,4 +1,3 @@
-compile_as_cuda(decomposition.cpp)
 add_library(decomposition decomposition.cpp)
 target_link_libraries(decomposition PRIVATE cartex)
 target_link_libraries(decomposition PRIVATE MPI::MPI_CXX)

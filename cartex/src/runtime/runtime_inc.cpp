@@ -43,6 +43,7 @@ runtime::info() const
 void
 runtime::init(int j)
 {
+    make_fields(j);
     m_impl->init(j);
 }
 
