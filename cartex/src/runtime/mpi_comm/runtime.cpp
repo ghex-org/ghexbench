@@ -14,6 +14,28 @@
 
 namespace cartex
 {
+#ifdef __CUDACC__
+template<class Kernel, class... Args>
+void
+launch_and_wait(
+    dim3 const& blocks, dim3 const& threads, Kernel kernel, cudaStream_t stream, Args... args)
+{
+    kernel<<<blocks, threads, 0, stream>>>(std::move(args)...);
+    CARTEX_CHECK_CUDA_RESULT(cudaGetLastError());
+    CARTEX_CHECK_CUDA_RESULT(cudaStreamSynchronize(stream));
+}
+
+template<class Kernel>
+void
+execute_kernel(dim3 const& blocks, dim3 const& threads, Kernel kernel, cudaStream_t stream,
+    runtime::real_type* field, runtime::real_type* buffer_left, runtime::real_type* buffer_right,
+    std::array<int, 6> const& halos, std::array<int, 3> const& dims)
+{
+    launch_and_wait(blocks, threads, kernel, stream, field, buffer_left, buffer_right, halos[0],
+        halos[1], halos[2], halos[3], halos[4], halos[5], dims[0], dims[1], dims[2]);
+}
+#endif
+
 options&
 runtime::add_options(options& opts)
 {
@@ -152,17 +174,53 @@ runtime::impl::neighborhood::exchange(memory_type& field, int field_id)
         data, 1, *z_recv_l, z_l.rank, recvtag(field_id, 2, false), comm, MPI_STATUS_IGNORE));
 }
 
+#ifdef __CUDACC__
+__global__ void
+pack_x_kernel(runtime::real_type const* field, runtime::real_type* buffer_left,
+    runtime::real_type* buffer_right, int halo_x_left, int halo_x_right, int halo_y_left,
+    int halo_y_right, int halo_z_left, int halo_z_right, int ext_x, int ext_y, int ext_z)
+{
+    const auto y = blockIdx.y * blockDim.y + threadIdx.y;
+    const auto z = blockIdx.z * blockDim.z + threadIdx.z;
+    if (y < ext_y && z < ext_z)
+    {
+        const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
+        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
+        const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
+        if (threadIdx.x < halo_x_left)
+        {
+            const auto x = threadIdx.x;
+            const auto offset_l = halo_x_left * (y + ext_y * z);
+            buffer_left[x + offset_l] = field[x + ext_x + offset];
+        }
+        else
+        {
+            const auto x = threadIdx.x - halo_x_left;
+            const auto offset_r = halo_x_right * (y + ext_y * z);
+            buffer_right[x + offset_r] = field[x + halo_x_left + offset];
+        }
+    }
+}
+#endif
+
 void
 runtime::impl::neighborhood::pack_x(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
 {
+#ifdef __CUDACC__
+    constexpr int block_dim_z = 4;
+    constexpr int block_dim_y = 64;
+    const dim3    block_dims(m_halos[0] + m_halos[1], block_dim_y, block_dim_z);
+    const dim3    num_blocks(1, (d.domain_ext[1] + block_dim_y - 1) / block_dim_y,
+        (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+    execute_kernel(num_blocks, block_dims, pack_x_kernel, stream, field.hd_data(),
+        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
+#else
     for (int z = 0; z < d.domain_ext[2]; ++z)
     {
         for (int y = 0; y < d.domain_ext[1]; ++y)
         {
-            const auto offset =
-                (m_halos[0] + m_halos[1] + d.domain_ext[0]) *
-                (y + m_halos[2] + (z + m_halos[4]) * (m_halos[2] + m_halos[3] + d.domain_ext[1]));
+            const auto offset = ext_buffer[0] * (y + m_halos[2] + (z + m_halos[4]) * ext_buffer[1]);
             const auto offset_l = m_halos[0] * (y + d.domain_ext[1] * z);
             const auto offset_r = m_halos[1] * (y + d.domain_ext[1] * z);
             for (int x = 0; x < m_halos[0]; ++x)
@@ -171,19 +229,58 @@ runtime::impl::neighborhood::pack_x(
                 buffer_right[x + offset_r] = field[x + m_halos[0] + offset];
         }
     }
+#endif
 }
+
+#ifdef __CUDACC__
+__global__ void
+unpack_x_kernel(runtime::real_type* field, runtime::real_type const* buffer_left,
+    runtime::real_type const* buffer_right, int halo_x_left, int halo_x_right, int halo_y_left,
+    int halo_y_right, int halo_z_left, int halo_z_right, int ext_x, int ext_y, int ext_z)
+{
+    const auto y = blockIdx.y * blockDim.y + threadIdx.y;
+    const auto z = blockIdx.z * blockDim.z + threadIdx.z;
+    if (y < ext_y && z < ext_z)
+    {
+        const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
+        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
+        const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
+        (m_halos[0] + m_halos[1] + d.domain_ext[0]) *
+            (y + m_halos[2] + (z + m_halos[4]) * (m_halos[2] + m_halos[3] + d.domain_ext[1]));
+        if (threadIdx.x < halo_x_left)
+        {
+            const auto x = threadIdx.x;
+            const auto offset_l = halo_x_left * (y + ext_y * z);
+            field[x + offset] = buffer_left[x + offset_l];
+        }
+        else
+        {
+            const auto x = threadIdx.x - halo_x_left;
+            const auto offset_r = halo_x_right * (y + ext_y * z);
+            field[x + halo_x_left + ext_x + offset] = buffer_right[x + offset_r];
+        }
+    }
+}
+#endif
 
 void
 runtime::impl::neighborhood::unpack_x(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
 {
+#ifdef __CUDACC__
+    constexpr int block_dim_z = 4;
+    constexpr int block_dim_y = 64;
+    const dim3    block_dims(m_halos[0] + m_halos[1], block_dim_y, block_dim_z);
+    const dim3    num_blocks(1, (d.domain_ext[1] + block_dim_y - 1) / block_dim_y,
+        (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+    execute_kernel(num_blocks, block_dims, unpack_x_kernel, stream, field.hd_data(),
+        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
+#else
     for (int z = 0; z < d.domain_ext[2]; ++z)
     {
         for (int y = 0; y < d.domain_ext[1]; ++y)
         {
-            const auto offset =
-                (m_halos[0] + m_halos[1] + d.domain_ext[0]) *
-                (y + m_halos[2] + (z + m_halos[4]) * (m_halos[2] + m_halos[3] + d.domain_ext[1]));
+            const auto offset = ext_buffer[0] * (y + m_halos[2] + (z + m_halos[4]) * ext_buffer[1]);
             const auto offset_l = m_halos[0] * (y + d.domain_ext[1] * z);
             const auto offset_r = m_halos[1] * (y + d.domain_ext[1] * z);
             for (int x = 0; x < m_halos[0]; ++x) field[x + offset] = buffer_left[x + offset_l];
@@ -191,64 +288,131 @@ runtime::impl::neighborhood::unpack_x(
                 field[x + m_halos[0] + d.domain_ext[0] + offset] = buffer_right[x + offset_r];
         }
     }
+#endif
 }
+
+#ifdef __CUDACC__
+__global__ void
+pack_y_kernel(runtime::real_type const* field, runtime::real_type* buffer_left,
+    runtime::real_type* buffer_right, int halo_x_left, int halo_x_right, int halo_y_left,
+    int halo_y_right, int halo_z_left, int halo_z_right, int ext_x, int ext_y, int ext_z)
+{
+    const auto x = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto z = blockIdx.z * blockDim.z + threadIdx.z;
+    const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
+    if (x < ext_x_b && z < ext_z)
+    {
+        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
+        if (threadIdx.y < halo_y_left)
+        {
+            const auto y = threadIdx.y;
+            const auto offset = ext_x_b * (y + ext_y + (z + halo_z_left) * ext_y_b);
+            const auto offset_l = ext_x_b * (y + halo_y_left * z);
+            buffer_left[x + offset_l] = field[x + offset];
+        }
+        else
+        {
+            const auto y = threadIdx.y - halo_y_left;
+            const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
+            const auto offset_r = ext_x_b * (y + halo_y_right * z);
+            buffer_right[x + offset_r] = field[x + offset];
+        }
+    }
+}
+#endif
 
 void
 runtime::impl::neighborhood::pack_y(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
 {
+#ifdef __CUDACC__
+    constexpr int block_dim_z = 4;
+    constexpr int block_dim_x = 64;
+    const dim3    block_dims(block_dim_x, m_halos[2] + m_halos[3], block_dim_z);
+    const dim3    num_blocks((ext_buffer[0] + block_dim_x - 1) / block_dim_x,
+        1(d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+    execute_kernel(num_blocks, block_dims, pack_y_kernel, stream, field.hd_data(),
+        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
+#else
     for (int z = 0; z < d.domain_ext[2]; ++z)
     {
         for (int y = 0; y < m_halos[2]; ++y)
         {
-            const auto offset = (m_halos[0] + m_halos[1] + d.domain_ext[0]) *
-                                (y + d.domain_ext[2] +
-                                    (z + m_halos[4]) * (m_halos[2] + m_halos[3] + d.domain_ext[1]));
-            const auto offset_l =
-                (m_halos[0] + m_halos[1] + d.domain_ext[0]) * (y + m_halos[2] * z);
-            for (int x = 0; x < d.domain_ext[0] + m_halos[0] + m_halos[1]; ++x)
-                buffer_left[x + offset_l] = field[x + offset];
+            const auto offset =
+                ext_buffer[0] * (y + d.domain_ext[1] + (z + m_halos[4]) * ext_buffer[1]);
+            const auto offset_l = ext_buffer[0] * (y + m_halos[2] * z);
+            for (int x = 0; x < ext_buffer[0]; ++x) buffer_left[x + offset_l] = field[x + offset];
         }
         for (int y = 0; y < m_halos[3]; ++y)
         {
-            const auto offset =
-                (m_halos[0] + m_halos[1] + d.domain_ext[0]) *
-                (y + m_halos[2] + (z + m_halos[4]) * (m_halos[2] + m_halos[3] + d.domain_ext[1]));
-            const auto offset_r =
-                (m_halos[0] + m_halos[1] + d.domain_ext[0]) * (y + m_halos[3] * z);
-            for (int x = 0; x < d.domain_ext[0] + m_halos[0] + m_halos[1]; ++x)
-                buffer_right[x + offset_r] = field[x + offset];
+            const auto offset = ext_buffer[0] * (y + m_halos[2] + (z + m_halos[4]) * ext_buffer[1]);
+            const auto offset_r = ext_buffer[0] * (y + m_halos[3] * z);
+            for (int x = 0; x < ext_buffer[0]; ++x) buffer_right[x + offset_r] = field[x + offset];
+        }
+    }
+#endif
+}
+
+#ifdef __CUDACC__
+__global__ void
+unpack_y_kernel(runtime::real_type* field, runtime::real_type const* buffer_left,
+    runtime::real_type const* buffer_right, int halo_x_left, int halo_x_right, int halo_y_left,
+    int halo_y_right, int halo_z_left, int halo_z_right, int ext_x, int ext_y, int ext_z)
+{
+    const auto x = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto z = blockIdx.z * blockDim.z + threadIdx.z;
+    const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
+    if (x < ext_x_b && z < ext_z)
+    {
+        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
+        if (threadIdx.y < halo_y_left)
+        {
+            const auto y = threadIdx.y;
+            const auto offset = ext_x_b * (y + (z + halo_z_left) * ext_y_b);
+            const auto offset_l = ext_x_b * (y + halo_y_left * z);
+            field[x + offset] = buffer_left[x + offset_l];
+        }
+        else
+        {
+            const auto y = threadIdx.y - halo_y_left;
+            const auto offset = ext_x_b * (y + halo_y_left + ext_y + (z + halo_z_left) * ext_y_b);
+            const auto offset_r = ext_x_b * (y + halo_y_right * z);
+            field[x + offset] = buffer_right[x + offset_r];
         }
     }
 }
+#endif
 
 void
 runtime::impl::neighborhood::unpack_y(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
 {
+#ifdef __CUDACC__
+    constexpr int block_dim_z = 4;
+    constexpr int block_dim_x = 64;
+    const dim3    block_dims(block_dim_x, m_halos[2] + m_halos[3], block_dim_z);
+    const dim3    num_blocks((ext_buffer[0] + block_dim_x - 1) / block_dim_x,
+        1(d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+    execute_kernel(num_blocks, block_dims, unpack_y_kernel, stream, field.hd_data(),
+        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
+#else
     for (int z = 0; z < d.domain_ext[2]; ++z)
     {
         for (int y = 0; y < m_halos[2]; ++y)
         {
-            const auto offset =
-                (m_halos[0] + m_halos[1] + d.domain_ext[0]) *
-                (y + (z + m_halos[4]) * (m_halos[2] + m_halos[3] + d.domain_ext[1]));
-            const auto offset_l =
-                (m_halos[0] + m_halos[1] + d.domain_ext[0]) * (y + m_halos[2] * z);
-            for (int x = 0; x < d.domain_ext[0] + m_halos[0] + m_halos[1]; ++x)
-                field[x + offset] = buffer_left[x + offset_l];
+            const auto offset = ext_buffer[0] * (y + (z + m_halos[4]) * ext_buffer[1]);
+            const auto offset_l = ext_buffer[0] * (y + m_halos[2] * z);
+            for (int x = 0; x < ext_buffer[0]; ++x) field[x + offset] = buffer_left[x + offset_l];
         }
         for (int y = 0; y < m_halos[3]; ++y)
         {
-            const auto offset = (m_halos[0] + m_halos[1] + d.domain_ext[0]) *
-                                (y + m_halos[2] + d.domain_ext[1] +
-                                    (z + m_halos[4]) * (m_halos[2] + m_halos[3] + d.domain_ext[1]));
-            const auto offset_r =
-                (m_halos[0] + m_halos[1] + d.domain_ext[0]) * (y + m_halos[3] * z);
-            for (int x = 0; x < d.domain_ext[0] + m_halos[0] + m_halos[1]; ++x)
-                field[x + offset] = buffer_right[x + offset_r];
+            const auto offset = ext_buffer[0] * (y + m_halos[2] + d.domain_ext[1] +
+                                                    (z + m_halos[4]) * ext_buffer[1]);
+            const auto offset_r = ext_buffer[0] * (y + m_halos[3] * z);
+            for (int x = 0; x < ext_buffer[0]; ++x) field[x + offset] = buffer_right[x + offset_r];
         }
     }
+#endif
 }
 
 void
@@ -313,6 +477,9 @@ void
 runtime::impl::init(int j)
 {
     auto& d = m_base.m_domains[j];
+#ifdef __CUDACC__
+    CARTEX_CHECK_CUDA_RESULT(cudaStreamCreate(&m_neighbors[j].stream));
+#endif
     // x buffers
     m_recv_buffers[j].emplace_back(m_base.m_halos[0] * d.domain_ext[1] * d.domain_ext[2], 0);
     m_send_buffers[j].emplace_back(m_base.m_halos[0] * d.domain_ext[1] * d.domain_ext[2], 0);

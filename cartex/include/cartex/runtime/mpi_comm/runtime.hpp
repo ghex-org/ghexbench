@@ -50,6 +50,9 @@ class runtime::impl
         mpi_dtype_unique_ptr     y_send_l, y_send_r;
         mpi_dtype_unique_ptr     z_recv_l, z_recv_r;
         mpi_dtype_unique_ptr     z_send_l, z_send_r;
+#ifdef __CUDACC__
+        cudaStream_t stream;
+#endif
 
         neighborhood(
             int i, decomposition& decomp, MPI_Datatype mpi_T, std::array<int, 6> const& halos);
