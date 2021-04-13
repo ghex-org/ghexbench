@@ -245,8 +245,6 @@ unpack_x_kernel(runtime::real_type* field, runtime::real_type const* buffer_left
         const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
         const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
         const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
-        (m_halos[0] + m_halos[1] + d.domain_ext[0]) *
-            (y + m_halos[2] + (z + m_halos[4]) * (m_halos[2] + m_halos[3] + d.domain_ext[1]));
         if (threadIdx.x < halo_x_left)
         {
             const auto x = threadIdx.x;
@@ -330,7 +328,7 @@ runtime::impl::neighborhood::pack_y(
     constexpr int block_dim_x = 64;
     const dim3    block_dims(block_dim_x, m_halos[2] + m_halos[3], block_dim_z);
     const dim3    num_blocks((ext_buffer[0] + block_dim_x - 1) / block_dim_x,
-        1(d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+        1, (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
     execute_kernel(num_blocks, block_dims, pack_y_kernel, stream, field.hd_data(),
         buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
 #else
@@ -392,7 +390,7 @@ runtime::impl::neighborhood::unpack_y(
     constexpr int block_dim_x = 64;
     const dim3    block_dims(block_dim_x, m_halos[2] + m_halos[3], block_dim_z);
     const dim3    num_blocks((ext_buffer[0] + block_dim_x - 1) / block_dim_x,
-        1(d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+        1, (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
     execute_kernel(num_blocks, block_dims, unpack_y_kernel, stream, field.hd_data(),
         buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
 #else
