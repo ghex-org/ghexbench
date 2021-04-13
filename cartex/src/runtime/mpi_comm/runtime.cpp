@@ -327,8 +327,8 @@ runtime::impl::neighborhood::pack_y(
     constexpr int block_dim_z = 4;
     constexpr int block_dim_x = 64;
     const dim3    block_dims(block_dim_x, m_halos[2] + m_halos[3], block_dim_z);
-    const dim3    num_blocks((ext_buffer[0] + block_dim_x - 1) / block_dim_x,
-        1, (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+    const dim3    num_blocks((ext_buffer[0] + block_dim_x - 1) / block_dim_x, 1,
+        (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
     execute_kernel(num_blocks, block_dims, pack_y_kernel, stream, field.hd_data(),
         buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
 #else
@@ -389,8 +389,8 @@ runtime::impl::neighborhood::unpack_y(
     constexpr int block_dim_z = 4;
     constexpr int block_dim_x = 64;
     const dim3    block_dims(block_dim_x, m_halos[2] + m_halos[3], block_dim_z);
-    const dim3    num_blocks((ext_buffer[0] + block_dim_x - 1) / block_dim_x,
-        1, (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+    const dim3    num_blocks((ext_buffer[0] + block_dim_x - 1) / block_dim_x, 1,
+        (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
     execute_kernel(num_blocks, block_dims, unpack_y_kernel, stream, field.hd_data(),
         buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
 #else
