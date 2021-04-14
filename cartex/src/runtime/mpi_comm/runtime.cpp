@@ -12,6 +12,8 @@
 #include <cartex/runtime/mpi_comm/runtime.hpp>
 #include "../runtime_inc.cpp"
 
+#define CARTEX_PACK_Z_LOOP
+
 namespace cartex
 {
 #ifdef __CUDACC__
@@ -77,10 +79,15 @@ runtime::impl::neighborhood::neighborhood(
         int       block_dim_y =
             std::min(std::min(d.domain_ext[1], remaining_threads_per_block), max_threads_y);
         block_dim_y = (block_dim_y / warp_size) * warp_size;
+#ifdef CARTEX_PACK_Z_LOOP
+        const int block_dim_z = 1;
+        blocks_x = dim3(1, (d.domain_ext[1] + block_dim_y - 1) / block_dim_y, 1);
+#else
         const int block_dim_z = std::min(max_threads / (block_dim_x * block_dim_y), max_threads_z);
-        dims_x = dim3(block_dim_x, block_dim_y, block_dim_z);
         blocks_x = dim3(1, (d.domain_ext[1] + block_dim_y - 1) / block_dim_y,
             (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+#endif
+        dims_x = dim3(block_dim_x, block_dim_y, block_dim_z);
     }
     // kernel params for y dimension
     {
@@ -242,6 +249,34 @@ pack_x_kernel(runtime::real_type const* field, runtime::real_type* buffer_left,
     runtime::real_type* buffer_right, int halo_x_left, int halo_x_right, int halo_y_left,
     int halo_y_right, int halo_z_left, int halo_z_right, int ext_x, int ext_y, int ext_z)
 {
+#ifdef CARTEX_PACK_Z_LOOP
+    const auto y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (y < ext_y)
+    {
+        const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
+        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
+        if (threadIdx.x < halo_x_left)
+        {
+            const auto x = threadIdx.x;
+            for (int z=0; z<ext_z; ++z)
+            {
+                const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
+                const auto offset_l = halo_x_left * (y + ext_y * z);
+                buffer_left[x + offset_l] = field[x + ext_x + offset];
+            }
+        }
+        else
+        {
+            const auto x = threadIdx.x - halo_x_left;
+            for (int z=0; z<ext_z; ++z)
+            {
+                const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
+                const auto offset_r = halo_x_right * (y + ext_y * z);
+                buffer_right[x + offset_r] = field[x + halo_x_left + offset];
+            }
+        }
+    }
+#else
     const auto y = blockIdx.y * blockDim.y + threadIdx.y;
     const auto z = blockIdx.z * blockDim.z + threadIdx.z;
     if (y < ext_y && z < ext_z)
@@ -262,6 +297,7 @@ pack_x_kernel(runtime::real_type const* field, runtime::real_type* buffer_left,
             buffer_right[x + offset_r] = field[x + halo_x_left + offset];
         }
     }
+#endif
 }
 #endif
 
@@ -295,6 +331,34 @@ unpack_x_kernel(runtime::real_type* field, runtime::real_type const* buffer_left
     runtime::real_type const* buffer_right, int halo_x_left, int halo_x_right, int halo_y_left,
     int halo_y_right, int halo_z_left, int halo_z_right, int ext_x, int ext_y, int ext_z)
 {
+#ifdef CARTEX_PACK_Z_LOOP
+    const auto y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (y < ext_y)
+    {
+        const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
+        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
+        if (threadIdx.x < halo_x_left)
+        {
+            const auto x = threadIdx.x;
+            for (int z=0; z<ext_z; ++z)
+            {
+                const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
+                const auto offset_l = halo_x_left * (y + ext_y * z);
+                field[x + offset] = buffer_left[x + offset_l];
+            }
+        }
+        else
+        {
+            const auto x = threadIdx.x - halo_x_left;
+            for (int z=0; z<ext_z; ++z)
+            {
+                const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
+                const auto offset_r = halo_x_right * (y + ext_y * z);
+                field[x + halo_x_left + ext_x + offset] = buffer_right[x + offset_r];
+            }
+        }
+    }
+#else
     const auto y = blockIdx.y * blockDim.y + threadIdx.y;
     const auto z = blockIdx.z * blockDim.z + threadIdx.z;
     if (y < ext_y && z < ext_z)
@@ -315,6 +379,7 @@ unpack_x_kernel(runtime::real_type* field, runtime::real_type const* buffer_left
             field[x + halo_x_left + ext_x + offset] = buffer_right[x + offset_r];
         }
     }
+#endif
 }
 #endif
 
