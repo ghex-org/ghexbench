@@ -52,6 +52,10 @@ class runtime::impl
         mpi_dtype_unique_ptr     z_send_l, z_send_r;
 #ifdef __CUDACC__
         cudaStream_t stream;
+        dim3         dims_x;
+        dim3         blocks_x;
+        dim3         dims_y;
+        dim3         blocks_y;
 #endif
 
         neighborhood(

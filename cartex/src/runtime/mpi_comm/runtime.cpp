@@ -64,6 +64,37 @@ runtime::impl::neighborhood::neighborhood(
       d.domain_ext[2] + halos[4] + halos[5]}
 , z_plane{ext_buffer[0] * ext_buffer[1]}
 {
+#ifdef __CUDACC__
+    constexpr int max_threads = 512;   // 1024
+    constexpr int max_threads_x = 512; // 1024
+    constexpr int max_threads_y = 512; // 1024
+    constexpr int max_threads_z = 64;
+    constexpr int warp_size = 32;
+    // kernel params for x dimension
+    {
+        const int block_dim_x = m_halos[0] + m_halos[1];
+        int       remaining_threads_per_block = max_threads / block_dim_x;
+        int       block_dim_y =
+            std::min(std::min(d.domain_ext[1], remaining_threads_per_block), max_threads_y);
+        block_dim_y = (block_dim_y / warp_size) * warp_size;
+        const int block_dim_z = std::min(max_threads / (block_dim_x * block_dim_y), max_threads_z);
+        dims_x = dim3(block_dim_x, block_dim_y, block_dim_z);
+        blocks_x = dim3(1, (d.domain_ext[1] + block_dim_y - 1) / block_dim_y,
+            (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+    }
+    // kernel params for y dimension
+    {
+        const int block_dim_y = m_halos[2] + m_halos[3];
+        int       remaining_threads_per_block = max_threads / block_dim_y;
+        int       block_dim_x =
+            std::min(std::min(ext_buffer[0], remaining_threads_per_block), max_threads_x);
+        block_dim_x = (block_dim_x / warp_size) * warp_size;
+        const int block_dim_z = std::min(max_threads / (block_dim_x * block_dim_y), max_threads_z);
+        dims_y = dim3(block_dim_x, block_dim_y, block_dim_z);
+        blocks_y = dim3((ext_buffer[0] + block_dim_x - 1) / block_dim_x, 1,
+            (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
+    }
+#endif
     {
         x_recv_l = mpi_dtype_unique_ptr(new MPI_Datatype);
         x_recv_r = mpi_dtype_unique_ptr(new MPI_Datatype);
@@ -239,13 +270,8 @@ runtime::impl::neighborhood::pack_x(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
 {
 #ifdef __CUDACC__
-    constexpr int block_dim_z = 4;
-    constexpr int block_dim_y = 64;
-    const dim3    block_dims(m_halos[0] + m_halos[1], block_dim_y, block_dim_z);
-    const dim3    num_blocks(1, (d.domain_ext[1] + block_dim_y - 1) / block_dim_y,
-        (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
-    execute_kernel(num_blocks, block_dims, pack_x_kernel, stream, field.hd_data(),
-        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
+    execute_kernel(blocks_x, dims_x, pack_x_kernel, stream, field.hd_data(), buffer_left.hd_data(),
+        buffer_right.hd_data(), m_halos, d.domain_ext);
 #else
     for (int z = 0; z < d.domain_ext[2]; ++z)
     {
@@ -297,12 +323,7 @@ runtime::impl::neighborhood::unpack_x(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
 {
 #ifdef __CUDACC__
-    constexpr int block_dim_z = 4;
-    constexpr int block_dim_y = 64;
-    const dim3    block_dims(m_halos[0] + m_halos[1], block_dim_y, block_dim_z);
-    const dim3    num_blocks(1, (d.domain_ext[1] + block_dim_y - 1) / block_dim_y,
-        (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
-    execute_kernel(num_blocks, block_dims, unpack_x_kernel, stream, field.hd_data(),
+    execute_kernel(blocks_x, dims_x, unpack_x_kernel, stream, field.hd_data(),
         buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
 #else
     for (int z = 0; z < d.domain_ext[2]; ++z)
@@ -355,13 +376,8 @@ runtime::impl::neighborhood::pack_y(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
 {
 #ifdef __CUDACC__
-    constexpr int block_dim_z = 4;
-    constexpr int block_dim_x = 64;
-    const dim3    block_dims(block_dim_x, m_halos[2] + m_halos[3], block_dim_z);
-    const dim3    num_blocks((ext_buffer[0] + block_dim_x - 1) / block_dim_x, 1,
-        (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
-    execute_kernel(num_blocks, block_dims, pack_y_kernel, stream, field.hd_data(),
-        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
+    execute_kernel(blocks_y, dims_y, pack_y_kernel, stream, field.hd_data(), buffer_left.hd_data(),
+        buffer_right.hd_data(), m_halos, d.domain_ext);
 #else
     for (int z = 0; z < d.domain_ext[2]; ++z)
     {
@@ -417,12 +433,7 @@ runtime::impl::neighborhood::unpack_y(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
 {
 #ifdef __CUDACC__
-    constexpr int block_dim_z = 4;
-    constexpr int block_dim_x = 64;
-    const dim3    block_dims(block_dim_x, m_halos[2] + m_halos[3], block_dim_z);
-    const dim3    num_blocks((ext_buffer[0] + block_dim_x - 1) / block_dim_x, 1,
-        (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
-    execute_kernel(num_blocks, block_dims, unpack_y_kernel, stream, field.hd_data(),
+    execute_kernel(blocks_y, dims_y, unpack_y_kernel, stream, field.hd_data(),
         buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
 #else
     for (int z = 0; z < d.domain_ext[2]; ++z)
@@ -484,12 +495,12 @@ runtime::impl::neighborhood::exchange(memory_type& field, std::vector<memory_typ
 
     // note that we don't need packing for z-direction since the memory is already contiguous
     // this works because we don't have padding
-    const auto z0 = field.hd_data();
-    const auto z1 = field.hd_data() + z_plane * m_halos[4];
-    const auto z2 = field.hd_data() + z_plane * d.domain_ext[2];
-    const auto z3 = field.hd_data() + z_plane * (m_halos[4] + d.domain_ext[2]);
-    const auto left_size = z_plane * m_halos[5] * sizeof(runtime::real_type);
-    const auto right_size = z_plane * m_halos[4] * sizeof(runtime::real_type);
+    const auto  z0 = field.hd_data();
+    const auto  z1 = field.hd_data() + z_plane * m_halos[4];
+    const auto  z2 = field.hd_data() + z_plane * d.domain_ext[2];
+    const auto  z3 = field.hd_data() + z_plane * (m_halos[4] + d.domain_ext[2]);
+    const auto  left_size = z_plane * m_halos[5] * sizeof(runtime::real_type);
+    const auto  right_size = z_plane * m_halos[4] * sizeof(runtime::real_type);
     MPI_Request reqz[4];
     CARTEX_CHECK_MPI_RESULT(
         MPI_Irecv(z3, left_size, MPI_BYTE, z_r.rank, recvtag(field_id, 2, true), comm, &reqz[1]));
