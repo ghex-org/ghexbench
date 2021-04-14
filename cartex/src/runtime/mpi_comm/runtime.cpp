@@ -482,6 +482,8 @@ runtime::impl::neighborhood::exchange(memory_type& field, std::vector<memory_typ
     CARTEX_CHECK_MPI_RESULT(MPI_Waitall(4, reqy, MPI_STATUS_IGNORE));
     unpack_y(field, recv_buffers[2], recv_buffers[3]);
 
+    // note that we don't need packing for z-direction since the memory is already contiguous
+    // this works because we don't have padding
     const auto z0 = field.hd_data();
     const auto z1 = field.hd_data() + z_plane * m_halos[4];
     const auto z2 = field.hd_data() + z_plane * d.domain_ext[2];
