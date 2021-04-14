@@ -21,6 +21,7 @@ if(NOT HWCART_FOUND)
 endif()
 
 add_subdirectory(common)
+add_subdirectory(device)
 add_subdirectory(decomposition)
 add_subdirectory(runtime)
 add_subdirectory(bin)
