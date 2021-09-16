@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=#BENCHNAME#
 #SBATCH --account=csstaff
-#SBATCH --constraint=mc
+#SBATCH --constraint=gpu
 #SBATCH --partition=#QUEUE#
 #SBATCH --output=#STDOUTLOGFILE#
 #SBATCH --error=#STDERRLOGFILE#
@@ -35,10 +35,6 @@ lscpu --all --extended
 echo ""
 
 # run job
-#RUN_CMD# #RUN_CMD_ARGS# #EXECUTABLE# #EXECUTABLE_ARGS# --print
-echo ""
-echo ""
-#RUN_CMD# #RUN_CMD_ARGS# #EXECUTABLE# #EXECUTABLE_ARGS#
+. #RUN_SCRIPT2#
 
-# source jube flag creation
-. flag
+#FLAG#

@@ -15,7 +15,9 @@ runtime::runtime(const options_values& options, decomposition& decomp_)
 : m_decomposition(decomp_)
 , m_rank(m_decomposition.rank())
 , m_size(m_decomposition.size())
-, m_num_reps{options.get<int>("nrep")}
+, m_num_reps{options.has("time") ? options.get_or("nrep", 0) : options.get_or("nrep", 10)}
+, m_use_timer{options.has("time")}
+, m_time{options.get_or("time", 0.0)}
 , m_num_threads(m_decomposition.threads_per_rank())
 , m_mt(m_num_threads > 1)
 , m_num_fields{options.get<int>("nfields")}
@@ -25,6 +27,7 @@ runtime::runtime(const options_values& options, decomposition& decomp_)
 , m_offset{m_halos[0], m_halos[2], m_halos[4]}
 , m_domains{decomp_.domains()}
 , m_raw_fields(m_num_threads)
+, m_loop(m_decomposition.mpi_comm(), m_num_threads)
 , m_impl{std::make_unique<impl>(*this, options)}
 {
 }
@@ -40,6 +43,7 @@ runtime::info() const
 void
 runtime::init(int j)
 {
+    make_fields(j);
     m_impl->init(j);
 }
 

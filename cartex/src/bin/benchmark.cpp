@@ -12,6 +12,7 @@
 #include <thread>
 
 #include <cartex/common/options.hpp>
+#include <cartex/device/set_device.hpp>
 #include <cartex/common/thread_pool.hpp>
 #include <cartex/runtime/runtime.hpp>
 
@@ -22,7 +23,8 @@ main(int argc, char** argv)
     auto opts = cartex::options()
         ("domain",        "local domain size (default: 64 64 64)", "X Y Z",    3)
         ("global-domain", "global domain size",                    "X Y Z",    3)
-        ("nrep",          "number of repetitions",                 "r",        {10})
+        ("nrep",          "number of repetitions (default: 10)",   "r",        1)
+        ("time",          "execution time",                        "t",        1)
         ("nfields",       "number of fields",                      "n",        {1})
         ("halo",          "halo size",                             "h",        {1})
         ("MPICart",       "MPI cartesian global grid",             "NX NY NZ", 3)
@@ -38,6 +40,7 @@ main(int argc, char** argv)
         ("check",         "check results");
     /* clang-format on */
     const auto options = cartex::runtime::add_options(opts).parse(argc, argv);
+    if (!cartex::runtime::check_options(options)) { std::terminate(); }
 
     const auto threads = options.get<std::array<int, 3>>("thread");
     const auto num_threads = threads[0] * threads[1] * threads[2];
@@ -59,6 +62,7 @@ main(int argc, char** argv)
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+    const auto device_id = cartex::setup_device(rank);
 
     {
         std::unique_ptr<cartex::decomposition> decomp_ptr;
@@ -181,19 +185,33 @@ main(int argc, char** argv)
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
 
         cartex::runtime r(options, *decomp_ptr);
-
         if (rank == 0)
         {
             std::cout << r.info() << std::endl;
             std::cout << "running on " << size << " ranks" << std::endl;
         }
 
-        if (decomp_ptr->threads_per_rank() == 1) r.exchange(0);
+        if (decomp_ptr->threads_per_rank() == 1)
+        {
+            r.init(0);
+            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+            r.exchange(0);
+        }
         else
         {
             cartex::thread_pool tp(num_threads);
             for (int j = 0; j < num_threads; ++j)
-                tp.schedule(j, [&r](int j) { r.exchange(j); });
+                tp.schedule(j, [&r, device_id](int j) {
+                    cartex::set_device(device_id);
+                    r.init(j);
+                });
+            tp.sync();
+            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+            for (int j = 0; j < num_threads; ++j)
+                tp.schedule(j, [&r, device_id](int j) {
+                    cartex::set_device(device_id);
+                    r.exchange(j);
+                });
         }
 
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));

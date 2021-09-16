@@ -24,6 +24,12 @@ runtime::add_options(options& opts)
     return opts("node-local", "use non-compact node-local transport");
 }
 
+bool
+runtime::check_options(options_values const&)
+{
+    return true;
+}
+
 runtime::impl::impl(cartex::runtime& base, options_values const& options)
 : m_base{base}
 , m_context_ptr{tl::context_factory<transport>::create(base.m_decomposition.mpi_comm())}
@@ -88,6 +94,10 @@ runtime::impl::impl(cartex::runtime& base, options_values const& options)
 void
 runtime::impl::init(int j)
 {
+#ifdef __CUDACC__
+    int device_id;
+    cudaGetDevice(&device_id);
+#endif
     m_comms[j] = m_context.get_communicator();
     const std::array<int, 3> buffer = {
         m_base.m_domains[j].domain_ext[0] + m_base.m_halos[0] + m_base.m_halos[1],
@@ -98,8 +108,8 @@ runtime::impl::init(int j)
         m_fields[j].push_back(wrap_field<cpu, 2, 1, 0>(
             m_local_domains[j], m_base.m_raw_fields[j][i].host_data(), m_base.m_offset, buffer));
 #ifdef __CUDACC__
-        m_fields_gpu[j].push_back(wrap_field<gpu, 2, 1, 0>(
-            m_local_domains[j], m_base.m_raw_fields[j][i].device_data(), m_base.m_offset, buffer));
+        m_fields_gpu[j].push_back(wrap_field<gpu, 2, 1, 0>(m_local_domains[j],
+            m_base.m_raw_fields[j][i].device_data(), m_base.m_offset, buffer, device_id));
 #endif
     }
 

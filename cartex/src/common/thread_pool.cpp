@@ -17,6 +17,7 @@ extern "C"
 #include <memory>
 #include <stdexcept>
 #include <chrono>
+#include <algorithm>
 #include <iostream>
 
 #include <cartex/common/thread_pool.hpp>
@@ -117,6 +118,18 @@ thread_pool::join()
             t.m_thread.join();
         }
         m_joined = true;
+    }
+}
+
+void
+thread_pool::sync()
+{
+    for (int j = 0; j < m_num_threads; ++j) schedule(j, [](int) {});
+    while (std::count_if(m_thread_wrapper.begin(), m_thread_wrapper.end(),
+        [](const auto& tw) { return tw.m_queue.size() > 0u; }))
+    {
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(1ms);
     }
 }
 

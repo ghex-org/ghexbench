@@ -34,35 +34,59 @@ class runtime::impl
 
     struct neighborhood
     {
+        using memory_type = runtime::memory_type;
         MPI_Comm                 comm;
         int                      num_fields;
+        std::array<int, 6>       m_halos;
         domain_t                 d;
         domain_t                 x_l, x_r;
         domain_t                 y_l, y_r;
         domain_t                 z_l, z_r;
         const std::array<int, 3> ext_buffer;
+        int                      z_plane;
         mpi_dtype_unique_ptr     x_recv_l, x_recv_r;
         mpi_dtype_unique_ptr     x_send_l, x_send_r;
         mpi_dtype_unique_ptr     y_recv_l, y_recv_r;
         mpi_dtype_unique_ptr     y_send_l, y_send_r;
         mpi_dtype_unique_ptr     z_recv_l, z_recv_r;
         mpi_dtype_unique_ptr     z_send_l, z_send_r;
+#ifdef __CUDACC__
+        cudaStream_t stream;
+        dim3         dims_x;
+        dim3         blocks_x;
+        dim3         dims_y;
+        dim3         blocks_y;
+#endif
 
         neighborhood(
             int i, decomposition& decomp, MPI_Datatype mpi_T, std::array<int, 6> const& halos);
 
-        void exchange(void* data, int field_id);
+        void exchange(memory_type& field, int field_id);
+        void exchange(memory_type& field, std::vector<memory_type>& send_buffers,
+            std::vector<memory_type>& recv_buffers, int field_id);
+
+      private:
+        void pack_x(memory_type& field, memory_type& buffer_left, memory_type& buffer_right);
+        void unpack_x(memory_type& field, memory_type& buffer_left, memory_type& buffer_right);
+        void pack_y(memory_type& field, memory_type& buffer_left, memory_type& buffer_right);
+        void unpack_y(memory_type& field, memory_type& buffer_left, memory_type& buffer_right);
+
+        int sendtag(int field_id, int dim, bool left) const noexcept;
+        int recvtag(int field_id, int dim, bool left) const noexcept;
     };
 
   private:
-    runtime&                  m_base;
-    MPI_Comm                  m_comm;
-    MPI_Datatype              m_mpi_T;
-    std::vector<neighborhood> m_neighbors;
+    runtime&                                       m_base;
+    MPI_Comm                                       m_comm;
+    bool                                           m_use_mpi_datatypes;
+    MPI_Datatype                                   m_mpi_T;
+    std::vector<std::vector<runtime::memory_type>> m_send_buffers;
+    std::vector<std::vector<runtime::memory_type>> m_recv_buffers;
+    std::vector<neighborhood>                      m_neighbors;
 
   public:
     impl(runtime& base, options_values const& options);
-    void        init(int) {}
+    void        init(int j);
     void        step(int j);
     std::string info() const
     {
