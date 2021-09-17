@@ -1,7 +1,7 @@
 ml purge
 ml load xpmem/master
 ml load CMake/3.18.4-GCCcore-10.2.0
-ml load OpenMPI/4.0.5-GCC-10.2.0
+ml load openmpi/4.1.1
 ml list
 export CC=mpicc
 export CXX=mpicxx

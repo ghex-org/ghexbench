@@ -62,6 +62,8 @@ summary() {
     echo "work directory           ${work_dir}"
     echo "output directory         ${output_dir}"
     echo "binary directory         ${bin_dir}"
+    echo "executables:"
+    echo "${executables}"
 }
 
 check_mk_path() {
@@ -139,8 +141,8 @@ check_path $ghexbench_subsystem_dir
 ghexbench_utils_dir="${ghexbench_dir}/utils"
 check_path $ghexbench_utils_dir
 
-command -v jube --version &> /dev/null
-exit_on_error $? "jube not found"
+#command -v jube --version &> /dev/null
+#exit_on_error $? "jube not found"
 
 check_path $bin_dir
 bin_dir=$path
@@ -172,5 +174,10 @@ exit_on_error $?
 sed -i "s/@GHEXBENCH_SUBSYSTEM_DIR@/${ghexbench_subsystem_dir//\//\\/}/g" bench.xml
 exit_on_error $?
 
-summary
+executables=`find ${bin_dir} -name "benchmark_*" | grep -v intel`
+executables=`basename -a ${executables} | tr '\n' ',' | sed -e 's/,$//'`
+sed -i "s/@EXECUTABLES@/${executables}/g" bench.xml
+exit_on_error $?
 
+executables=`find ${bin_dir} -name "benchmark_*"`
+summary
