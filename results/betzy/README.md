@@ -41,20 +41,26 @@ The JUBE XML script is configured through the following tags
 * `single_node`, `27_nodes` : number of nodes used
 * `mpicart`, `hwcart`: Cartesian communicator implementation
 
+## Domain decomposition
+
 The `allcores` configuration started 128 ranks per compute node, 1 rank per each physical core.
 Effectively, 4 cores per L3 cache domain, 16 cores per NUMA node, and 64 cores per socket were started.
 The `halfcores` configuration started 64 ranks per compute node. Every second core was used, 
 hence 2 cores per L3 cache domain, 8 ranks per NUMA node, and 32 ranks per socket were started.
 
-Within each compute node the ranks were organized into a 3D grid. The actual decomposition is mentioned
-for each benchmark. Additionally, for `27_nodes` configurations the nodes were arranged into a 3D grid
-with dimension `[3 3 3]`.
+The below benchmarks present weak scaling, with each rank computing on a 64^3 computational grid.
+Within each compute node the ranks were organized into a 3D grid. With the `hwcart` configuration 
+the ranks were remapped to a memory domain specific rank grid. For example, the `halfnode` distribution
+`--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1` results in a `[4 4 4]` rank grid and `[256 256 256]` 
+computational grid per node. For `27_nodes` configurations the nodes were further arranged into a 
+3D cartesian grid with dimension `[3 3 3]` (`--node 3 3 3`).
+Hence the dimensions of the global computational grid was `[768 768 768]`.
 
-When using the `mpicart` configuration the rank neighborhood was determined by the `MPI_Cart_*` communicator.
-In that case the rank to compute node assignment was done automatically by MPI. Running the benchmark
-only required specifying the global rank grid dimensions, e.g., ``--MPICart 12 12 12``. 
-With the `hwcart` configuration the ranks were remapped to a memory domain specific rank grid.
-For example, `--socket 1 1 2 --numa 1 2 2 --l3 2 2 1 --core 2 1 1`.
+When using `mpicart` the rank neighborhood was determined by the `MPI_Cart_*` communicator
+and the rank to compute node assignment was done automatically by MPI. For `ompi` we used
+`-map-by ppr:32:socket:pe=2 -bind-to core` for `halfcore` setups and `-map-by ppr:64:socket:pe=1 -bind-to core` for 
+`allcores` setups. In case of `impi` an equivalent pinning scheme was used. Running the benchmark
+only required specifying the global rank grid dimensions, e.g., `--MPICart 12 12 12`.
 
 ## Benchmark results
 The computational grid was periodic in all dimensions. Single precision, 32-bit floats were used.
@@ -74,31 +80,28 @@ For 27-node runs the node grid dimensions were `[3 3 3]`.
 
 #### Single-node tests
 
+The following tables present a human-readable comparison of the different benchmark results.
+
+[`hwcart halfcores`](single_node/halo_fields_halfcores.md)  
+[`hwcart allcores`](single_node/halo_fields_allcores.md)  
+[`compact` vs `staged`, `halfcores`](single_node/staged.md)  
+[`compact` vs `field-by-field`, `halfcores`](single_node/sequence.md)  
+
+Original JUBE output
+
 [`jube run bench.xml --tag single_node ompi halfcores hwcart`](single_node/jube_0.md)  
 [`jube run bench.xml --tag single_node ompi allcores hwcart`](single_node/jube_1.md)  
 [`jube run bench.xml --tag single_node impi halfcores hwcart`](single_node/jube_2.md)  
 [`jube run bench.xml --tag single_node impi allcores hwcart`](single_node/jube_3.md)  
 
-The following tables present a human-readable comparison of the different benchmark results.
-
-[`hwcart halfcores`](single_node/halo_fields_halfcores.md)  
-[`hwcart allcores`](single_node/halo_fields_allcores.md)  
-
 #### 27-node tests
 
-[`jube run bench.xml --tag 27_nodes ompi halfcores mpicart`](27_nodes/jube_0.md)  
-[`jube run bench.xml --tag 27_nodes impi halfcores mpicart`](27_nodes/jube_1.md)  
-[`jube run bench.xml --tag 27_nodes ompi halfcores hwcart`](27_nodes/jube_2.md)  
-[`jube run bench.xml --tag 27_nodes impi halfcores hwcart`](27_nodes/jube_3.md)  
-[`jube run bench.xml --tag 27_nodes ompi allcores hwcart`](27_nodes/jube_4.md)  
-[`jube run bench.xml --tag 27_nodes impi allcores hwcart`](27_nodes/jube_5.md)  
-[`jube run bench.xml --tag 27_nodes impi halfcores mpicart`](27_nodes/jube_6.md)  
-[`jube run bench.xml --tag 27_nodes ompi halfcores mpicart`](27_nodes/jube_7.md)  
-[`jube run bench.xml --tag 27_nodes impi allcores mpicart`](27_nodes/jube_8.md)  
-[`jube run bench.xml --tag 27_nodes ompi allcores mpicart`](27_nodes/jube_9.md)  
+All sorts of [`comparison plots`](27_nodes/plots.md)  
 
 The following tables present a human-readable comparison of the different benchmark results.
 
 [`hwcart halfcores`](27_nodes/halo_fields_halfcores.md)  
 [`hwcart allcores`](27_nodes/halo_fields_allcores.md)  
 [`mpicart` vs `hwcart`](27_nodes/mpicart_vs_hwcart.md)  
+[`compact` vs `staged`, `halfcores`](27_nodes/staged.md)  
+[`compact` vs `field-by-field`, `halfcores`](27_nodes/sequence.md)  
