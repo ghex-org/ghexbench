@@ -26,7 +26,7 @@ namespace cartex
 {
 namespace _impl
 {
-static constexpr int s_num_ht = 2;
+static constexpr int s_num_ht = CARTEX_NUM_HT;
 struct cpu_set
 {
     mutable cpu_set_t m_cpuset;
@@ -56,16 +56,24 @@ thread_pool::thread_pool(int n)
         if (m_this_cpu_set.is_set(c)) m_this_cpus.push_back(c);
     m_num_resources = m_this_cpus.size() / _impl::s_num_ht;
     if (m_num_threads > m_num_resources)
-        std::cerr << "warning: more threads in thread pool than hardware resources" << std::endl;
+    {
+        if (m_num_threads <= (int)m_this_cpus.size())
+            std::cerr
+                << "warning: more threads in thread pool than physical hardware resources: using hyperthreading"
+                << std::endl;
+        else
+            std::cerr << "warning: more threads in thread pool than hardware resources"
+                      << std::endl;
+    }
     if (m_num_threads < m_num_resources)
         std::cerr << "warning: less threads in thread pool than hardware resources" << std::endl;
 
-    auto worker_fct = [this](int thread_id, int cpu_0, int cpu_1) {
+    auto worker_fct = [this](int thread_id, int cpu_0) {
         for (int i = 0; i < 5; ++i)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             const auto cpu = sched_getcpu();
-            if (cpu == cpu_0 || cpu == cpu_1) break;
+            if (cpu == cpu_0) break;
             if (i == 4)
                 std::cerr << "warning: did not manage to set correct thread affinity" << std::endl;
         }
@@ -88,13 +96,11 @@ thread_pool::thread_pool(int n)
     for (int i = 0; i < m_num_threads; ++i)
     {
         const auto cpu_0 = m_this_cpus[i % m_this_cpus.size()];
-        const auto cpu_1 = m_this_cpus[(i + m_num_resources) % m_this_cpus.size()];
         auto&      t = m_thread_wrapper[i];
 
         _impl::cpu_set s;
         s.set(cpu_0);
-        s.set(cpu_1);
-        t.m_thread = thread_type(worker_fct, i, cpu_0, cpu_1);
+        t.m_thread = thread_type(worker_fct, i, cpu_0);
         auto rc =
             pthread_setaffinity_np(t.m_thread.native_handle(), sizeof(cpu_set_t), &s.m_cpuset);
         if (rc != 0) std::cerr << "Error calling pthread_setaffinity_np: " << rc << "\n";

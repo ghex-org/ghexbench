@@ -1,54 +1,9 @@
-if(NOT _ghex_already_fetched)
-  find_package(GHEX QUIET)
-endif()
-if(NOT GHEX_FOUND)
-    #set(_ghex_repository "https://github.com/GridTools/GHEX.git")
-  set(_ghex_repository "https://github.com/boeschf/GHEX.git")
-  set(_ghex_tag        "benchmarking")
-  if(NOT _ghex_already_fetched)
-    message(STATUS "Fetching GHEX ${_ghex_tag} from ${_ghex_repository}")
-  endif()
-  include(FetchContent)
-  FetchContent_Declare(
-    ghex
-    GIT_REPOSITORY ${_ghex_repository}
-    GIT_TAG        ${_ghex_tag}
-  )
-  FetchContent_MakeAvailable(ghex)
-  set(_ghex_already_fetched ON CACHE INTERNAL "")
-endif()
-if(_cartex_cuda_enabled)
-  set(USE_GPU ON CACHE BOOL "Use cuda in GHEX" FORCE)
-  target_compile_definitions(runtime PRIVATE USE_GPU)
-  target_compile_definitions(runtime PRIVATE GHEX_USE_GPU)
-  mark_as_advanced(USE_GPU)
-else()
-  set(USE_GPU OFF CACHE BOOL "Use cuda in GHEX" FORCE)
-  mark_as_advanced(USE_GPU)
-endif()
-mark_as_advanced(USE_HYBRID_TESTS)
-mark_as_advanced(GHEX_BUILD_BENCHMARKS)
-mark_as_advanced(GHEX_BUILD_FORTRAN)
-mark_as_advanced(GHEX_BUILD_TESTS)
-mark_as_advanced(GHEX_ENABLE_ATLAS_BINDINGS)
-mark_as_advanced(GHEX_SKIP_MPICXX)
-mark_as_advanced(GHEX_USE_XPMEM)
-mark_as_advanced(GHEX_USE_UCP)
-mark_as_advanced(GHEX_USE_PMIX)
-mark_as_advanced(GHEX_COMM_OBJ_FAT_CALLBACKS)
-mark_as_advanced(GHEX_COMM_OBJ_U_PACK)
-
 set(CARTEX_RMA "none" CACHE STRING "select rma option")
 set_property(CACHE CARTEX_RMA PROPERTY STRINGS "none" "threads" "xpmem")
-
+  
 set(CARTEX_STAGED_EXCHANGE OFF CACHE BOOL "use 6-way exchange")
 if (CARTEX_STAGED_EXCHANGE)
-  target_compile_definitions(runtime PRIVATE CARTEX_GHEX_STAGED)
-endif()
-
-set(CARTEX_RMA_REGION OFF CACHE BOOL "use pointer container for rma")
-if (CARTEX_RMA_REGION)
-    target_compile_definitions(runtime PRIVATE GHEX_RMA_REGION)
+    target_compile_definitions(runtime PRIVATE CARTEX_GHEX_STAGED)
 endif()
 
 set(CARTEX_FIELD_BY_FIELD OFF CACHE BOOL "exchange field by field")
@@ -56,58 +11,56 @@ if (CARTEX_FIELD_BY_FIELD)
   target_compile_definitions(runtime PRIVATE CARTEX_GHEX_FIELD_BY_FIELD)
 endif()
 
-set(CARTEX_FAT_CALLBACKS OFF CACHE BOOL "use fat callbacks")
-if (CARTEX_FAT_CALLBACKS)
-  target_compile_definitions(runtime PRIVATE GHEX_COMM_OBJ_USE_FAT_CALLBACKS)
+set(CARTEX_TRANSPORT_BACKEND "MPI" CACHE STRING "Choose the backend type: MPI | UCX | LIBFABRIC")
+set_property(CACHE CARTEX_TRANSPORT_BACKEND PROPERTY STRINGS "MPI" "UCX" "LIBFABRIC")
+
+#set(_ghex_repository "https://github.com/GridTools/GHEX.git")
+set(_ghex_repository "https://github.com/boeschf/GHEX.git")
+set(_ghex_tag        "benchmarking_to_master")
+if(NOT _ghex_already_fetched)
+    message(STATUS "Fetching GHEX ${_ghex_tag} from ${_ghex_repository}")
+endif()
+include(FetchContent)
+FetchContent_Declare(
+    ghex
+    GIT_REPOSITORY ${_ghex_repository}
+    GIT_TAG        ${_ghex_tag})
+
+
+if((NOT CARTEX_RMA STREQUAL "xpmem") AND (NOT CARTEX_RMA STREQUAL "threads"))
+    set(GHEX_NO_RMA ON CACHE INTERNAL "")  # Forces the value
+else()
+    set(GHEX_NO_RMA OFF CACHE INTERNAL "")  # Forces the value
 endif()
 
 if(CARTEX_RMA STREQUAL "xpmem")
-  set(GHEX_USE_XPMEM ON CACHE BOOL "Set to true to use xpmem shared memory" FORCE)
-elseif(CARTEX_RMA STREQUAL "threads")
-  set(GHEX_USE_XPMEM OFF CACHE BOOL "Set to true to use xpmem shared memory" FORCE)
+    set(GHEX_USE_XPMEM ON CACHE INTERNAL "")  # Forces the value
 else()
-  set(GHEX_USE_XPMEM OFF CACHE BOOL "Set to true to use xpmem shared memory" FORCE)
-  target_compile_definitions(runtime PRIVATE GHEX_NO_RMA)
+    set(GHEX_USE_XPMEM OFF CACHE INTERNAL "")  # Forces the value
 endif()
 
-set(CARTEX_UCP OFF CACHE BOOL "use UCP tranport")
-
-target_sources(runtime PRIVATE runtime.cpp)
-target_link_libraries(runtime PUBLIC GHEX::ghexlib)
-target_compile_options(runtime PUBLIC "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:--default-stream per-thread>")
-target_compile_definitions(runtime PUBLIC CARTEX_RMA=${CARTEX_RMA})
-if(CARTEX_UCP)
+if (CARTEX_TRANSPORT_BACKEND STREQUAL "LIBFABRIC")
+    set (GHEX_TRANSPORT_BACKEND "LIBFABRIC" CACHE INTERNAL "") # Forces the value
+    target_compile_definitions(runtime PUBLIC CARTEX_TRANSPORT=LIBFABRIC)
+elseif (CARTEX_TRANSPORT_BACKEND STREQUAL "UCX")
+    set (GHEX_TRANSPORT_BACKEND "UCX" CACHE INTERNAL "") # Forces the value
     target_compile_definitions(runtime PUBLIC CARTEX_TRANSPORT=UCX)
 else()
+    set (GHEX_TRANSPORT_BACKEND "MPI" CACHE INTERNAL "") # Forces the value
     target_compile_definitions(runtime PUBLIC CARTEX_TRANSPORT=MPI)
 endif()
 
-
-if(CARTEX_UCP)
-  set(GHEX_USE_UCP ON CACHE BOOL "Set to true to use UCP library" FORCE)
-  set(CARTEX_PMIX OFF CACHE BOOL "use PMIx process management")
-  target_compile_definitions(runtime PRIVATE GHEX_USE_UCP)
-  if(CARTEX_PMIX)
-    set(GHEX_USE_PMIX ON CACHE BOOL "Set to true to use PMIx process management" FORCE)
-    target_compile_definitions(runtime PRIVATE GHEX_USE_PMI)
-  else()
-    set(GHEX_USE_PMIX OFF CACHE BOOL "Set to true to use PMIx process management" FORCE)
-  endif()
-else()
-  set(GHEX_USE_UCP OFF CACHE BOOL "Set to true to use UCP library" FORCE)
+if(_cartex_cuda_enabled)
+    set (GHEX_USE_GPU ON CACHE INTERNAL "") # Forces the value
+    set (GHEX_GPU_TYPE "NVIDIA" CACHE INTERNAL "") # Forces the value
+else() 
+    set (GHEX_USE_GPU OFF CACHE INTERNAL "") # Forces the value
+    set (GHEX_GPU_TYPE "AUTO" CACHE INTERNAL "") # Forces the value
 endif()
 
-if(GHEX_USE_XPMEM)
-  target_compile_definitions(runtime PRIVATE GHEX_USE_XPMEM)
-  if(GHEX_USE_XPMEM_ACCESS_GUARD)
-    target_compile_definitions(runtime PRIVATE GHEX_USE_XPMEM_ACCESS_GUARD)
-  endif()
-else()
-  mark_as_advanced(GHEX_USE_XPMEM_ACCESS_GUARD)
-endif()
-if(GHEX_COMM_OBJ_FAT_CALLBACKS)
-  target_compile_definitions(runtime PRIVATE GHEX_COMM_OBJ_FAT_CALLBACKS)
-endif()
-if(GHEX_COMM_OBJ_U_PACK)
-  target_compile_definitions(runtime PRIVATE GHEX_COMM_OBJ_U_PACK)
-endif()
+FetchContent_MakeAvailable(ghex)
+set(_ghex_already_fetched ON CACHE INTERNAL "")
+
+target_sources(runtime PRIVATE runtime.cpp)
+target_link_libraries(runtime PUBLIC GHEX::lib)
+target_compile_definitions(runtime PUBLIC CARTEX_RMA=${CARTEX_RMA})

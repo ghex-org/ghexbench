@@ -11,20 +11,8 @@
 
 #pragma once
 
-#include <memory>
-#include <vector>
-#include <type_traits>
-#include <sstream>
-
-#ifndef GHEX_USE_UCP
-#include <ghex/transport_layer/mpi/context.hpp>
-using transport = gridtools::ghex::tl::mpi_tag;
-//#pragma message "using mpi for transport"
-#else
-#include <ghex/transport_layer/ucx/context.hpp>
-using transport = gridtools::ghex::tl::ucx_tag;
-//#pragma message "using ucp for transport"
-#endif
+#include <ghex/config.hpp>
+#include <ghex/context.hpp>
 #include <ghex/bulk_communication_object.hpp>
 #include <ghex/structured/pattern.hpp>
 #include <ghex/structured/rma_range_generator.hpp>
@@ -37,20 +25,25 @@ using transport = gridtools::ghex::tl::ucx_tag;
 
 #include <cartex/runtime/runtime.hpp>
 
+#include <memory>
+#include <vector>
+#include <type_traits>
+#include <sstream>
+
 namespace cartex
 {
-using namespace gridtools::ghex;
+using namespace ghex;
 
 class runtime::impl
 {
   private:
-    using context_type = typename tl::context_factory<transport>::context_type;
-    using context_ptr_type = std::unique_ptr<context_type>;
-    using domain_descriptor_type = structured::regular::domain_descriptor<int, 3>;
-    using halo_generator_type = structured::regular::halo_generator<int, 3>;
+    using domain_descriptor_type =
+        structured::regular::domain_descriptor<int, std::integral_constant<int, 3>>;
+    using halo_generator_type =
+        structured::regular::halo_generator<int, std::integral_constant<int, 3>>;
     template<typename Arch, int... Is>
     using field_descriptor_type = structured::regular::field_descriptor<runtime::real_type, Arch,
-        domain_descriptor_type, Is...>;
+        domain_descriptor_type, gridtools::layout_map<Is...>>;
     using field_type = field_descriptor_type<cpu, 2, 1, 0>;
 #ifdef __CUDACC__
     using gpu_field_type = field_descriptor_type<gpu, 2, 1, 0>;
@@ -58,16 +51,13 @@ class runtime::impl
 
   private:
     runtime&                             m_base;
-    context_ptr_type                     m_context_ptr;
-    context_type&                        m_context;
+    context                              m_context;
     halo_generator_type                  m_halo_gen;
     std::vector<domain_descriptor_type>  m_local_domains;
     std::vector<std::vector<field_type>> m_fields;
 #ifdef __CUDACC__
     std::vector<std::vector<gpu_field_type>> m_fields_gpu;
 #endif
-    typename context_type::communicator_type              m_comm;
-    std::vector<typename context_type::communicator_type> m_comms;
 #ifndef CARTEX_GHEX_STAGED
     std::vector<generic_bulk_communication_object> m_cos;
 #else

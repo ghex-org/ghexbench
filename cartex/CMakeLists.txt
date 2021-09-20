@@ -6,10 +6,7 @@ unset(_cartex_version)
 
 if(NOT CMAKE_BUILD_TYPE) # AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-  set_property(CACHE CMAKE_CXX_FLAGS PROPERTY VALUE "-Wall -Wextra -Wpedantic -Wno-unknown-pragmas")
-  set_property(CACHE CMAKE_CXX_FLAGS_RELEASE PROPERTY VALUE "-O3 -DNDEBUG -Wno-unused-parameter")
 endif()
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -47,6 +44,19 @@ if(CARTEX_ON_GPU)
     endif()
   endif()
 endif()
+
+set(c_cxx_lang "$<COMPILE_LANGUAGE:C,CXX>")
+set(c_cxx_lang_clang "$<COMPILE_LANG_AND_ID:CXX,Clang>")
+set(cuda_lang "$<COMPILE_LANGUAGE:CUDA>")
+
+function(cartex_target_compile_options target)
+    target_compile_options(${target} PRIVATE
+    # flags for CXX builds
+    $<${c_cxx_lang}:$<BUILD_INTERFACE:-Wall -Wextra -Wpedantic -Wno-unknown-pragmas>>
+    $<${c_cxx_lang_clang}:$<BUILD_INTERFACE:-Wno-c++17-extensions -Wno-unused-lambda-capture>>
+    # flags for CUDA builds
+    $<${cuda_lang}:$<BUILD_INTERFACE:-Xcompiler=-Wall -Wextra -Wno-unknown-pragmas --default-stream per-thread>>)
+endfunction()
 
 function(compile_as_cuda)
   if(_cartex_cuda_enabled)

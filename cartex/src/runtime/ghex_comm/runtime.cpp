@@ -32,16 +32,13 @@ runtime::check_options(options_values const&)
 
 runtime::impl::impl(cartex::runtime& base, options_values const& options)
 : m_base{base}
-, m_context_ptr{tl::context_factory<transport>::create(base.m_decomposition.mpi_comm())}
-, m_context{*m_context_ptr}
+, m_context{base.m_decomposition.mpi_comm(), (base.m_num_threads > 1)}
 , m_halo_gen(std::array<int, 3>{0, 0, 0}, base.m_decomposition.last_domain_coord(), base.m_halos,
       std::array<bool, 3>{true, true, true})
 , m_fields(base.m_num_threads)
 #ifdef __CUDACC__
 , m_fields_gpu(base.m_num_threads)
 #endif
-, m_comm{m_context.get_serial_communicator()}
-, m_comms(base.m_num_threads, m_comm)
 #ifdef CARTEX_GHEX_FIELD_BY_FIELD
 , m_cos(base.m_num_threads * base.m_num_fields)
 #else
@@ -84,7 +81,7 @@ runtime::impl::impl(cartex::runtime& base, options_values const& options)
         std::array<bool, 3>{true, true, true});
 #endif
     const auto end = clock_type::now();
-    if (m_comm.rank() == 0)
+    if (m_context.rank() == 0)
         std::cout << "setup time: "
                   << (std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() *
                          1.0e-9)
@@ -98,18 +95,18 @@ runtime::impl::init(int j)
     int device_id;
     cudaGetDevice(&device_id);
 #endif
-    m_comms[j] = m_context.get_communicator();
     const std::array<int, 3> buffer = {
         m_base.m_domains[j].domain_ext[0] + m_base.m_halos[0] + m_base.m_halos[1],
         m_base.m_domains[j].domain_ext[1] + m_base.m_halos[2] + m_base.m_halos[3],
         m_base.m_domains[j].domain_ext[2] + m_base.m_halos[4] + m_base.m_halos[5]};
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
-        m_fields[j].push_back(wrap_field<cpu, 2, 1, 0>(
+        m_fields[j].push_back(wrap_field<cpu, gridtools::layout_map<2, 1, 0>>(
             m_local_domains[j], m_base.m_raw_fields[j][i].host_data(), m_base.m_offset, buffer));
 #ifdef __CUDACC__
-        m_fields_gpu[j].push_back(wrap_field<gpu, 2, 1, 0>(m_local_domains[j],
-            m_base.m_raw_fields[j][i].device_data(), m_base.m_offset, buffer, device_id));
+        m_fields_gpu[j].push_back(
+            wrap_field<gpu, gridtools::layout_map<2, 1, 0>>(m_local_domains[j],
+                m_base.m_raw_fields[j][i].device_data(), m_base.m_offset, buffer, device_id));
 #endif
     }
 
@@ -124,7 +121,7 @@ runtime::impl::init(int j)
 #ifndef CARTEX_GHEX_FIELD_BY_FIELD
 
 #ifndef CARTEX_GHEX_STAGED
-    bco_type bco(m_comms[j], m_node_local);
+    bco_type bco(m_context, m_node_local);
 #ifndef __CUDACC__
     for (int i = 0; i < m_base.m_num_fields; ++i)
         bco.add_field(m_pattern->operator()(m_fields[j][i]));
@@ -136,9 +133,9 @@ runtime::impl::init(int j)
 
 #else
 
-    bco_type bco_x(m_comms[j], m_node_local);
-    bco_type bco_y(m_comms[j], m_node_local);
-    bco_type bco_z(m_comms[j], m_node_local);
+    bco_type bco_x(m_context, m_node_local);
+    bco_type bco_y(m_context, m_node_local);
+    bco_type bco_z(m_context, m_node_local);
 #ifndef __CUDACC__
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
@@ -164,7 +161,7 @@ runtime::impl::init(int j)
 #ifndef CARTEX_GHEX_STAGED
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
-        bco_type bco(m_comms[j], m_node_local);
+        bco_type bco(m_context, m_node_local);
 #ifndef __CUDACC__
         bco.add_field(m_pattern->operator()(m_fields[j][i]));
 #else
@@ -176,9 +173,9 @@ runtime::impl::init(int j)
 
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
-        bco_type bco_x(m_comms[j], m_node_local);
-        bco_type bco_y(m_comms[j], m_node_local);
-        bco_type bco_z(m_comms[j], m_node_local);
+        bco_type bco_x(m_context, m_node_local);
+        bco_type bco_y(m_context, m_node_local);
+        bco_type bco_z(m_context, m_node_local);
 #ifndef __CUDACC__
         bco_x.add_field(m_pattern[0]->operator()(m_fields[j][i]));
         bco_y.add_field(m_pattern[1]->operator()(m_fields[j][i]));

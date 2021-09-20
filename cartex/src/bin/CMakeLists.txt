@@ -1,6 +1,7 @@
 find_package(Threads REQUIRED)
 compile_as_cuda(benchmark.cpp)
 add_executable(benchmark benchmark.cpp)
+cartex_target_compile_options(benchmark)
 target_link_libraries(benchmark PRIVATE cartex)
 target_link_libraries(benchmark PRIVATE thread_pool)
 target_link_libraries(benchmark PRIVATE options)
