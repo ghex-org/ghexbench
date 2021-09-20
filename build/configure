@@ -18,12 +18,7 @@ bin_dir="."
 system=""
 systems="betzy"
 mpilib="impi ompi"
-
-benchmark_mpi_comm="benchmark_mpi_comm"
-benchmark_ghex_comm_mpi="benchmark_ghex_comm_mpi"
-benchmark_ghex_comm_xpmem_mpi="benchmark_ghex_comm_xpmem_mpi"
-benchmark_ghex_comm_ucx="benchmark_ghex_comm_ucx"
-benchmark_ghex_comm_xpmem_ucx="benchmark_ghex_comm_xpmem_ucx"
+float_type="float"
 
 usage() {
     echo "Usage: [Options] system mpilib"
@@ -36,6 +31,7 @@ usage() {
     echo "  options"
     echo "    -h               Display this help message"
     echo "    -u               Enable ucx"
+    echo "    -f <float_type>  single/double precision"
     echo "    -w work_dir      Set the path to the work directory"
     echo "    -b bin_dir       Set the path to the directory containing the binaries"
     echo "                     After the build his directiory must contain the following binaries:"
@@ -63,13 +59,7 @@ summary() {
     echo "target machine           ${system}"
     echo "work directory           ${work_dir}"
     echo "binary directory         ${bin_dir}"
-    echo " -  mpi_comm             ${benchmark_mpi_comm_path}"
-    echo " -  ghex_comm mpi        ${benchmark_ghex_comm_mpi_path}"
-    echo " -  ghex_comm xpmem mpi  ${benchmark_ghex_comm_xpmem_mpi_path}"
-    if [ $use_ucx -eq 1 ] ; then
-        echo " -  ghex_comm ucx        ${benchmark_ghex_comm_ucx_path}"
-        echo " -  ghex_comm xpmem ucx  ${benchmark_ghex_comm_xpmem_ucx_path}"
-    fi
+    echo "executables              ${executables}"
 }
 
 check_mk_path() {
@@ -101,13 +91,22 @@ check_binary() {
 }
 
 
-while getopts ":hw:o:b:u" opt; do
+while getopts ":hw:o:b:uf:" opt; do
     case ${opt} in
         h )
             exit_0
             ;;
         u )
             use_ucx=1
+            ;;
+        f )
+            float_type=${OPTARG}
+            if [ $float_type == "float" ] || [ $float_type == "double" ]; then
+                echo float type: $float_type
+            else
+                echo error: unknown float type $float_type
+                exit 1
+            fi
             ;;
         w )
             work_dir=${OPTARG}
@@ -176,7 +175,7 @@ for i in ${!CONFIG_RUNTIME[@]}; do
     runtime_type=${CONFIG_RUNTIME[$i]}
     rma_type=${CONFIG_RMA[$i]}
     ucx_type=${CONFIG_UCX[$i]}
-    echo build configuration: ${runtime_type} ${rma_type} ${ucx_type}
+    echo build configuration: ${float_type} ${runtime_type} ${rma_type} ${ucx_type}
 
     # copy jobfiles
     cp "${ghexbench_system_dir}/config.cmake" ${this_dir}
@@ -190,6 +189,8 @@ for i in ${!CONFIG_RUNTIME[@]}; do
     sed -i "s/@CFLAGS@/${CFLAGS}/g" config.cmake
     exit_on_error $?
     sed -i "s/@CXXFLAGS@/${CXXFLAGS}/g" config.cmake
+    exit_on_error $?
+    sed -i "s/@FLOATTYPE@/${float_type}/g" config.cmake
     exit_on_error $?
     
     cmake -C config.cmake ${ghexbench_dir}/../cartex
@@ -213,26 +214,12 @@ for i in ${!CONFIG_RUNTIME[@]}; do
         suffix=${suffix}"_intel"
     fi
     
-    mv src/bin/benchmark ${bin_dir}/benchmark_${runtime_type}${suffix}
+    mv src/bin/benchmark ${bin_dir}/benchmark_${float_type}_${runtime_type}${suffix}
+    executables="${executables} benchmark_${float_type}_${runtime_type}${suffix}"
 done
 
 if [[ ${system_mpilib} == "impi" ]]; then
     suffix="_intel"
-fi
-
-check_binary $bin_dir $benchmark_mpi_comm$suffix
-benchmark_mpi_comm_path=$path
-check_binary $bin_dir $benchmark_ghex_comm_mpi$suffix
-benchmark_ghex_comm_mpi_path=$path
-check_binary $bin_dir $benchmark_ghex_comm_xpmem_mpi$suffix
-benchmark_ghex_comm_xpmem_mpi_path=$path
-executables=${binaries_mpi}
-if [ $use_ucx -eq 1 ] ; then
-    check_binary $bin_dir $benchmark_ghex_comm_ucx$suffix
-    benchmark_ghex_comm_ucx_path=$path
-    check_binary $bin_dir $benchmark_ghex_comm_xpmem_ucx$suffix
-    benchmark_ghex_comm_xpmem_ucx_path=$path
-    executables="${binaries_mpi}, ${binaries_ucx}"
 fi
 
 summary
