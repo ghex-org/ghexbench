@@ -10,34 +10,11 @@
  */
 
 #include <cartex/runtime/mpi_comm/runtime.hpp>
+#include "./kernels.hpp"
 #include "../runtime_inc.cpp"
-
-#define CARTEX_PACK_Z_LOOP
 
 namespace cartex
 {
-#ifdef __CUDACC__
-template<class Kernel, class... Args>
-void
-launch_and_wait(
-    dim3 const& blocks, dim3 const& threads, Kernel kernel, cudaStream_t stream, Args... args)
-{
-    kernel<<<blocks, threads, 0, stream>>>(std::move(args)...);
-    CARTEX_CHECK_CUDA_RESULT(cudaGetLastError());
-    CARTEX_CHECK_CUDA_RESULT(cudaStreamSynchronize(stream));
-}
-
-template<class Kernel>
-void
-execute_kernel(dim3 const& blocks, dim3 const& threads, Kernel kernel, cudaStream_t stream,
-    runtime::real_type* field, runtime::real_type* buffer_left, runtime::real_type* buffer_right,
-    std::array<int, 6> const& halos, std::array<int, 3> const& dims)
-{
-    launch_and_wait(blocks, threads, kernel, stream, field, buffer_left, buffer_right, halos[0],
-        halos[1], halos[2], halos[3], halos[4], halos[5], dims[0], dims[1], dims[2]);
-}
-#endif
-
 options&
 runtime::add_options(options& opts)
 {
@@ -79,7 +56,7 @@ runtime::impl::neighborhood::neighborhood(
         int       block_dim_y =
             std::min(std::min(d.domain_ext[1], remaining_threads_per_block), max_threads_y);
         block_dim_y = (block_dim_y / warp_size) * warp_size;
-#ifdef CARTEX_PACK_Z_LOOP
+#ifdef CARTEX_MPI_PACK_Z_LOOP_GPU
         const int block_dim_z = 1;
         blocks_x = dim3(1, (d.domain_ext[1] + block_dim_y - 1) / block_dim_y, 1);
 #else
@@ -101,6 +78,21 @@ runtime::impl::neighborhood::neighborhood(
         blocks_y = dim3((ext_buffer[0] + block_dim_x - 1) / block_dim_x, 1,
             (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
     }
+#ifdef CARTEX_MPI_PACK_Z
+    // kernel params for z dimension
+    {
+        const int block_dim_z = m_halos[4] + m_halos[5];
+        int       remaining_threads_per_block = max_threads / block_dim_z;
+        int       block_dim_x =
+            std::min(std::min(ext_buffer[0], remaining_threads_per_block), max_threads_x);
+        block_dim_x = (block_dim_x / warp_size) * warp_size;
+        const int block_dim_y = std::min(
+            std::min(max_threads / (block_dim_x * block_dim_z), max_threads_y), ext_buffer[1]);
+        dims_z = dim3(block_dim_x, block_dim_y, block_dim_z);
+        blocks_z = dim3((ext_buffer[0] + block_dim_x - 1) / block_dim_x,
+            (ext_buffer[1] + block_dim_y - 1) / block_dim_y, 1);
+    }
+#endif
 #endif
     {
         x_recv_l = mpi_dtype_unique_ptr(new MPI_Datatype);
@@ -243,64 +235,6 @@ runtime::impl::neighborhood::exchange(memory_type& field, int field_id)
     CARTEX_CHECK_MPI_RESULT(MPI_Waitall(4, reqz, MPI_STATUS_IGNORE));
 }
 
-#ifdef __CUDACC__
-__global__ void
-pack_x_kernel(runtime::real_type const* field, runtime::real_type* buffer_left,
-    runtime::real_type* buffer_right, int halo_x_left, int halo_x_right, int halo_y_left,
-    int halo_y_right, int halo_z_left, int halo_z_right, int ext_x, int ext_y, int ext_z)
-{
-#ifdef CARTEX_PACK_Z_LOOP
-    const auto y = blockIdx.y * blockDim.y + threadIdx.y;
-    if (y < ext_y)
-    {
-        const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
-        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
-        if (threadIdx.x < halo_x_left)
-        {
-            const auto x = threadIdx.x;
-            for (int z=0; z<ext_z; ++z)
-            {
-                const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
-                const auto offset_l = halo_x_left * (y + ext_y * z);
-                buffer_left[x + offset_l] = field[x + ext_x + offset];
-            }
-        }
-        else
-        {
-            const auto x = threadIdx.x - halo_x_left;
-            for (int z=0; z<ext_z; ++z)
-            {
-                const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
-                const auto offset_r = halo_x_right * (y + ext_y * z);
-                buffer_right[x + offset_r] = field[x + halo_x_left + offset];
-            }
-        }
-    }
-#else
-    const auto y = blockIdx.y * blockDim.y + threadIdx.y;
-    const auto z = blockIdx.z * blockDim.z + threadIdx.z;
-    if (y < ext_y && z < ext_z)
-    {
-        const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
-        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
-        const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
-        if (threadIdx.x < halo_x_left)
-        {
-            const auto x = threadIdx.x;
-            const auto offset_l = halo_x_left * (y + ext_y * z);
-            buffer_left[x + offset_l] = field[x + ext_x + offset];
-        }
-        else
-        {
-            const auto x = threadIdx.x - halo_x_left;
-            const auto offset_r = halo_x_right * (y + ext_y * z);
-            buffer_right[x + offset_r] = field[x + halo_x_left + offset];
-        }
-    }
-#endif
-}
-#endif
-
 void
 runtime::impl::neighborhood::pack_x(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
@@ -325,64 +259,6 @@ runtime::impl::neighborhood::pack_x(
 #endif
 }
 
-#ifdef __CUDACC__
-__global__ void
-unpack_x_kernel(runtime::real_type* field, runtime::real_type const* buffer_left,
-    runtime::real_type const* buffer_right, int halo_x_left, int halo_x_right, int halo_y_left,
-    int halo_y_right, int halo_z_left, int halo_z_right, int ext_x, int ext_y, int ext_z)
-{
-#ifdef CARTEX_PACK_Z_LOOP
-    const auto y = blockIdx.y * blockDim.y + threadIdx.y;
-    if (y < ext_y)
-    {
-        const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
-        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
-        if (threadIdx.x < halo_x_left)
-        {
-            const auto x = threadIdx.x;
-            for (int z=0; z<ext_z; ++z)
-            {
-                const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
-                const auto offset_l = halo_x_left * (y + ext_y * z);
-                field[x + offset] = buffer_left[x + offset_l];
-            }
-        }
-        else
-        {
-            const auto x = threadIdx.x - halo_x_left;
-            for (int z=0; z<ext_z; ++z)
-            {
-                const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
-                const auto offset_r = halo_x_right * (y + ext_y * z);
-                field[x + halo_x_left + ext_x + offset] = buffer_right[x + offset_r];
-            }
-        }
-    }
-#else
-    const auto y = blockIdx.y * blockDim.y + threadIdx.y;
-    const auto z = blockIdx.z * blockDim.z + threadIdx.z;
-    if (y < ext_y && z < ext_z)
-    {
-        const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
-        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
-        const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
-        if (threadIdx.x < halo_x_left)
-        {
-            const auto x = threadIdx.x;
-            const auto offset_l = halo_x_left * (y + ext_y * z);
-            field[x + offset] = buffer_left[x + offset_l];
-        }
-        else
-        {
-            const auto x = threadIdx.x - halo_x_left;
-            const auto offset_r = halo_x_right * (y + ext_y * z);
-            field[x + halo_x_left + ext_x + offset] = buffer_right[x + offset_r];
-        }
-    }
-#endif
-}
-#endif
-
 void
 runtime::impl::neighborhood::unpack_x(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
@@ -405,36 +281,6 @@ runtime::impl::neighborhood::unpack_x(
     }
 #endif
 }
-
-#ifdef __CUDACC__
-__global__ void
-pack_y_kernel(runtime::real_type const* field, runtime::real_type* buffer_left,
-    runtime::real_type* buffer_right, int halo_x_left, int halo_x_right, int halo_y_left,
-    int halo_y_right, int halo_z_left, int halo_z_right, int ext_x, int ext_y, int ext_z)
-{
-    const auto x = blockIdx.x * blockDim.x + threadIdx.x;
-    const auto z = blockIdx.z * blockDim.z + threadIdx.z;
-    const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
-    if (x < ext_x_b && z < ext_z)
-    {
-        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
-        if (threadIdx.y < halo_y_left)
-        {
-            const auto y = threadIdx.y;
-            const auto offset = ext_x_b * (y + ext_y + (z + halo_z_left) * ext_y_b);
-            const auto offset_l = ext_x_b * (y + halo_y_left * z);
-            buffer_left[x + offset_l] = field[x + offset];
-        }
-        else
-        {
-            const auto y = threadIdx.y - halo_y_left;
-            const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
-            const auto offset_r = ext_x_b * (y + halo_y_right * z);
-            buffer_right[x + offset_r] = field[x + offset];
-        }
-    }
-}
-#endif
 
 void
 runtime::impl::neighborhood::pack_y(
@@ -463,36 +309,6 @@ runtime::impl::neighborhood::pack_y(
 #endif
 }
 
-#ifdef __CUDACC__
-__global__ void
-unpack_y_kernel(runtime::real_type* field, runtime::real_type const* buffer_left,
-    runtime::real_type const* buffer_right, int halo_x_left, int halo_x_right, int halo_y_left,
-    int halo_y_right, int halo_z_left, int halo_z_right, int ext_x, int ext_y, int ext_z)
-{
-    const auto x = blockIdx.x * blockDim.x + threadIdx.x;
-    const auto z = blockIdx.z * blockDim.z + threadIdx.z;
-    const auto ext_x_b = ext_x + halo_x_left + halo_x_right;
-    if (x < ext_x_b && z < ext_z)
-    {
-        const auto ext_y_b = ext_y + halo_y_left + halo_y_right;
-        if (threadIdx.y < halo_y_left)
-        {
-            const auto y = threadIdx.y;
-            const auto offset = ext_x_b * (y + (z + halo_z_left) * ext_y_b);
-            const auto offset_l = ext_x_b * (y + halo_y_left * z);
-            field[x + offset] = buffer_left[x + offset_l];
-        }
-        else
-        {
-            const auto y = threadIdx.y - halo_y_left;
-            const auto offset = ext_x_b * (y + halo_y_left + ext_y + (z + halo_z_left) * ext_y_b);
-            const auto offset_r = ext_x_b * (y + halo_y_right * z);
-            field[x + offset] = buffer_right[x + offset_r];
-        }
-    }
-}
-#endif
-
 void
 runtime::impl::neighborhood::unpack_y(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
@@ -519,6 +335,67 @@ runtime::impl::neighborhood::unpack_y(
     }
 #endif
 }
+
+#ifdef CARTEX_MPI_PACK_Z
+void
+runtime::impl::neighborhood::pack_z(
+    memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
+{
+#ifdef __CUDACC__
+    execute_kernel(blocks_z, dims_z, pack_z_kernel, stream, field.hd_data(), buffer_left.hd_data(),
+        buffer_right.hd_data(), m_halos, d.domain_ext);
+#else
+    for (int z = 0; z < m_halos[4]; ++z)
+    {
+        for (int y = 0; y < ext_buffer[1]; ++y)
+        {
+            const auto offset = ext_buffer[0] * (y + ext_buffer[1] * (z + d.domain_ext[2]));
+            const auto offset_l = ext_buffer[0] * (y + ext_buffer[1] * z);
+            for (int x = 0; x < ext_buffer[0]; ++x) buffer_left[x + offset_l] = field[x + offset];
+        }
+    }
+    for (int z = 0; z < m_halos[5]; ++z)
+    {
+        for (int y = 0; y < ext_buffer[1]; ++y)
+        {
+            const auto offset = ext_buffer[0] * (y + ext_buffer[1] * (z + m_halos[4]));
+            const auto offset_r = ext_buffer[0] * (y + ext_buffer[1] * z);
+            for (int x = 0; x < ext_buffer[0]; ++x) buffer_right[x + offset_r] = field[x + offset];
+        }
+    }
+#endif
+}
+
+void
+runtime::impl::neighborhood::unpack_z(
+    memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
+{
+#ifdef __CUDACC__
+    execute_kernel(blocks_z, dims_z, unpack_z_kernel, stream, field.hd_data(),
+        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
+#else
+    for (int z = 0; z < m_halos[4]; ++z)
+    {
+        for (int y = 0; y < ext_buffer[1]; ++y)
+        {
+            const auto offset = ext_buffer[0] * (y + ext_buffer[1] * z);
+            const auto offset_l = ext_buffer[0] * (y + ext_buffer[1] * z);
+            for (int x = 0; x < ext_buffer[0]; ++x) field[x + offset] = buffer_left[x + offset_l];
+        }
+    }
+    for (int z = 0; z < m_halos[5]; ++z)
+    {
+        for (int y = 0; y < ext_buffer[1]; ++y)
+        {
+            const auto offset =
+                ext_buffer[0] * (y + ext_buffer[1] * (z + d.domain_ext[2] + m_halos[4]));
+            const auto offset_r = ext_buffer[0] * (y + ext_buffer[1] * z);
+            for (int x = 0; x < ext_buffer[0]; ++x) field[x + offset] = buffer_right[x + offset_r];
+        }
+    }
+#endif
+}
+#endif
 
 void
 runtime::impl::neighborhood::exchange(memory_type& field, std::vector<memory_type>& send_buffers,
@@ -558,6 +435,7 @@ runtime::impl::neighborhood::exchange(memory_type& field, std::vector<memory_typ
     CARTEX_CHECK_MPI_RESULT(MPI_Waitall(4, reqy, MPI_STATUS_IGNORE));
     unpack_y(field, recv_buffers[2], recv_buffers[3]);
 
+#ifndef CARTEX_MPI_PACK_Z
     // note that we don't need packing for z-direction since the memory is already contiguous
     // this works because we don't have padding
     const auto  z0 = field.hd_data();
@@ -576,6 +454,24 @@ runtime::impl::neighborhood::exchange(memory_type& field, std::vector<memory_typ
     CARTEX_CHECK_MPI_RESULT(
         MPI_Isend(z2, right_size, MPI_BYTE, z_r.rank, sendtag(field_id, 2, false), comm, &reqz[2]));
     CARTEX_CHECK_MPI_RESULT(MPI_Waitall(4, reqz, MPI_STATUS_IGNORE));
+#else
+    pack_z(field, send_buffers[4], send_buffers[5]);
+    MPI_Request reqz[4];
+    CARTEX_CHECK_MPI_RESULT(
+        MPI_Irecv(recv_buffers[5].hd_data(), recv_buffers[5].size() * sizeof(runtime::real_type),
+            MPI_BYTE, z_r.rank, recvtag(field_id, 2, true), comm, &reqz[1]));
+    CARTEX_CHECK_MPI_RESULT(
+        MPI_Irecv(recv_buffers[4].hd_data(), recv_buffers[4].size() * sizeof(runtime::real_type),
+            MPI_BYTE, z_l.rank, recvtag(field_id, 2, false), comm, &reqz[3]));
+    CARTEX_CHECK_MPI_RESULT(
+        MPI_Isend(send_buffers[5].hd_data(), send_buffers[5].size() * sizeof(runtime::real_type),
+            MPI_BYTE, z_l.rank, sendtag(field_id, 2, true), comm, &reqz[0]));
+    CARTEX_CHECK_MPI_RESULT(
+        MPI_Isend(send_buffers[4].hd_data(), send_buffers[4].size() * sizeof(runtime::real_type),
+            MPI_BYTE, z_r.rank, sendtag(field_id, 2, false), comm, &reqz[2]));
+    CARTEX_CHECK_MPI_RESULT(MPI_Waitall(4, reqz, MPI_STATUS_IGNORE));
+    unpack_z(field, recv_buffers[4], recv_buffers[5]);
+#endif
 }
 
 runtime::impl::impl(cartex::runtime& base, options_values const& options)
@@ -610,6 +506,14 @@ runtime::impl::init(int j)
     m_recv_buffers[j].emplace_back(m_base.m_halos[2] * x_ext * d.domain_ext[2], 0);
     m_send_buffers[j].emplace_back(m_base.m_halos[3] * x_ext * d.domain_ext[2], 0);
     m_recv_buffers[j].emplace_back(m_base.m_halos[3] * x_ext * d.domain_ext[2], 0);
+#ifdef CARTEX_MPI_PACK_Z
+    // z buffers
+    const auto y_ext = d.domain_ext[1] + m_base.m_halos[2] + m_base.m_halos[3];
+    m_send_buffers[j].emplace_back(m_base.m_halos[4] * x_ext * y_ext, 0);
+    m_recv_buffers[j].emplace_back(m_base.m_halos[4] * x_ext * y_ext, 0);
+    m_send_buffers[j].emplace_back(m_base.m_halos[5] * x_ext * y_ext, 0);
+    m_recv_buffers[j].emplace_back(m_base.m_halos[5] * x_ext * y_ext, 0);
+#endif
 }
 
 void
