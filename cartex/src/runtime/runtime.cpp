@@ -11,6 +11,8 @@
 
 #include <chrono>
 #include <iostream>
+#include <immintrin.h>
+#include <string.h>
 
 #include <cartex/runtime/runtime.hpp>
 #include <cartex/common/memory_view.hpp>
@@ -24,6 +26,12 @@ runtime::exchange(int j)
 {
     using clock_type = std::chrono::high_resolution_clock;
 
+#define CACHESIZE 16384*1024
+    double *ptr;
+    ptr = (double*)malloc(sizeof(double)*CACHESIZE);
+    memset(ptr, 1, sizeof(double)*CACHESIZE);
+
+
     // check for correctness
     if (m_check_res)
     {
@@ -36,10 +44,14 @@ runtime::exchange(int j)
 
     auto warm_up_step = [j, this]() { step(j); };
 
-    auto main_step = [j, this, &hist]() {
+    auto main_step = [j, this, &hist, ptr]() {
         const auto start = clock_type::now();
         step(j);
         const auto end = clock_type::now();
+
+	for(int i=0; i<CACHESIZE; i++){
+	  _mm_prefetch(ptr+i, _MM_HINT_T0);
+	}
 
         const double dt = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
         hist(dt);
