@@ -78,6 +78,21 @@ runtime::impl::neighborhood::neighborhood(
         blocks_y = dim3((ext_buffer[0] + block_dim_x - 1) / block_dim_x, 1,
             (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
     }
+#ifdef CARTEX_MPI_PACK_Z
+    // kernel params for z dimension
+    {
+        const int block_dim_z = m_halos[4] + m_halos[5];
+        int       remaining_threads_per_block = max_threads / block_dim_z;
+        int       block_dim_x =
+            std::min(std::min(ext_buffer[0], remaining_threads_per_block), max_threads_x);
+        block_dim_x = (block_dim_x / warp_size) * warp_size;
+        const int block_dim_y = std::min(
+            std::min(max_threads / (block_dim_x * block_dim_z), max_threads_y), ext_buffer[1]);
+        dims_z = dim3(block_dim_x, block_dim_y, block_dim_z);
+        blocks_z = dim3((ext_buffer[0] + block_dim_x - 1) / block_dim_x,
+            (ext_buffer[1] + block_dim_y - 1) / block_dim_y, 1);
+    }
+#endif
 #endif
     {
         x_recv_l = mpi_dtype_unique_ptr(new MPI_Datatype);
@@ -326,10 +341,10 @@ void
 runtime::impl::neighborhood::pack_z(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
 {
-    //#ifdef __CUDACC__
-    //    execute_kernel(blocks_y, dims_y, pack_y_kernel, stream, field.hd_data(), buffer_left.hd_data(),
-    //        buffer_right.hd_data(), m_halos, d.domain_ext);
-    //#else
+#ifdef __CUDACC__
+    execute_kernel(blocks_z, dims_z, pack_z_kernel, stream, field.hd_data(), buffer_left.hd_data(),
+        buffer_right.hd_data(), m_halos, d.domain_ext);
+#else
     for (int z = 0; z < m_halos[4]; ++z)
     {
         for (int y = 0; y < ext_buffer[1]; ++y)
@@ -348,17 +363,17 @@ runtime::impl::neighborhood::pack_z(
             for (int x = 0; x < ext_buffer[0]; ++x) buffer_right[x + offset_r] = field[x + offset];
         }
     }
-    //#endif
+#endif
 }
 
 void
 runtime::impl::neighborhood::unpack_z(
     memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
 {
-    //#ifdef __CUDACC__
-    //    execute_kernel(blocks_y, dims_y, unpack_y_kernel, stream, field.hd_data(),
-    //        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
-    //#else
+#ifdef __CUDACC__
+    execute_kernel(blocks_z, dims_z, unpack_z_kernel, stream, field.hd_data(),
+        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
+#else
     for (int z = 0; z < m_halos[4]; ++z)
     {
         for (int y = 0; y < ext_buffer[1]; ++y)
@@ -378,7 +393,7 @@ runtime::impl::neighborhood::unpack_z(
             for (int x = 0; x < ext_buffer[0]; ++x) field[x + offset] = buffer_right[x + offset_r];
         }
     }
-    //#endif
+#endif
 }
 #endif
 
