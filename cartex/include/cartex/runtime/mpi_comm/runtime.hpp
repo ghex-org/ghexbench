@@ -56,6 +56,10 @@ class runtime::impl
         dim3         blocks_x;
         dim3         dims_y;
         dim3         blocks_y;
+#ifdef CARTEX_MPI_PACK_Z
+        dim3         dims_z;
+        dim3         blocks_z;
+#endif
 #endif
 
         neighborhood(
@@ -70,6 +74,10 @@ class runtime::impl
         void unpack_x(memory_type& field, memory_type& buffer_left, memory_type& buffer_right);
         void pack_y(memory_type& field, memory_type& buffer_left, memory_type& buffer_right);
         void unpack_y(memory_type& field, memory_type& buffer_left, memory_type& buffer_right);
+#ifdef CARTEX_MPI_PACK_Z
+        void pack_z(memory_type& field, memory_type& buffer_left, memory_type& buffer_right);
+        void unpack_z(memory_type& field, memory_type& buffer_left, memory_type& buffer_right);
+#endif
 
         int sendtag(int field_id, int dim, bool left) const noexcept;
         int recvtag(int field_id, int dim, bool left) const noexcept;
