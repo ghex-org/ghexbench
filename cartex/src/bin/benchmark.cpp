@@ -191,15 +191,9 @@ main(int argc, char** argv)
             std::cout << "running on " << size << " ranks" << std::endl;
         }
 
-        if (decomp_ptr->threads_per_rank() == 1)
-        {
-            r.init(0);
-            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
-            r.exchange(0);
-        }
-        else
         {
             cartex::thread_pool tp(num_threads);
+            auto b = tp.make_barrier();
             for (int j = 0; j < num_threads; ++j)
                 tp.schedule(j, [&r, device_id](int j) {
                     cartex::set_device(device_id);
@@ -208,10 +202,11 @@ main(int argc, char** argv)
             tp.sync();
             CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
             for (int j = 0; j < num_threads; ++j)
-                tp.schedule(j, [&r, device_id](int j) {
+                tp.schedule(j, [&r, device_id, &b](int j) {
                     cartex::set_device(device_id);
-                    r.exchange(j);
+                    r.exchange(j, b);
                 });
+            tp.join();
         }
 
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));

@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <chrono>
 #include <atomic>
+#include <limits>
 
 namespace cartex
 {
@@ -40,7 +41,8 @@ class sync_loop
 
     template<typename Function>
     std::size_t repeat_for(Function&& f, double seconds, unsigned int thread_id = 0,
-        std::size_t min_iterations = 1, std::size_t increment = 1) noexcept
+        std::size_t min_iterations = 1, std::size_t increment = 1,
+        std::size_t max_iterations = std::numeric_limits<std::size_t>::max()-1) noexcept
     {
         const auto tp = clock_type::now();
         increment = std::max((std::size_t)1, increment);
@@ -49,6 +51,7 @@ class sync_loop
         {
             for (std::size_t j = 0; j < increment; ++j) f();
             i += increment;
+            if (i >= max_iterations) break;
         } while (i < min_iterations || elapsed(tp, thread_id) < seconds);
         return i;
     }

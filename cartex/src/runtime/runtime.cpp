@@ -17,12 +17,22 @@
 #include <cartex/common/accumulator.hpp>
 #include <cartex/common/histogram.hpp>
 
+#ifdef CARTEX_EVICT_CACHE
+#include <immintrin.h>
+#include <string.h>
+#endif
+
 namespace cartex
 {
 void
-runtime::exchange(int j)
+runtime::exchange(int j, thread_pool::barrier& b)
 {
     using clock_type = std::chrono::high_resolution_clock;
+
+#ifdef CARTEX_EVICT_CACHE
+    auto cache_ptr = new double[CARTEX_EVICT_CACHE_SIZE/sizeof(double)];
+    memset(cache_ptr, 1, sizeof(double)*(CARTEX_EVICT_CACHE_SIZE/sizeof(double)));
+#endif
 
     // check for correctness
     if (m_check_res)
@@ -36,7 +46,21 @@ runtime::exchange(int j)
 
     auto warm_up_step = [j, this]() { step(j); };
 
-    auto main_step = [j, this, &hist]() {
+#ifndef CARTEX_EVICT_CACHE
+    auto main_step = [j, this, &hist, &b]()
+#else
+    auto main_step = [j, this, &hist, &b, cache_ptr]()
+#endif
+    {
+#ifdef CARTEX_EVICT_CACHE
+        for (long unsigned int i=0; i<(CARTEX_EVICT_CACHE_SIZE/sizeof(double)); ++i)
+            _mm_prefetch(cache_ptr+i, _MM_HINT_T0);
+#endif
+
+        b();
+        if (j==0) CARTEX_CHECK_MPI_RESULT(MPI_Barrier(m_decomposition.mpi_comm()));
+        b();
+
         const auto start = clock_type::now();
         step(j);
         const auto end = clock_type::now();
@@ -49,7 +73,7 @@ runtime::exchange(int j)
     if (m_use_timer)
     {
         m_loop.repeat_for(warm_up_step, 0.1 * m_time, j, 50, 10);
-        reps = m_loop.repeat_for(main_step, 0.9 * m_time, j, m_num_reps, 100);
+        reps = m_loop.repeat_for(main_step, 0.9 * m_time, j, 100, 100, m_num_reps);
     }
     else
     {
