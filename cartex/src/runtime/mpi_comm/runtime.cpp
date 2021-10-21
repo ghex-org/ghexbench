@@ -495,24 +495,38 @@ runtime::impl::init(int j)
 #ifdef __CUDACC__
     CARTEX_CHECK_CUDA_RESULT(cudaStreamCreate(&m_neighbors[j].stream));
 #endif
-    // x buffers
-    m_recv_buffers[j].emplace_back(m_base.m_halos[0] * d.domain_ext[1] * d.domain_ext[2], 0);
-    m_send_buffers[j].emplace_back(m_base.m_halos[0] * d.domain_ext[1] * d.domain_ext[2], 0);
-    m_recv_buffers[j].emplace_back(m_base.m_halos[1] * d.domain_ext[1] * d.domain_ext[2], 0);
-    m_send_buffers[j].emplace_back(m_base.m_halos[1] * d.domain_ext[1] * d.domain_ext[2], 0);
-    // y buffers
-    const auto x_ext = d.domain_ext[0] + m_base.m_halos[0] + m_base.m_halos[1];
-    m_send_buffers[j].emplace_back(m_base.m_halos[2] * x_ext * d.domain_ext[2], 0);
-    m_recv_buffers[j].emplace_back(m_base.m_halos[2] * x_ext * d.domain_ext[2], 0);
-    m_send_buffers[j].emplace_back(m_base.m_halos[3] * x_ext * d.domain_ext[2], 0);
-    m_recv_buffers[j].emplace_back(m_base.m_halos[3] * x_ext * d.domain_ext[2], 0);
+#ifdef CARTEX_MPI_MANY_BUFFERS
+    m_recv_buffers[j].resize(m_base.m_num_fields);
+    m_send_buffers[j].resize(m_base.m_num_fields);
+    for (int i = 0; i < m_base.m_num_fields; ++i)
+    {
+        auto& recv_buffers = m_recv_buffers[j][i];
+        auto& send_buffers = m_send_buffers[j][i];
+#else
+        auto& recv_buffers = m_recv_buffers[j];
+        auto& send_buffers = m_send_buffers[j];
+#endif
+        // x buffers
+        recv_buffers.emplace_back(m_base.m_halos[0] * d.domain_ext[1] * d.domain_ext[2], 0);
+        send_buffers.emplace_back(m_base.m_halos[0] * d.domain_ext[1] * d.domain_ext[2], 0);
+        recv_buffers.emplace_back(m_base.m_halos[1] * d.domain_ext[1] * d.domain_ext[2], 0);
+        send_buffers.emplace_back(m_base.m_halos[1] * d.domain_ext[1] * d.domain_ext[2], 0);
+        // y buffers
+        const auto x_ext = d.domain_ext[0] + m_base.m_halos[0] + m_base.m_halos[1];
+        send_buffers.emplace_back(m_base.m_halos[2] * x_ext * d.domain_ext[2], 0);
+        recv_buffers.emplace_back(m_base.m_halos[2] * x_ext * d.domain_ext[2], 0);
+        send_buffers.emplace_back(m_base.m_halos[3] * x_ext * d.domain_ext[2], 0);
+        recv_buffers.emplace_back(m_base.m_halos[3] * x_ext * d.domain_ext[2], 0);
 #ifdef CARTEX_MPI_PACK_Z
-    // z buffers
-    const auto y_ext = d.domain_ext[1] + m_base.m_halos[2] + m_base.m_halos[3];
-    m_send_buffers[j].emplace_back(m_base.m_halos[4] * x_ext * y_ext, 0);
-    m_recv_buffers[j].emplace_back(m_base.m_halos[4] * x_ext * y_ext, 0);
-    m_send_buffers[j].emplace_back(m_base.m_halos[5] * x_ext * y_ext, 0);
-    m_recv_buffers[j].emplace_back(m_base.m_halos[5] * x_ext * y_ext, 0);
+        // z buffers
+        const auto y_ext = d.domain_ext[1] + m_base.m_halos[2] + m_base.m_halos[3];
+        send_buffers.emplace_back(m_base.m_halos[4] * x_ext * y_ext, 0);
+        recv_buffers.emplace_back(m_base.m_halos[4] * x_ext * y_ext, 0);
+        send_buffers.emplace_back(m_base.m_halos[5] * x_ext * y_ext, 0);
+        recv_buffers.emplace_back(m_base.m_halos[5] * x_ext * y_ext, 0);
+#endif
+#ifdef CARTEX_MPI_MANY_BUFFERS
+    }
 #endif
 }
 
@@ -524,8 +538,13 @@ runtime::impl::step(int j)
             m_neighbors[j].exchange(m_base.m_raw_fields[j][i], i);
     else
         for (int i = 0; i < m_base.m_num_fields; ++i)
-            m_neighbors[j].exchange(
-                m_base.m_raw_fields[j][i], m_send_buffers[j], m_recv_buffers[j], i);
+#ifdef CARTEX_MPI_MANY_BUFFERS
+            m_neighbors[j].exchange(m_base.m_raw_fields[j][i], m_send_buffers[j][i],
+                m_recv_buffers[j][i], i);
+#else
+            m_neighbors[j].exchange(m_base.m_raw_fields[j][i], m_send_buffers[j], m_recv_buffers[j],
+                i);
+#endif
 }
 
 } // namespace cartex

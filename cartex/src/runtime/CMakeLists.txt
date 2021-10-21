@@ -11,6 +11,7 @@ if (CARTEX_EVICT_CACHE)
 endif()
 target_link_libraries(runtime PRIVATE cartex)
 target_link_libraries(runtime PRIVATE sync_loop)
+target_link_libraries(runtime PRIVATE thread_pool)
 target_link_libraries(runtime PRIVATE MPI::MPI_CXX)
 target_link_libraries(runtime PRIVATE HWCART::hwcart)
 

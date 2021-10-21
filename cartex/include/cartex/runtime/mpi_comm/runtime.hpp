@@ -15,6 +15,8 @@
 
 #include <cartex/runtime/runtime.hpp>
 
+#define CARTEX_MPI_MANY_BUFFERS
+
 namespace cartex
 {
 class runtime::impl
@@ -88,8 +90,13 @@ class runtime::impl
     MPI_Comm                                       m_comm;
     bool                                           m_use_mpi_datatypes;
     MPI_Datatype                                   m_mpi_T;
+#ifdef CARTEX_MPI_MANY_BUFFERS
+    std::vector<std::vector<std::vector<runtime::memory_type>>> m_send_buffers;
+    std::vector<std::vector<std::vector<runtime::memory_type>>> m_recv_buffers;
+#else
     std::vector<std::vector<runtime::memory_type>> m_send_buffers;
     std::vector<std::vector<runtime::memory_type>> m_recv_buffers;
+#endif
     std::vector<neighborhood>                      m_neighbors;
 
   public:

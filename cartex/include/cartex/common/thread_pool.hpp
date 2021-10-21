@@ -61,11 +61,11 @@ class thread_pool
         std::unique_ptr<counters> m_counters;
 
       public:
-        barrier(barrier const &) = delete;
+        barrier(int num_threads = 1);
+        barrier(barrier const&) = delete;
         barrier(barrier&&) = default;
 
       private:
-        barrier(int num_threads);
         bool count_up();
         void count_down();
 
