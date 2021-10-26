@@ -193,19 +193,26 @@ main(int argc, char** argv)
 
         {
             cartex::thread_pool tp(num_threads);
-            auto b = tp.make_barrier();
+            auto                b = tp.make_barrier();
             for (int j = 0; j < num_threads; ++j)
-                tp.schedule(j, [&r, device_id](int j) {
-                    cartex::set_device(device_id);
-                    r.init(j);
-                });
+                tp.schedule(j,
+                    [&r, device_id](int j)
+                    {
+                        cartex::set_device(device_id);
+                        r.init(j);
+                    });
             tp.sync();
             CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
             for (int j = 0; j < num_threads; ++j)
-                tp.schedule(j, [&r, device_id, &b](int j) {
-                    cartex::set_device(device_id);
-                    r.exchange(j, b);
-                });
+            {
+                tp.schedule(j,
+                    [&r, device_id, &b](int j)
+                    {
+                        cartex::set_device(device_id);
+                        r.exchange(j, b);
+                    });
+                tp.schedule(j, [&r](int j) { r.exit(j); });
+            }
             tp.join();
         }
 

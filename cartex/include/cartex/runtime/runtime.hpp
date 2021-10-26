@@ -62,6 +62,7 @@ class runtime
     ~runtime();
     runtime(const runtime&) = delete;
     void        init(int);
+    void        exit(int);
     void        exchange(int j, thread_pool::barrier& b);
     std::string info() const;
 

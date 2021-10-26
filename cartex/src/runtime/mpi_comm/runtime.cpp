@@ -547,4 +547,9 @@ runtime::impl::step(int j)
 #endif
 }
 
+void
+runtime::impl::exit(int)
+{
+}
+
 } // namespace cartex

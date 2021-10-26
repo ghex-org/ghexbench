@@ -66,4 +66,9 @@ runtime::impl::step(int)
     m_pattern.unpack(m_field_ptrs);
 }
 
+void
+runtime::impl::exit(int)
+{
+}
+
 } // namespace cartex
