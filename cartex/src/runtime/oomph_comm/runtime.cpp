@@ -16,6 +16,8 @@
 #include <cartex/runtime/oomph_comm/runtime.hpp>
 #include "../runtime_inc.cpp"
 
+//#define OOMPH_SEND_AND_FORGET
+
 namespace cartex
 {
 options&
@@ -294,32 +296,63 @@ runtime::impl::neighborhood::exchange(memory_type& field, std::vector<buffer_typ
     std::vector<buffer_type>& recv_buffers, std::vector<buffer_type>& z_send_buffers,
     std::vector<buffer_type>& z_recv_buffers, int field_id)
 {
-    pack_x(field, send_buffers[0], send_buffers[1]);
+
     comm->recv(recv_buffers[1], x_r.rank, recvtag(field_id, 0, true));
     comm->recv(recv_buffers[0], x_l.rank, recvtag(field_id, 0, false));
+#ifdef OOMPH_SEND_AND_FORGET
+    auto send_buffer_x_0 = comm->make_buffer<runtime::real_type>(m_halos[0] * d.domain_ext[1] * d.domain_ext[2]);
+    auto send_buffer_x_1 = comm->make_buffer<runtime::real_type>(m_halos[1] * d.domain_ext[1] * d.domain_ext[2]);
+    pack_x(field, send_buffer_x_0, send_buffer_x_1);
+    comm->send(std::move(send_buffer_x_1), x_l.rank, sendtag(field_id, 0, true));
+    comm->send(std::move(send_buffer_x_0), x_r.rank, sendtag(field_id, 0, false));
+#else
+    pack_x(field, send_buffers[0], send_buffers[1]);
     comm->send(send_buffers[1], x_l.rank, sendtag(field_id, 0, true));
     comm->send(send_buffers[0], x_r.rank, sendtag(field_id, 0, false));
+#endif
     comm->wait_all();
     unpack_x(field, recv_buffers[0], recv_buffers[1]);
 
-    pack_y(field, send_buffers[2], send_buffers[3]);
     comm->recv(recv_buffers[3], y_r.rank, recvtag(field_id, 1, true));
     comm->recv(recv_buffers[2], y_l.rank, recvtag(field_id, 1, false));
+#ifdef OOMPH_SEND_AND_FORGET
+    const auto x_ext = d.domain_ext[0] + m_halos[0] + m_halos[1];
+    auto send_buffer_y_0 = comm->make_buffer<runtime::real_type>(m_halos[2] * x_ext * d.domain_ext[2]);
+    auto send_buffer_y_1 = comm->make_buffer<runtime::real_type>(m_halos[3] * x_ext * d.domain_ext[2]);
+    pack_y(field, send_buffer_y_0, send_buffer_y_1);
+    comm->send(std::move(send_buffer_y_1), y_l.rank, sendtag(field_id, 1, true));
+    comm->send(std::move(send_buffer_y_0), y_r.rank, sendtag(field_id, 1, false));
+#else
+    pack_y(field, send_buffers[2], send_buffers[3]);
     comm->send(send_buffers[3], y_l.rank, sendtag(field_id, 1, true));
     comm->send(send_buffers[2], y_r.rank, sendtag(field_id, 1, false));
+#endif
     comm->wait_all();
     unpack_y(field, recv_buffers[2], recv_buffers[3]);
 
 #ifdef CARTEX_MPI_PACK_Z
+    comm->recv(z_recv_buffers[1], z_r.rank, recvtag(field_id, 2, true));
+    comm->recv(z_recv_buffers[0], z_l.rank, recvtag(field_id, 2, false));
+#ifdef OOMPH_SEND_AND_FORGET
+    const auto y_ext = d.domain_ext[1] + m_halos[2] + m_halos[3];
+    auto send_buffer_z_0 = comm->make_buffer<runtime::real_type>(m_halos[4] * x_ext * y_ext);
+    auto send_buffer_z_1 = comm->make_buffer<runtime::real_type>(m_halos[5] * x_ext * y_ext);
+    pack_z(field, send_buffer_z_0, send_buffer_z_1);
+    comm->send(std::move(send_buffer_z_1), z_l.rank, sendtag(field_id, 2, true));
+    comm->send(std::move(send_buffer_z_0), z_r.rank, sendtag(field_id, 2, false));
+#else
     pack_z(field, z_send_buffers[0], z_send_buffers[1]);
+    comm->send(z_send_buffers[1], z_l.rank, sendtag(field_id, 2, true));
+    comm->send(z_send_buffers[0], z_r.rank, sendtag(field_id, 2, false));
 #endif
+    comm->wait_all();
+    unpack_z(field, z_recv_buffers[0], z_recv_buffers[1]);
+#else
     comm->recv(z_recv_buffers[1], z_r.rank, recvtag(field_id, 2, true));
     comm->recv(z_recv_buffers[0], z_l.rank, recvtag(field_id, 2, false));
     comm->send(z_send_buffers[1], z_l.rank, sendtag(field_id, 2, true));
     comm->send(z_send_buffers[0], z_r.rank, sendtag(field_id, 2, false));
     comm->wait_all();
-#ifdef CARTEX_MPI_PACK_Z
-    unpack_z(field, z_recv_buffers[0], z_recv_buffers[1]);
 #endif
 }
 
