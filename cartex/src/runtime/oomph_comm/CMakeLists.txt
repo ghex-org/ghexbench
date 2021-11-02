@@ -11,8 +11,10 @@ if (CARTEX_MPI_PACK_Z_LOOP_GPU)
     target_compile_definitions(runtime PRIVATE CARTEX_MPI_PACK_Z_LOOP_GPU)
 endif()
 
-set(_oomph_repository "https://github.com/ghex-org/oomph.git")
-set(_oomph_tag        "main")
+#set(_oomph_repository "https://github.com/ghex-org/oomph.git")
+#set(_oomph_tag        "main")
+set(_oomph_repository "https://github.com/boeschf/oomph.git")
+set(_oomph_tag        "tensor")
 
 if(NOT _oomph_already_fetched)
     message(STATUS "Fetching oomph ${_oomph_tag} from ${_oomph_repository}")

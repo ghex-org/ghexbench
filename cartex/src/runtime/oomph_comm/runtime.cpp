@@ -16,8 +16,6 @@
 #include <cartex/runtime/oomph_comm/runtime.hpp>
 #include "../runtime_inc.cpp"
 
-//#define OOMPH_SEND_AND_FORGET
-
 namespace cartex
 {
 options&
@@ -32,444 +30,116 @@ runtime::check_options(options_values const&)
     return true;
 }
 
-runtime::impl::neighborhood::neighborhood(int i, communicator* c, decomposition& decomp,
-    std::array<int, 6> const& halos)
-: comm(c)
-, num_fields{decomp.threads_per_rank()}
-, m_halos{halos}
-, d{decomp.domain(i)}
-, x_l{decomp.neighbor(i, -1, 0, 0)}
-, x_r{decomp.neighbor(i, 1, 0, 0)}
-, y_l{decomp.neighbor(i, 0, -1, 0)}
-, y_r{decomp.neighbor(i, 0, 1, 0)}
-, z_l{decomp.neighbor(i, 0, 0, -1)}
-, z_r{decomp.neighbor(i, 0, 0, 1)}
-, ext_buffer{d.domain_ext[0] + halos[0] + halos[1], d.domain_ext[1] + halos[2] + halos[3],
-      d.domain_ext[2] + halos[4] + halos[5]}
-, z_plane{ext_buffer[0] * ext_buffer[1]}
-{
-#ifdef __CUDACC__
-    constexpr int max_threads = 512;   // 1024
-    constexpr int max_threads_x = 512; // 1024
-    constexpr int max_threads_y = 512; // 1024
-    constexpr int max_threads_z = 64;
-    constexpr int warp_size = 32;
-    // kernel params for x dimension
-    {
-        const int block_dim_x = m_halos[0] + m_halos[1];
-        int       remaining_threads_per_block = max_threads / block_dim_x;
-        int       block_dim_y =
-            std::min(std::min(d.domain_ext[1], remaining_threads_per_block), max_threads_y);
-        block_dim_y = (block_dim_y / warp_size) * warp_size;
-#ifdef CARTEX_MPI_PACK_Z_LOOP_GPU
-        const int block_dim_z = 1;
-        blocks_x = dim3(1, (d.domain_ext[1] + block_dim_y - 1) / block_dim_y, 1);
-#else
-        const int block_dim_z = std::min(max_threads / (block_dim_x * block_dim_y), max_threads_z);
-        blocks_x = dim3(1, (d.domain_ext[1] + block_dim_y - 1) / block_dim_y,
-            (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
-#endif
-        dims_x = dim3(block_dim_x, block_dim_y, block_dim_z);
-    }
-    // kernel params for y dimension
-    {
-        const int block_dim_y = m_halos[2] + m_halos[3];
-        int       remaining_threads_per_block = max_threads / block_dim_y;
-        int       block_dim_x =
-            std::min(std::min(ext_buffer[0], remaining_threads_per_block), max_threads_x);
-        block_dim_x = (block_dim_x / warp_size) * warp_size;
-        const int block_dim_z = std::min(max_threads / (block_dim_x * block_dim_y), max_threads_z);
-        dims_y = dim3(block_dim_x, block_dim_y, block_dim_z);
-        blocks_y = dim3((ext_buffer[0] + block_dim_x - 1) / block_dim_x, 1,
-            (d.domain_ext[2] + block_dim_z - 1) / block_dim_z);
-    }
-#ifdef CARTEX_MPI_PACK_Z
-    // kernel params for z dimension
-    {
-        const int block_dim_z = m_halos[4] + m_halos[5];
-        int       remaining_threads_per_block = max_threads / block_dim_z;
-        int       block_dim_x =
-            std::min(std::min(ext_buffer[0], remaining_threads_per_block), max_threads_x);
-        block_dim_x = (block_dim_x / warp_size) * warp_size;
-        const int block_dim_y = std::min(
-            std::min(max_threads / (block_dim_x * block_dim_z), max_threads_y), ext_buffer[1]);
-        dims_z = dim3(block_dim_x, block_dim_y, block_dim_z);
-        blocks_z = dim3((ext_buffer[0] + block_dim_x - 1) / block_dim_x,
-            (ext_buffer[1] + block_dim_y - 1) / block_dim_y, 1);
-    }
-#endif
-#endif
-}
-
-int
-runtime::impl::neighborhood::sendtag(int field_id, int dim, bool left) const noexcept
-{
-    // send tag encodes
-    // - field id (which field):       num_fields
-    // - send thread id:               num_threads
-    // - dimension (x,y,z):            3
-    // - left/right communication:     2
-    const auto direction_tag = dim * 2 + (left ? 0 : 1);
-    const auto thread_tag = d.thread;
-    return field_id + num_fields * (direction_tag + 6 * thread_tag);
-}
-
-int
-runtime::impl::neighborhood::recvtag(int field_id, int dim, bool left) const noexcept
-{
-    // recv tag encodes
-    // - field id (which field):       num_fields
-    // - send thread id:               num_threads
-    // - dimension (x,y,z):            3
-    // - left/right communication:     2
-    const auto direction_tag = dim * 2 + (left ? 0 : 1);
-    const auto tid_l = (dim == 0 ? x_r.thread : (dim == 1 ? y_r.thread : z_r.thread));
-    const auto tid_r = (dim == 0 ? x_l.thread : (dim == 1 ? y_l.thread : z_l.thread));
-    const auto thread_tag = left ? tid_l : tid_r;
-    return field_id + num_fields * (direction_tag + 6 * thread_tag);
-}
-
-void
-runtime::impl::neighborhood::pack_x(memory_type& field, buffer_type& buffer_left,
-    buffer_type& buffer_right)
-{
-#ifdef __CUDACC__
-    execute_kernel(blocks_x, dims_x, pack_x_kernel, stream, field.hd_data(), buffer_left.hd_data(),
-        buffer_right.hd_data(), m_halos, d.domain_ext);
-#else
-    for (int z = 0; z < d.domain_ext[2]; ++z)
-    {
-        for (int y = 0; y < d.domain_ext[1]; ++y)
-        {
-            const auto offset = ext_buffer[0] * (y + m_halos[2] + (z + m_halos[4]) * ext_buffer[1]);
-            const auto offset_l = m_halos[0] * (y + d.domain_ext[1] * z);
-            const auto offset_r = m_halos[1] * (y + d.domain_ext[1] * z);
-            for (int x = 0; x < m_halos[0]; ++x)
-                buffer_left[x + offset_l] = field[x + d.domain_ext[0] + offset];
-            for (int x = 0; x < m_halos[1]; ++x)
-                buffer_right[x + offset_r] = field[x + m_halos[0] + offset];
-        }
-    }
-#endif
-}
-
-void
-runtime::impl::neighborhood::unpack_x(memory_type& field, buffer_type& buffer_left,
-    buffer_type& buffer_right)
-{
-#ifdef __CUDACC__
-    execute_kernel(blocks_x, dims_x, unpack_x_kernel, stream, field.hd_data(),
-        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
-#else
-    for (int z = 0; z < d.domain_ext[2]; ++z)
-    {
-        for (int y = 0; y < d.domain_ext[1]; ++y)
-        {
-            const auto offset = ext_buffer[0] * (y + m_halos[2] + (z + m_halos[4]) * ext_buffer[1]);
-            const auto offset_l = m_halos[0] * (y + d.domain_ext[1] * z);
-            const auto offset_r = m_halos[1] * (y + d.domain_ext[1] * z);
-            for (int x = 0; x < m_halos[0]; ++x) field[x + offset] = buffer_left[x + offset_l];
-            for (int x = 0; x < m_halos[1]; ++x)
-                field[x + m_halos[0] + d.domain_ext[0] + offset] = buffer_right[x + offset_r];
-        }
-    }
-#endif
-}
-
-void
-runtime::impl::neighborhood::pack_y(memory_type& field, buffer_type& buffer_left,
-    buffer_type& buffer_right)
-{
-#ifdef __CUDACC__
-    execute_kernel(blocks_y, dims_y, pack_y_kernel, stream, field.hd_data(), buffer_left.hd_data(),
-        buffer_right.hd_data(), m_halos, d.domain_ext);
-#else
-    for (int z = 0; z < d.domain_ext[2]; ++z)
-    {
-        for (int y = 0; y < m_halos[2]; ++y)
-        {
-            const auto offset =
-                ext_buffer[0] * (y + d.domain_ext[1] + (z + m_halos[4]) * ext_buffer[1]);
-            const auto offset_l = ext_buffer[0] * (y + m_halos[2] * z);
-            for (int x = 0; x < ext_buffer[0]; ++x) buffer_left[x + offset_l] = field[x + offset];
-        }
-        for (int y = 0; y < m_halos[3]; ++y)
-        {
-            const auto offset = ext_buffer[0] * (y + m_halos[2] + (z + m_halos[4]) * ext_buffer[1]);
-            const auto offset_r = ext_buffer[0] * (y + m_halos[3] * z);
-            for (int x = 0; x < ext_buffer[0]; ++x) buffer_right[x + offset_r] = field[x + offset];
-        }
-    }
-#endif
-}
-
-void
-runtime::impl::neighborhood::unpack_y(memory_type& field, buffer_type& buffer_left,
-    buffer_type& buffer_right)
-{
-#ifdef __CUDACC__
-    execute_kernel(blocks_y, dims_y, unpack_y_kernel, stream, field.hd_data(),
-        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
-#else
-    for (int z = 0; z < d.domain_ext[2]; ++z)
-    {
-        for (int y = 0; y < m_halos[2]; ++y)
-        {
-            const auto offset = ext_buffer[0] * (y + (z + m_halos[4]) * ext_buffer[1]);
-            const auto offset_l = ext_buffer[0] * (y + m_halos[2] * z);
-            for (int x = 0; x < ext_buffer[0]; ++x) field[x + offset] = buffer_left[x + offset_l];
-        }
-        for (int y = 0; y < m_halos[3]; ++y)
-        {
-            const auto offset = ext_buffer[0] * (y + m_halos[2] + d.domain_ext[1] +
-                                                    (z + m_halos[4]) * ext_buffer[1]);
-            const auto offset_r = ext_buffer[0] * (y + m_halos[3] * z);
-            for (int x = 0; x < ext_buffer[0]; ++x) field[x + offset] = buffer_right[x + offset_r];
-        }
-    }
-#endif
-}
-
-#ifdef CARTEX_MPI_PACK_Z
-void
-runtime::impl::neighborhood::pack_z(
-    memory_type& field, buffer_type& buffer_left, buffer_type& buffer_right)
-{
-#ifdef __CUDACC__
-    execute_kernel(blocks_z, dims_z, pack_z_kernel, stream, field.hd_data(), buffer_left.hd_data(),
-        buffer_right.hd_data(), m_halos, d.domain_ext);
-#else
-    for (int z = 0; z < m_halos[4]; ++z)
-    {
-        for (int y = 0; y < ext_buffer[1]; ++y)
-        {
-            const auto offset = ext_buffer[0] * (y + ext_buffer[1] * (z + d.domain_ext[2]));
-            const auto offset_l = ext_buffer[0] * (y + ext_buffer[1] * z);
-            for (int x = 0; x < ext_buffer[0]; ++x) buffer_left[x + offset_l] = field[x + offset];
-        }
-    }
-    for (int z = 0; z < m_halos[5]; ++z)
-    {
-        for (int y = 0; y < ext_buffer[1]; ++y)
-        {
-            const auto offset = ext_buffer[0] * (y + ext_buffer[1] * (z + m_halos[4]));
-            const auto offset_r = ext_buffer[0] * (y + ext_buffer[1] * z);
-            for (int x = 0; x < ext_buffer[0]; ++x) buffer_right[x + offset_r] = field[x + offset];
-        }
-    }
-#endif
-}
-
-void
-runtime::impl::neighborhood::unpack_z(
-    memory_type& field, buffer_type& buffer_left, buffer_type& buffer_right)
-{
-#ifdef __CUDACC__
-    execute_kernel(blocks_z, dims_z, unpack_z_kernel, stream, field.hd_data(),
-        buffer_left.hd_data(), buffer_right.hd_data(), m_halos, d.domain_ext);
-#else
-    for (int z = 0; z < m_halos[4]; ++z)
-    {
-        for (int y = 0; y < ext_buffer[1]; ++y)
-        {
-            const auto offset = ext_buffer[0] * (y + ext_buffer[1] * z);
-            const auto offset_l = ext_buffer[0] * (y + ext_buffer[1] * z);
-            for (int x = 0; x < ext_buffer[0]; ++x) field[x + offset] = buffer_left[x + offset_l];
-        }
-    }
-    for (int z = 0; z < m_halos[5]; ++z)
-    {
-        for (int y = 0; y < ext_buffer[1]; ++y)
-        {
-            const auto offset =
-                ext_buffer[0] * (y + ext_buffer[1] * (z + d.domain_ext[2] + m_halos[4]));
-            const auto offset_r = ext_buffer[0] * (y + ext_buffer[1] * z);
-            for (int x = 0; x < ext_buffer[0]; ++x) field[x + offset] = buffer_right[x + offset_r];
-        }
-    }
-#endif
-}
-#endif
-
-void
-runtime::impl::neighborhood::exchange(memory_type& field, std::vector<buffer_type>& send_buffers,
-    std::vector<buffer_type>& recv_buffers, std::vector<buffer_type>& z_send_buffers,
-    std::vector<buffer_type>& z_recv_buffers, int field_id)
-{
-
-    comm->recv(recv_buffers[1], x_r.rank, recvtag(field_id, 0, true));
-    comm->recv(recv_buffers[0], x_l.rank, recvtag(field_id, 0, false));
-#ifdef OOMPH_SEND_AND_FORGET
-    auto send_buffer_x_0 = comm->make_buffer<runtime::real_type>(m_halos[0] * d.domain_ext[1] * d.domain_ext[2]);
-    auto send_buffer_x_1 = comm->make_buffer<runtime::real_type>(m_halos[1] * d.domain_ext[1] * d.domain_ext[2]);
-    pack_x(field, send_buffer_x_0, send_buffer_x_1);
-    comm->send(std::move(send_buffer_x_1), x_l.rank, sendtag(field_id, 0, true));
-    comm->send(std::move(send_buffer_x_0), x_r.rank, sendtag(field_id, 0, false));
-#else
-    pack_x(field, send_buffers[0], send_buffers[1]);
-    comm->send(send_buffers[1], x_l.rank, sendtag(field_id, 0, true));
-    comm->send(send_buffers[0], x_r.rank, sendtag(field_id, 0, false));
-#endif
-    comm->wait_all();
-    unpack_x(field, recv_buffers[0], recv_buffers[1]);
-
-    comm->recv(recv_buffers[3], y_r.rank, recvtag(field_id, 1, true));
-    comm->recv(recv_buffers[2], y_l.rank, recvtag(field_id, 1, false));
-#ifdef OOMPH_SEND_AND_FORGET
-    const auto x_ext = d.domain_ext[0] + m_halos[0] + m_halos[1];
-    auto send_buffer_y_0 = comm->make_buffer<runtime::real_type>(m_halos[2] * x_ext * d.domain_ext[2]);
-    auto send_buffer_y_1 = comm->make_buffer<runtime::real_type>(m_halos[3] * x_ext * d.domain_ext[2]);
-    pack_y(field, send_buffer_y_0, send_buffer_y_1);
-    comm->send(std::move(send_buffer_y_1), y_l.rank, sendtag(field_id, 1, true));
-    comm->send(std::move(send_buffer_y_0), y_r.rank, sendtag(field_id, 1, false));
-#else
-    pack_y(field, send_buffers[2], send_buffers[3]);
-    comm->send(send_buffers[3], y_l.rank, sendtag(field_id, 1, true));
-    comm->send(send_buffers[2], y_r.rank, sendtag(field_id, 1, false));
-#endif
-    comm->wait_all();
-    unpack_y(field, recv_buffers[2], recv_buffers[3]);
-
-#ifdef CARTEX_MPI_PACK_Z
-    comm->recv(z_recv_buffers[1], z_r.rank, recvtag(field_id, 2, true));
-    comm->recv(z_recv_buffers[0], z_l.rank, recvtag(field_id, 2, false));
-#ifdef OOMPH_SEND_AND_FORGET
-    const auto y_ext = d.domain_ext[1] + m_halos[2] + m_halos[3];
-    auto send_buffer_z_0 = comm->make_buffer<runtime::real_type>(m_halos[4] * x_ext * y_ext);
-    auto send_buffer_z_1 = comm->make_buffer<runtime::real_type>(m_halos[5] * x_ext * y_ext);
-    pack_z(field, send_buffer_z_0, send_buffer_z_1);
-    comm->send(std::move(send_buffer_z_1), z_l.rank, sendtag(field_id, 2, true));
-    comm->send(std::move(send_buffer_z_0), z_r.rank, sendtag(field_id, 2, false));
-#else
-    pack_z(field, z_send_buffers[0], z_send_buffers[1]);
-    comm->send(z_send_buffers[1], z_l.rank, sendtag(field_id, 2, true));
-    comm->send(z_send_buffers[0], z_r.rank, sendtag(field_id, 2, false));
-#endif
-    comm->wait_all();
-    unpack_z(field, z_recv_buffers[0], z_recv_buffers[1]);
-#else
-    comm->recv(z_recv_buffers[1], z_r.rank, recvtag(field_id, 2, true));
-    comm->recv(z_recv_buffers[0], z_l.rank, recvtag(field_id, 2, false));
-    comm->send(z_send_buffers[1], z_l.rank, sendtag(field_id, 2, true));
-    comm->send(z_send_buffers[0], z_r.rank, sendtag(field_id, 2, false));
-    comm->wait_all();
-#endif
-}
-
 runtime::impl::impl(cartex::runtime& base, options_values const& options)
 : m_base{base}
 , m_context{base.m_decomposition.mpi_comm(), (base.m_num_threads > 1)}
-, m_comms(base.m_num_threads)
-, m_send_buffers(m_base.m_num_threads)
-, m_recv_buffers(m_base.m_num_threads)
-, m_z_send_buffers(m_base.m_num_threads)
-, m_z_recv_buffers(m_base.m_num_threads)
+, m_fields(base.m_num_threads)
 {
-    m_neighbors.reserve(m_base.m_num_threads);
-    for (int i = 0; i < m_base.m_num_threads; ++i)
-        m_neighbors.emplace_back(i, nullptr, m_base.m_decomposition, m_base.m_halos);
 }
 
 void
 runtime::impl::init(int j)
 {
-    m_comms[j] = std::make_unique<communicator>(std::move(m_context.get_communicator()));
-    m_neighbors[j].comm = m_comms[j].get();
     auto& d = m_base.m_domains[j];
-#ifdef __CUDACC__
-    CARTEX_CHECK_CUDA_RESULT(cudaStreamCreate(&m_neighbors[j].stream));
-#endif
-#ifdef CARTEX_MPI_MANY_BUFFERS
-    m_recv_buffers[j].resize(m_base.m_num_fields);
-    m_send_buffers[j].resize(m_base.m_num_fields);
-    for (int i = 0; i < m_base.m_num_fields; ++i)
-    {
-        auto& recv_buffers = m_recv_buffers[j][i];
-        auto& send_buffers = m_send_buffers[j][i];
-#else
-    auto& recv_buffers = m_recv_buffers[j];
-    auto& send_buffers = m_send_buffers[j];
-#endif
-        // x buffers
-        recv_buffers.push_back(m_context.make_buffer<runtime::real_type>(
-            m_base.m_halos[0] * d.domain_ext[1] * d.domain_ext[2]));
-        send_buffers.push_back(m_context.make_buffer<runtime::real_type>(
-            m_base.m_halos[0] * d.domain_ext[1] * d.domain_ext[2]));
-        recv_buffers.push_back(m_context.make_buffer<runtime::real_type>(
-            m_base.m_halos[1] * d.domain_ext[1] * d.domain_ext[2]));
-        send_buffers.push_back(m_context.make_buffer<runtime::real_type>(
-            m_base.m_halos[1] * d.domain_ext[1] * d.domain_ext[2]));
-        // y buffers
-        const auto x_ext = d.domain_ext[0] + m_base.m_halos[0] + m_base.m_halos[1];
-        send_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[2] * x_ext * d.domain_ext[2]));
-        recv_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[2] * x_ext * d.domain_ext[2]));
-        send_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[3] * x_ext * d.domain_ext[2]));
-        recv_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[3] * x_ext * d.domain_ext[2]));
-#ifdef CARTEX_MPI_MANY_BUFFERS
-    }
-#endif
 
-#ifndef CARTEX_MPI_PACK_Z
-    m_z_recv_buffers[j].resize(m_base.m_num_fields);
-    m_z_send_buffers[j].resize(m_base.m_num_fields);
-    for (int i = 0; i < m_base.m_num_fields; ++i)
-    {
-        const auto z_plane = m_neighbors[j].z_plane;
-        auto&      field = m_base.m_raw_fields[j][i];
-        const auto z0 = field.hd_data();
-        const auto z1 = field.hd_data() + z_plane * m_base.m_halos[4];
-        const auto z2 = field.hd_data() + z_plane * d.domain_ext[2];
-        const auto z3 = field.hd_data() + z_plane * (m_base.m_halos[4] + d.domain_ext[2]);
-        const auto left_size = z_plane * m_base.m_halos[5];
-        const auto right_size = z_plane * m_base.m_halos[4];
+    std::size_t const x = d.domain_ext[0];
+    std::size_t const y = d.domain_ext[1];
+    std::size_t const z = d.domain_ext[2];
 
-        auto& recv_buffers = m_z_recv_buffers[j][i];
-        auto& send_buffers = m_z_send_buffers[j][i];
-        send_buffers.push_back(m_context.make_buffer(z2, right_size));
-        send_buffers.push_back(m_context.make_buffer(z1, left_size));
-        recv_buffers.push_back(m_context.make_buffer(z0, right_size));
-        recv_buffers.push_back(m_context.make_buffer(z3, left_size));
-    }
-#else
-#ifdef CARTEX_MPI_MANY_BUFFERS
-    m_z_recv_buffers[j].resize(m_base.m_num_fields);
-    m_z_send_buffers[j].resize(m_base.m_num_fields);
+    std::size_t const hx_l = m_base.m_halos[0];
+    std::size_t const hx_r = m_base.m_halos[1];
+    std::size_t const hy_l = m_base.m_halos[2];
+    std::size_t const hy_r = m_base.m_halos[3];
+    std::size_t const hz_l = m_base.m_halos[4];
+    std::size_t const hz_r = m_base.m_halos[5];
+
+    auto const x_l = m_base.m_decomposition.neighbor(j, -1, 0, 0);
+    auto const x_r = m_base.m_decomposition.neighbor(j, 1, 0, 0);
+    auto const y_l = m_base.m_decomposition.neighbor(j, 0, -1, 0);
+    auto const y_r = m_base.m_decomposition.neighbor(j, 0, 1, 0);
+    auto const z_l = m_base.m_decomposition.neighbor(j, 0, 0, -1);
+    auto const z_r = m_base.m_decomposition.neighbor(j, 0, 0, 1);
+
+    std::size_t const x_ext = x + hx_l + hx_r;
+    std::size_t const y_ext = y + hy_l + hy_r;
+    std::size_t const z_ext = z + hz_l + hz_r;
+
+    const auto send_x_l_range = tensor::range<3>({hx_l, hy_l, hz_l}, {hx_l, y, z});
+    const auto recv_x_r_range = tensor::range<3>({hx_l + x, hy_l, hz_l}, {hx_l, y, z});
+    const auto send_x_r_range = tensor::range<3>({hx_l + x - hx_r, hy_l, hz_l}, {hy_r, y, z});
+    const auto recv_x_l_range = tensor::range<3>({0, hy_l, hz_l}, {hy_r, y, z});
+
+    const auto send_y_l_range = tensor::range<3>({0, hy_l, hz_l}, {x_ext, hy_l, z});
+    const auto recv_y_r_range = tensor::range<3>({0, hy_l + y, hz_l}, {x_ext, hy_l, z});
+    const auto send_y_r_range = tensor::range<3>({0, hy_l + y - hy_r, hz_l}, {x_ext, hy_r, z});
+    const auto recv_y_l_range = tensor::range<3>({0, 0, hz_l}, {x_ext, hy_r, z});
+
+    const auto send_z_l_range = tensor::range<3>({0, 0, hz_l}, {x_ext, y_ext, hz_l});
+    const auto recv_z_r_range = tensor::range<3>({0, 0, hz_l + z}, {x_ext, y_ext, hz_l});
+    const auto send_z_r_range = tensor::range<3>({0, 0, hz_l + z - hz_r}, {x_ext, y_ext, hz_r});
+    const auto recv_z_l_range = tensor::range<3>({0, 0, 0}, {x_ext, y_ext, hz_r});
+
+    auto send_tag = [&d, n = m_base.m_num_fields](int field_id, int dim, bool left)
+    {
+        // send tag encodes
+        // - field id (which field):       num_fields
+        // - send thread id:               num_threads
+        // - dimension (x,y,z):            3
+        // - left/right communication:     2
+        const auto direction_tag = dim * 2 + (left ? 0 : 1);
+        const auto thread_tag = d.thread;
+        return field_id + n * (direction_tag + 6 * thread_tag);
+    };
+
+    auto recv_tag = [&x_l, &x_r, &y_l, &y_r, &z_l, &z_r, n = m_base.m_num_fields](int field_id,
+                        int dim, bool left)
+    {
+        // recv tag encodes
+        // - field id (which field):       num_fields
+        // - send thread id:               num_threads
+        // - dimension (x,y,z):            3
+        // - left/right communication:     2
+        const auto direction_tag = dim * 2 + (left ? 0 : 1);
+        const auto tid_l = (dim == 0 ? x_r.thread : (dim == 1 ? y_r.thread : z_r.thread));
+        const auto tid_r = (dim == 0 ? x_l.thread : (dim == 1 ? y_l.thread : z_l.thread));
+        const auto thread_tag = left ? tid_l : tid_r;
+        return field_id + n * (direction_tag + 6 * thread_tag);
+    };
+
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
-        auto&      recv_buffers = m_z_recv_buffers[j][i];
-        auto&      send_buffers = m_z_send_buffers[j][i];
-        const auto x_ext = d.domain_ext[0] + m_base.m_halos[0] + m_base.m_halos[1];
-        const auto y_ext = d.domain_ext[1] + m_base.m_halos[2] + m_base.m_halos[3];
-        send_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[4] * x_ext * y_ext));
-        recv_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[4] * x_ext * y_ext));
-        send_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[5] * x_ext * y_ext));
-        recv_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[5] * x_ext * y_ext));
+        auto m = m_context.map_tensor<layout_t>({x_ext, y_ext, z_ext},
+            m_base.m_raw_fields[j][i].hd_data(),
+            m_base.m_raw_fields[j][i].hd_data() + (x_ext * y_ext * z_ext - 1));
+        m_fields[j].push_back(field{std::move(m)});
+        auto& f = m_fields[j].back();
+        f.m_senders[0]
+            .add_dst(send_x_l_range, x_l.rank, send_tag(i, 0, true))
+            .add_dst(send_x_r_range, x_r.rank, send_tag(i, 0, false));
+        f.m_receivers[0]
+            .add_src(recv_x_r_range, x_r.rank, recv_tag(i, 0, true))
+            .add_src(recv_x_l_range, x_l.rank, recv_tag(i, 0, false));
+        f.m_senders[0].connect();
+        f.m_receivers[0].connect();
+
+        f.m_senders[1]
+            .add_dst(send_y_l_range, y_l.rank, send_tag(i, 1, true))
+            .add_dst(send_y_r_range, y_r.rank, send_tag(i, 1, false));
+        f.m_receivers[1]
+            .add_src(recv_y_r_range, y_r.rank, recv_tag(i, 1, true))
+            .add_src(recv_y_l_range, y_l.rank, recv_tag(i, 1, false));
+        f.m_senders[1].connect();
+        f.m_receivers[1].connect();
+
+        f.m_senders[2]
+            .add_dst(send_z_l_range, z_l.rank, send_tag(i, 2, true))
+            .add_dst(send_z_r_range, z_r.rank, send_tag(i, 2, false));
+        f.m_receivers[2]
+            .add_src(recv_z_r_range, z_r.rank, recv_tag(i, 2, true))
+            .add_src(recv_z_l_range, z_l.rank, recv_tag(i, 2, false));
+        f.m_senders[2].connect();
+        f.m_receivers[2].connect();
     }
-#else
-    {
-        auto&      recv_buffers = m_z_recv_buffers[j];
-        auto&      send_buffers = m_z_send_buffers[j];
-        const auto x_ext = d.domain_ext[0] + m_base.m_halos[0] + m_base.m_halos[1];
-        const auto y_ext = d.domain_ext[1] + m_base.m_halos[2] + m_base.m_halos[3];
-        send_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[4] * x_ext * y_ext));
-        recv_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[4] * x_ext * y_ext));
-        send_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[5] * x_ext * y_ext));
-        recv_buffers.push_back(
-            m_context.make_buffer<runtime::real_type>(m_base.m_halos[5] * x_ext * y_ext));
-    }
-#endif
-#endif
 }
 
 void
@@ -477,30 +147,28 @@ runtime::impl::step(int j)
 {
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
-#ifdef CARTEX_MPI_MANY_BUFFERS
-#ifndef CARTEX_MPI_PACK_Z
-        m_neighbors[j].exchange(m_base.m_raw_fields[j][i], m_send_buffers[j][i],
-            m_recv_buffers[j][i], m_z_send_buffers[j][i], m_z_recv_buffers[j][i], i);
-#else
-        m_neighbors[j].exchange(m_base.m_raw_fields[j][i], m_send_buffers[j][i],
-            m_recv_buffers[j][i], m_z_send_buffers[j][i], m_z_recv_buffers[j][i], i);
-#endif
-#else
-#ifndef CARTEX_MPI_PACK_Z
-        m_neighbors[j].exchange(m_base.m_raw_fields[j][i], m_send_buffers[j], m_recv_buffers[j],
-            m_z_send_buffers[j][i], m_z_recv_buffers[j][i], i);
-#else
-        m_neighbors[j].exchange(m_base.m_raw_fields[j][i], m_send_buffers[j], m_recv_buffers[j],
-            m_z_send_buffers[j], m_z_recv_buffers[j], i);
-#endif
-#endif
+        auto& f = m_fields[j][i];
+
+        for (unsigned int d = 0; d < 3; ++d)
+        {
+            auto rh = f.m_receivers[d].recv();
+            f.m_senders[d].pack().wait();
+            auto sh = f.m_senders[d].send();
+            while (true)
+            {
+                if (!rh.is_ready()) rh.progress();
+                if (!sh.is_ready()) sh.progress();
+                if (rh.is_ready() && sh.is_ready()) break;
+            }
+            f.m_receivers[d].unpack().wait();
+        }
     }
 }
 
 void
 runtime::impl::exit(int j)
 {
-    m_comms[j].reset();
+    m_fields[j].clear();
 }
 
 } // namespace cartex
