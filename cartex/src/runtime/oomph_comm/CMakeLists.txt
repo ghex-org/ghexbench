@@ -1,16 +1,6 @@
 set(CARTEX_TRANSPORT_BACKEND "MPI" CACHE STRING "Choose the backend type: MPI | UCX | LIBFABRIC")
 set_property(CACHE CARTEX_TRANSPORT_BACKEND PROPERTY STRINGS "MPI" "UCX" "LIBFABRIC")
 
-set(CARTEX_MPI_PACK_Z OFF CACHE BOOL "pack/unpack z buffers instead of direct exchange")
-if (CARTEX_MPI_PACK_Z)
-    target_compile_definitions(runtime PRIVATE CARTEX_MPI_PACK_Z)
-endif()
-
-set(CARTEX_MPI_PACK_Z_LOOP_GPU OFF CACHE BOOL "use z-loop in kernels")
-if (CARTEX_MPI_PACK_Z_LOOP_GPU)
-    target_compile_definitions(runtime PRIVATE CARTEX_MPI_PACK_Z_LOOP_GPU)
-endif()
-
 #set(_oomph_repository "https://github.com/ghex-org/oomph.git")
 #set(_oomph_tag        "main")
 set(_oomph_repository "https://github.com/boeschf/oomph.git")
