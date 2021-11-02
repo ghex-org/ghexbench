@@ -113,32 +113,23 @@ runtime::impl::init(int j)
             m_base.m_raw_fields[j][i].hd_data() + (x_ext * y_ext * z_ext - 1));
         m_fields[j].push_back(field{std::move(m)});
         auto& f = m_fields[j].back();
-        f.m_senders[0]
-            .add_dst(send_x_l_range, x_l.rank, send_tag(i, 0, true))
-            .add_dst(send_x_r_range, x_r.rank, send_tag(i, 0, false));
-        f.m_receivers[0]
-            .add_src(recv_x_r_range, x_r.rank, recv_tag(i, 0, true))
-            .add_src(recv_x_l_range, x_l.rank, recv_tag(i, 0, false));
-        f.m_senders[0].connect();
-        f.m_receivers[0].connect();
+        f.m_sender.add_dst(send_x_l_range, x_l.rank, send_tag(i, 0, true), 0)
+            .add_dst(send_x_r_range, x_r.rank, send_tag(i, 0, false), 0);
+        f.m_receiver.add_src(recv_x_r_range, x_r.rank, recv_tag(i, 0, true), 0)
+            .add_src(recv_x_l_range, x_l.rank, recv_tag(i, 0, false), 0);
 
-        f.m_senders[1]
-            .add_dst(send_y_l_range, y_l.rank, send_tag(i, 1, true))
-            .add_dst(send_y_r_range, y_r.rank, send_tag(i, 1, false));
-        f.m_receivers[1]
-            .add_src(recv_y_r_range, y_r.rank, recv_tag(i, 1, true))
-            .add_src(recv_y_l_range, y_l.rank, recv_tag(i, 1, false));
-        f.m_senders[1].connect();
-        f.m_receivers[1].connect();
+        f.m_sender.add_dst(send_y_l_range, y_l.rank, send_tag(i, 1, true), 1)
+            .add_dst(send_y_r_range, y_r.rank, send_tag(i, 1, false), 1);
+        f.m_receiver.add_src(recv_y_r_range, y_r.rank, recv_tag(i, 1, true), 1)
+            .add_src(recv_y_l_range, y_l.rank, recv_tag(i, 1, false), 1);
 
-        f.m_senders[2]
-            .add_dst(send_z_l_range, z_l.rank, send_tag(i, 2, true))
-            .add_dst(send_z_r_range, z_r.rank, send_tag(i, 2, false));
-        f.m_receivers[2]
-            .add_src(recv_z_r_range, z_r.rank, recv_tag(i, 2, true))
-            .add_src(recv_z_l_range, z_l.rank, recv_tag(i, 2, false));
-        f.m_senders[2].connect();
-        f.m_receivers[2].connect();
+        f.m_sender.add_dst(send_z_l_range, z_l.rank, send_tag(i, 2, true), 2)
+            .add_dst(send_z_r_range, z_r.rank, send_tag(i, 2, false), 2);
+        f.m_receiver.add_src(recv_z_r_range, z_r.rank, recv_tag(i, 2, true), 2)
+            .add_src(recv_z_l_range, z_l.rank, recv_tag(i, 2, false), 2);
+
+        f.m_sender.connect();
+        f.m_receiver.connect();
     }
 }
 
@@ -151,16 +142,16 @@ runtime::impl::step(int j)
 
         for (unsigned int d = 0; d < 3; ++d)
         {
-            auto rh = f.m_receivers[d].recv();
-            f.m_senders[d].pack().wait();
-            auto sh = f.m_senders[d].send();
+            auto rh = f.m_receiver.recv(d);
+            f.m_sender.pack(d).wait();
+            auto sh = f.m_sender.send(d);
             while (true)
             {
                 if (!rh.is_ready()) rh.progress();
                 if (!sh.is_ready()) sh.progress();
                 if (rh.is_ready() && sh.is_ready()) break;
             }
-            f.m_receivers[d].unpack().wait();
+            f.m_receiver.unpack(d).wait();
         }
     }
 }

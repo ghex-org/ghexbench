@@ -38,15 +38,14 @@ class runtime::impl
     context  m_context;
     struct field
     {
-        map_t                     m_map;
-        std::array<sender_t, 3>   m_senders;
-        std::array<receiver_t, 3> m_receivers;
+        map_t      m_map;
+        sender_t   m_sender;
+        receiver_t m_receiver;
+
         field(map_t&& m)
         : m_map{std::move(m)}
-        , m_senders{tensor::make_sender(m_map), tensor::make_sender(m_map),
-              tensor::make_sender(m_map)}
-        , m_receivers{tensor::make_receiver(m_map), tensor::make_receiver(m_map),
-              tensor::make_receiver(m_map)}
+        , m_sender{tensor::make_sender(m_map)}
+        , m_receiver{tensor::make_receiver(m_map)}
         {
         }
     };
