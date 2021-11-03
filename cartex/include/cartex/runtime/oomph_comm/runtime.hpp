@@ -32,6 +32,7 @@ class runtime::impl
     using map_t = tensor::map<runtime::real_type, layout_t>;
     using sender_t = tensor::sender<map_t>;
     using receiver_t = tensor::receiver<map_t>;
+    using buffer_cache_t = tensor::buffer_cache<runtime::real_type>;
 
   private:
     runtime& m_base;
@@ -46,6 +47,14 @@ class runtime::impl
         : m_map{std::move(m)}
         , m_sender{tensor::make_sender(m_map)}
         , m_receiver{tensor::make_receiver(m_map)}
+        {
+        }
+
+        field(map_t&& m, buffer_cache_t const& send_buffer_cache,
+            buffer_cache_t const& recv_buffer_cache)
+        : m_map{std::move(m)}
+        , m_sender{m_map, send_buffer_cache}
+        , m_receiver{m_map, recv_buffer_cache}
         {
         }
     };

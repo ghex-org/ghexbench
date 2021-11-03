@@ -30,7 +30,7 @@ runtime::check_options(options_values const&)
     return true;
 }
 
-runtime::impl::impl(cartex::runtime& base, options_values const& options)
+runtime::impl::impl(cartex::runtime& base, options_values const& /*options*/)
 : m_base{base}
 , m_context{base.m_decomposition.mpi_comm(), (base.m_num_threads > 1)}
 , m_fields(base.m_num_threads)
@@ -106,12 +106,14 @@ runtime::impl::init(int j)
         return field_id + n * (direction_tag + 6 * thread_tag);
     };
 
+    tensor::buffer_cache<runtime::real_type> send_cache;
+    tensor::buffer_cache<runtime::real_type> recv_cache;
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
         auto m = m_context.map_tensor<layout_t>({x_ext, y_ext, z_ext},
             m_base.m_raw_fields[j][i].hd_data(),
             m_base.m_raw_fields[j][i].hd_data() + (x_ext * y_ext * z_ext - 1));
-        m_fields[j].push_back(field{std::move(m)});
+        m_fields[j].push_back(field{std::move(m), send_cache, recv_cache});
         auto& f = m_fields[j].back();
         f.m_sender.add_dst(send_x_l_range, x_l.rank, send_tag(i, 0, true), 0)
             .add_dst(send_x_r_range, x_r.rank, send_tag(i, 0, false), 0);
