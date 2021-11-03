@@ -106,14 +106,22 @@ runtime::impl::init(int j)
         return field_id + n * (direction_tag + 6 * thread_tag);
     };
 
+#ifndef CARTEX_OOMPH_NO_BUFFER_REUSE
     tensor::buffer_cache<runtime::real_type> send_cache;
     tensor::buffer_cache<runtime::real_type> recv_cache;
+#endif
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
         auto m = m_context.map_tensor<layout_t>({x_ext, y_ext, z_ext},
             m_base.m_raw_fields[j][i].hd_data(),
             m_base.m_raw_fields[j][i].hd_data() + (x_ext * y_ext * z_ext - 1));
+
+#ifdef CARTEX_OOMPH_NO_BUFFER_REUSE
+        m_fields[j].push_back(field{std::move(m)});
+#else
         m_fields[j].push_back(field{std::move(m), send_cache, recv_cache});
+#endif
+
         auto& f = m_fields[j].back();
         f.m_sender.add_dst(send_x_l_range, x_l.rank, send_tag(i, 0, true), 0)
             .add_dst(send_x_r_range, x_r.rank, send_tag(i, 0, false), 0);
@@ -138,6 +146,36 @@ runtime::impl::init(int j)
 void
 runtime::impl::step(int j)
 {
+#ifdef CARTEX_OOMPH_NO_BUFFER_REUSE
+    for (unsigned int d = 0; d < 3; ++d)
+    {
+        for (int i = 0; i < m_base.m_num_fields; ++i)
+        {
+            auto& f = m_fields[j][i];
+            f.m_recv_handle = f.m_receiver.recv(d);
+        }
+        for (int i = 0; i < m_base.m_num_fields; ++i)
+        {
+            auto& f = m_fields[j][i];
+            f.m_sender.pack(d).wait();
+            f.m_send_handle = f.m_sender.send(d);
+        }
+        for (int i = 0; i < m_base.m_num_fields; ++i)
+        {
+            auto& f = m_fields[j][i];
+            auto& rh = f.m_recv_handle;
+            auto& sh = f.m_send_handle;
+            while (true)
+            {
+                if (!rh.is_ready()) rh.progress();
+                if (!sh.is_ready()) sh.progress();
+                if (rh.is_ready()) break;
+            }
+            f.m_receiver.unpack(d).wait();
+            sh.wait();
+        }
+    }
+#else
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
         auto& f = m_fields[j][i];
@@ -156,6 +194,7 @@ runtime::impl::step(int j)
             f.m_receiver.unpack(d).wait();
         }
     }
+#endif
 }
 
 void

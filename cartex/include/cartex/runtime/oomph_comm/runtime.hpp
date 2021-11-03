@@ -33,6 +33,7 @@ class runtime::impl
     using sender_t = tensor::sender<map_t>;
     using receiver_t = tensor::receiver<map_t>;
     using buffer_cache_t = tensor::buffer_cache<runtime::real_type>;
+    using handle_t = typename sender_t::handle;
 
   private:
     runtime& m_base;
@@ -42,6 +43,10 @@ class runtime::impl
         map_t      m_map;
         sender_t   m_sender;
         receiver_t m_receiver;
+#ifdef CARTEX_OOMPH_NO_BUFFER_REUSE
+        handle_t m_send_handle;
+        handle_t m_recv_handle;
+#endif
 
         field(map_t&& m)
         : m_map{std::move(m)}

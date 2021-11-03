@@ -1,6 +1,12 @@
 set(CARTEX_TRANSPORT_BACKEND "MPI" CACHE STRING "Choose the backend type: MPI | UCX | LIBFABRIC")
 set_property(CACHE CARTEX_TRANSPORT_BACKEND PROPERTY STRINGS "MPI" "UCX" "LIBFABRIC")
 
+#define 
+set(CARTEX_OOMPH_NO_BUFFER_REUSE OFF CACHE BOOL "no buffer reuse among fields, but overlap")
+if (CARTEX_OOMPH_NO_BUFFER_REUSE)
+    target_compile_definitions(runtime PRIVATE CARTEX_OOMPH_NO_BUFFER_REUSE)
+endif()
+
 #set(_oomph_repository "https://github.com/ghex-org/oomph.git")
 #set(_oomph_tag        "main")
 set(_oomph_repository "https://github.com/boeschf/oomph.git")
