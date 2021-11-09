@@ -11,8 +11,6 @@
 
 #include <chrono>
 #include <iostream>
-#include <immintrin.h>
-#include <string.h>
 
 #include <cartex/runtime/runtime.hpp>
 #include <cartex/common/memory_view.hpp>
@@ -20,7 +18,6 @@
 #include <cartex/common/histogram.hpp>
 
 #ifdef CARTEX_EVICT_CACHE
-#include <immintrin.h>
 #include <string.h>
 #endif
 
