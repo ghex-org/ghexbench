@@ -16,8 +16,8 @@ use_ucx=0
 work_dir="."
 bin_dir="."
 system=""
-systems="betzy"
-mpilib="impi ompi"
+systems="betzy lumi"
+mpilib="impi ompi craype"
 float_type="float"
 
 usage() {
@@ -27,6 +27,8 @@ usage() {
     echo "    betzy"
     echo "      impi"
     echo "      ompi"
+    echo "    lumi"
+    echo "      craype"
     echo ""
     echo "  options"
     echo "    -h               Display this help message"
@@ -159,13 +161,13 @@ check_mk_path $work_dir
 work_dir=$path
 
 if [ $use_ucx -eq 1 ] ; then
-   CONFIG_RUNTIME=("mpi_comm" "ghex_comm" "ghex_comm" "ghex_comm" "ghex_comm")
-   CONFIG_RMA=("none" "none" "none" "xpmem" "xpmem")
-   CONFIG_TRANSPORT=("MPI" "MPI" "UCX" "MPI" "UCX")
+   CONFIG_RUNTIME=("mpi_comm" "oomph_comm" "ghex_comm" "ghex_comm" "ghex_comm" "ghex_comm")
+   CONFIG_RMA=("none" "none" "none" "none" "xpmem" "xpmem")
+   CONFIG_TRANSPORT=("MPI" "MPI" "MPI" "UCX" "MPI" "UCX")
 else
-   CONFIG_RUNTIME=("mpi_comm" "ghex_comm" "ghex_comm")
-   CONFIG_RMA=("none" "none" "xpmem")
-   CONFIG_TRANSPORT=("MPI" "MPI" "MPI")
+   CONFIG_RUNTIME=("mpi_comm" "oomph_comm" "ghex_comm" "ghex_comm")
+   CONFIG_RMA=("none" "none" "none" "xpmem")
+   CONFIG_TRANSPORT=("MPI" "MPI" "MPI" "MPI")
 fi
 
 # init compile environment

@@ -1,0 +1,16 @@
+module unload cray-mpich-ucx
+module unload cray-mpich
+module unload craype-network-ofi
+module unload craype-network-ucx
+
+module load craype-network-ofi
+module load cray-mpich/8.1.8
+
+module use /pfs/lustrep1/projappl/project_465000012/software/modules
+module load ucx/1.11.2
+module load cmake
+module list
+export CC=cc
+export CXX=CC
+export CFLAGS="-Wall -Wextra -Wpedantic -Wno-unknown-pragmas -march=znver2 -funroll-loops -fvectorize"
+export CXXFLAGS="-Wall -Wextra -Wpedantic -Wno-unknown-pragmas -march=znver2 -funroll-loops -fvectorize"
