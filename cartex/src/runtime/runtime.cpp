@@ -26,11 +26,11 @@ runtime::exchange(int j)
 {
     using clock_type = std::chrono::high_resolution_clock;
 
-#define CACHESIZE 16384*1024
-    double *ptr;
-    ptr = (double*)malloc(sizeof(double)*CACHESIZE);
-    memset(ptr, 1, sizeof(double)*CACHESIZE);
-
+#ifdef CARTEX_EVICT_CACHE
+    if(m_rank==0) printf("cache flush size %d\n", CARTEX_EVICT_CACHE_SIZE);
+    auto cache_ptr = new double[CARTEX_EVICT_CACHE_SIZE/sizeof(double)];
+    memset(cache_ptr, 1, sizeof(double)*(CARTEX_EVICT_CACHE_SIZE/sizeof(double)));
+#endif
 
     // check for correctness
     if (m_check_res)
@@ -44,15 +44,29 @@ runtime::exchange(int j)
 
     auto warm_up_step = [j, this]() { step(j); };
 
-    auto main_step = [j, this, &hist, ptr]() {
+#ifndef CARTEX_EVICT_CACHE
+    auto main_step = [j, this, &hist, &b]()
+#else
+    auto main_step = [j, this, &hist, &b, cache_ptr]()
+#endif
+    {
+#ifdef CARTEX_EVICT_CACHE
+        for (long unsigned int i=0; i<(CARTEX_EVICT_CACHE_SIZE/sizeof(double)); ++i)
+	  cache_ptr[i] += i;
+#endif
+
+        b();
+        if (j==0) CARTEX_CHECK_MPI_RESULT(MPI_Barrier(m_decomposition.mpi_comm()));
+        b();
+
         const auto start = clock_type::now();
         step(j);
         const auto end = clock_type::now();
 
-	for(int i=0; i<CACHESIZE; i++){
-	  _mm_prefetch(ptr+i, _MM_HINT_T0);
-	}
-
+        b();
+        if (j==0) CARTEX_CHECK_MPI_RESULT(MPI_Barrier(m_decomposition.mpi_comm()));
+        b();
+	
         const double dt = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
         hist(dt);
     };
