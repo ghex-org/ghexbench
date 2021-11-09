@@ -77,6 +77,7 @@ class runtime::impl
     impl(runtime& base, options_values const& options);
     void        init(int j);
     void        step(int j);
+    void        exit(int j);
     std::string info() const
     {
 #define CARTEX_STR2(var) #var

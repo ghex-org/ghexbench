@@ -9,6 +9,9 @@
  *
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 extern "C"
 {
 #include <sched.h>
@@ -46,14 +49,79 @@ struct cpu_set
 
 } // namespace _impl
 
+thread_pool::barrier::barrier(int num_threads)
+: m_num_threads{num_threads}
+, m_counters{new counters{0, num_threads}}
+{
+}
+
+void
+thread_pool::barrier::operator()()
+{
+    if (m_num_threads > 1)
+    {
+        if (!count_up())
+            while (m_counters->m_down == m_num_threads) {}
+        count_down();
+    }
+}
+
+bool
+thread_pool::barrier::count_up()
+{
+    int expected = m_counters->m_up;
+    while (
+        !m_counters->m_up.compare_exchange_weak(expected, expected + 1, std::memory_order_relaxed))
+        expected = m_counters->m_up;
+    if (expected == m_num_threads - 1)
+    {
+        m_counters->m_up.store(0);
+        return true;
+    }
+    else
+    {
+        while (m_counters->m_up != 0) {}
+        return false;
+    }
+}
+
+void
+thread_pool::barrier::count_down()
+{
+    int ex = m_counters->m_down;
+    while (!m_counters->m_down.compare_exchange_weak(ex, ex - 1, std::memory_order_relaxed))
+        ex = m_counters->m_down;
+    if (ex == 1) { m_counters->m_down.store(m_num_threads); }
+    else
+    {
+        while (m_counters->m_down != m_num_threads) {}
+    }
+}
+
+thread_pool::barrier
+thread_pool::make_barrier()
+{
+    return {m_num_threads};
+}
+
 thread_pool::thread_pool(int n)
 : m_num_threads{n}
 , m_thread_wrapper(n)
 {
-    int            num_cpus = std::thread::hardware_concurrency();
+    //int            num_cpus = std::thread::hardware_concurrency();
     _impl::cpu_set m_this_cpu_set(getpid());
-    for (int c = 0; c < num_cpus; ++c)
-        if (m_this_cpu_set.is_set(c)) m_this_cpus.push_back(c);
+    const int current_cpu = sched_getcpu();
+    for (int c0 = 0; c0 < CPU_SETSIZE; ++c0)
+    {
+        const int c = (current_cpu + c0) % CPU_SETSIZE;
+        if (m_this_cpu_set.is_set(c))
+        {
+            m_this_cpus.push_back(c);
+            //std::cout << "cpu " << c << std::endl;
+        }
+    }
+
+    // number of cores
     m_num_resources = m_this_cpus.size() / _impl::s_num_ht;
     if (m_num_threads > m_num_resources)
     {
@@ -68,7 +136,8 @@ thread_pool::thread_pool(int n)
     if (m_num_threads < m_num_resources)
         std::cerr << "warning: less threads in thread pool than hardware resources" << std::endl;
 
-    auto worker_fct = [this](int thread_id, int cpu_0) {
+    auto worker_fct = [this](int thread_id, int cpu_0)
+    {
         for (int i = 0; i < 5; ++i)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -115,7 +184,9 @@ thread_pool::join()
         {
             std::vector<std::unique_ptr<lock_type>> locks(m_num_threads);
             for (int i = 0; i < m_num_threads; ++i)
-            { locks[i] = std::make_unique<lock_type>(m_thread_wrapper[i].m_mutex); }
+            {
+                locks[i] = std::make_unique<lock_type>(m_thread_wrapper[i].m_mutex);
+            }
             m_running = false;
         }
         for (auto& t : m_thread_wrapper)

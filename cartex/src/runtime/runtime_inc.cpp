@@ -52,4 +52,10 @@ runtime::step(int j)
 {
     m_impl->step(j);
 }
+
+void
+runtime::exit(int j)
+{
+    m_impl->exit(j);
+}
 } // namespace cartex

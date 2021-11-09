@@ -15,6 +15,8 @@
 
 #include <cartex/runtime/runtime.hpp>
 
+#define CARTEX_MPI_MANY_BUFFERS
+
 namespace cartex
 {
 class runtime::impl
@@ -57,13 +59,13 @@ class runtime::impl
         dim3         dims_y;
         dim3         blocks_y;
 #ifdef CARTEX_MPI_PACK_Z
-        dim3         dims_z;
-        dim3         blocks_z;
+        dim3 dims_z;
+        dim3 blocks_z;
 #endif
 #endif
 
-        neighborhood(
-            int i, decomposition& decomp, MPI_Datatype mpi_T, std::array<int, 6> const& halos);
+        neighborhood(int i, decomposition& decomp, MPI_Datatype mpi_T,
+            std::array<int, 6> const& halos);
 
         void exchange(memory_type& field, int field_id);
         void exchange(memory_type& field, std::vector<memory_type>& send_buffers,
@@ -84,18 +86,24 @@ class runtime::impl
     };
 
   private:
-    runtime&                                       m_base;
-    MPI_Comm                                       m_comm;
-    bool                                           m_use_mpi_datatypes;
-    MPI_Datatype                                   m_mpi_T;
+    runtime&     m_base;
+    MPI_Comm     m_comm;
+    bool         m_use_mpi_datatypes;
+    MPI_Datatype m_mpi_T;
+#ifdef CARTEX_MPI_MANY_BUFFERS
+    std::vector<std::vector<std::vector<runtime::memory_type>>> m_send_buffers;
+    std::vector<std::vector<std::vector<runtime::memory_type>>> m_recv_buffers;
+#else
     std::vector<std::vector<runtime::memory_type>> m_send_buffers;
     std::vector<std::vector<runtime::memory_type>> m_recv_buffers;
-    std::vector<neighborhood>                      m_neighbors;
+#endif
+    std::vector<neighborhood> m_neighbors;
 
   public:
     impl(runtime& base, options_values const& options);
     void        init(int j);
     void        step(int j);
+    void        exit(int j);
     std::string info() const
     {
 #define CARTEX_STR2(var) #var

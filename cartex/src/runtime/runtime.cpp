@@ -19,10 +19,15 @@
 #include <cartex/common/accumulator.hpp>
 #include <cartex/common/histogram.hpp>
 
+#ifdef CARTEX_EVICT_CACHE
+#include <immintrin.h>
+#include <string.h>
+#endif
+
 namespace cartex
 {
 void
-runtime::exchange(int j)
+runtime::exchange(int j, thread_pool::barrier& b)
 {
     using clock_type = std::chrono::high_resolution_clock;
 
@@ -75,7 +80,7 @@ runtime::exchange(int j)
     if (m_use_timer)
     {
         m_loop.repeat_for(warm_up_step, 0.1 * m_time, j, 50, 10);
-        reps = m_loop.repeat_for(main_step, 0.9 * m_time, j, m_num_reps, 100);
+        reps = m_loop.repeat_for(main_step, 0.9 * m_time, j, 100, 100, m_num_reps);
     }
     else
     {

@@ -17,6 +17,8 @@
 #include <vector>
 #include <queue>
 #include <mutex>
+#include <atomic>
+#include <memory>
 
 namespace cartex
 {
@@ -36,6 +38,39 @@ class thread_pool
         cv_type     m_cv;
         mutex_type  m_mutex;
         queue_type  m_queue;
+    };
+
+  public:
+    class barrier
+    {
+      private:
+        friend class thread_pool;
+        struct counters
+        {
+            std::atomic<int> m_up;
+            std::atomic<int> m_down;
+            counters(int up, int down)
+            : m_up{up}
+            , m_down{down}
+            {
+            }
+        };
+
+      private:
+        int                       m_num_threads;
+        std::unique_ptr<counters> m_counters;
+
+      public:
+        barrier(int num_threads = 1);
+        barrier(barrier const&) = delete;
+        barrier(barrier&&) = default;
+
+      private:
+        bool count_up();
+        void count_down();
+
+      public:
+        void operator()();
     };
 
   private:
@@ -60,6 +95,8 @@ class thread_pool
     {
         return schedule_impl(thread_id, function_type(std::forward<Function>(fct)));
     }
+
+    barrier make_barrier();
 
   private:
     bool schedule_impl(int thread_id, function_type&& fct);

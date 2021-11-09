@@ -20,6 +20,7 @@
 #include <cartex/common/options.hpp>
 #include <cartex/decomposition/decomposition.hpp>
 #include <cartex/common/sync_loop.hpp>
+#include <cartex/common/thread_pool.hpp>
 
 namespace cartex
 {
@@ -61,7 +62,8 @@ class runtime
     ~runtime();
     runtime(const runtime&) = delete;
     void        init(int);
-    void        exchange(int j);
+    void        exit(int);
+    void        exchange(int j, thread_pool::barrier& b);
     std::string info() const;
 
   private:
