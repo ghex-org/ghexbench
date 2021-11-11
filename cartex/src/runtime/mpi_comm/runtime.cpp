@@ -16,6 +16,11 @@
 
 namespace cartex
 {
+void
+print_runtime_config()
+{
+}
+
 #ifdef __CUDACC__
 template<class Kernel, class... Args>
 void
@@ -258,7 +263,7 @@ pack_x_kernel(runtime::real_type const* field, runtime::real_type* buffer_left,
         if (threadIdx.x < halo_x_left)
         {
             const auto x = threadIdx.x;
-            for (int z=0; z<ext_z; ++z)
+            for (int z = 0; z < ext_z; ++z)
             {
                 const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
                 const auto offset_l = halo_x_left * (y + ext_y * z);
@@ -268,7 +273,7 @@ pack_x_kernel(runtime::real_type const* field, runtime::real_type* buffer_left,
         else
         {
             const auto x = threadIdx.x - halo_x_left;
-            for (int z=0; z<ext_z; ++z)
+            for (int z = 0; z < ext_z; ++z)
             {
                 const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
                 const auto offset_r = halo_x_right * (y + ext_y * z);
@@ -340,7 +345,7 @@ unpack_x_kernel(runtime::real_type* field, runtime::real_type const* buffer_left
         if (threadIdx.x < halo_x_left)
         {
             const auto x = threadIdx.x;
-            for (int z=0; z<ext_z; ++z)
+            for (int z = 0; z < ext_z; ++z)
             {
                 const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
                 const auto offset_l = halo_x_left * (y + ext_y * z);
@@ -350,7 +355,7 @@ unpack_x_kernel(runtime::real_type* field, runtime::real_type const* buffer_left
         else
         {
             const auto x = threadIdx.x - halo_x_left;
-            for (int z=0; z<ext_z; ++z)
+            for (int z = 0; z < ext_z; ++z)
             {
                 const auto offset = ext_x_b * (y + halo_y_left + (z + halo_z_left) * ext_y_b);
                 const auto offset_r = halo_x_right * (y + ext_y * z);

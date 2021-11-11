@@ -7,3 +7,6 @@ target_link_libraries(thread_pool PRIVATE cartex)
 add_library(sync_loop sync_loop.cpp)
 target_link_libraries(sync_loop PRIVATE cartex)
 target_link_libraries(sync_loop PRIVATE MPI::MPI_CXX)
+
+configure_file(${PROJECT_SOURCE_DIR}/cmake/cmake_config.inc.in 
+    ${CMAKE_BINARY_DIR}/include/cmake_config.inc)

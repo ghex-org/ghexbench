@@ -18,6 +18,11 @@
 
 namespace cartex
 {
+void
+print_runtime_config()
+{
+}
+
 options&
 runtime::add_options(options& opts)
 {
