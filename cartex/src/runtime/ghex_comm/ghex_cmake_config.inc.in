@@ -1,0 +1,12 @@
+std::cout << "GHEX_COMM_OBJ_FAT_CALLBACKS=" << "@GHEX_COMM_OBJ_FAT_CALLBACKS@" << std::endl;
+std::cout << "GHEX_COMM_OBJ_USE_U=" << "@GHEX_COMM_OBJ_USE_U@" << std::endl;
+std::cout << "GHEX_ENABLE_ATLAS_BINDINGS=" << "@GHEX_ENABLE_ATLAS_BINDINGS@" << std::endl;
+std::cout << "GHEX_ENABLE_PARMETIS_BINDINGS=" << "@GHEX_ENABLE_PARMETIS_BINDINGS@" << std::endl;
+std::cout << "GHEX_USE_PMIX=" << "@GHEX_USE_PMIX@" << std::endl;
+std::cout << "GHEX_USE_UCP=" << "@GHEX_USE_UCP@" << std::endl;
+std::cout << "GHEX_USE_XPMEM=" << "@GHEX_USE_XPMEM@" << std::endl;
+std::cout << "GHEX_USE_XPMEM_ACCESS_GUARD=" << "@GHEX_USE_XPMEM_ACCESS_GUARD@" << std::endl;
+std::cout << "GHEX_GPU_TYPE=" << "@GHEX_GPU_TYPE@" << std::endl;
+std::cout << "GHEX_NO_RMA=" << "@GHEX_NO_RMA@" << std::endl;
+std::cout << "GHEX_TRANSPORT_BACKEND=" << "@GHEX_TRANSPORT_BACKEND@" << std::endl;
+std::cout << "GHEX_USE_GPU=" << "@GHEX_USE_GPU@" << std::endl;

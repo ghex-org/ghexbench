@@ -111,3 +111,6 @@ endif()
 if(GHEX_COMM_OBJ_U_PACK)
   target_compile_definitions(runtime PRIVATE GHEX_COMM_OBJ_U_PACK)
 endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ghex_cmake_config.inc.in 
+    ${CMAKE_BINARY_DIR}/include/ghex_cmake_config.inc)
