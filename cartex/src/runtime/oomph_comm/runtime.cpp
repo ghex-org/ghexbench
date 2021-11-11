@@ -15,9 +15,16 @@
 
 #include <cartex/runtime/oomph_comm/runtime.hpp>
 #include "../runtime_inc.cpp"
+#include <oomph/utils.hpp>
 
 namespace cartex
 {
+void
+print_runtime_config()
+{
+    oomph::print_config();
+}
+
 options&
 runtime::add_options(options& opts)
 {
@@ -79,8 +86,7 @@ runtime::impl::init(int j)
     const auto send_z_r_range = tensor::range<3>({0, 0, hz_l + z - hz_r}, {x_ext, y_ext, hz_r});
     const auto recv_z_l_range = tensor::range<3>({0, 0, 0}, {x_ext, y_ext, hz_r});
 
-    auto send_tag = [&d, n = m_base.m_num_fields](int field_id, int dim, bool left)
-    {
+    auto send_tag = [&d, n = m_base.m_num_fields](int field_id, int dim, bool left) {
         // send tag encodes
         // - field id (which field):       num_fields
         // - send thread id:               num_threads
@@ -91,9 +97,8 @@ runtime::impl::init(int j)
         return field_id + n * (direction_tag + 6 * thread_tag);
     };
 
-    auto recv_tag = [&x_l, &x_r, &y_l, &y_r, &z_l, &z_r, n = m_base.m_num_fields](int field_id,
-                        int dim, bool left)
-    {
+    auto recv_tag = [&x_l, &x_r, &y_l, &y_r, &z_l, &z_r, n = m_base.m_num_fields](
+                        int field_id, int dim, bool left) {
         // recv tag encodes
         // - field id (which field):       num_fields
         // - send thread id:               num_threads
