@@ -43,6 +43,7 @@ class runtime::impl
 
     void        init(int);
     void        step(int j);
+    void        exit(int j);
     std::string info() const
     {
 #define CARTEX_STR2(var) #var
