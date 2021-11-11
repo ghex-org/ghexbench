@@ -15,12 +15,20 @@
 
 #include <cartex/runtime/ghex_comm/runtime.hpp>
 #include "../runtime_inc.cpp"
+#include <oomph/utils.hpp>
 
 namespace cartex
 {
 void
 print_runtime_config()
 {
+    std::cout << std::endl;
+    std::cout << " -- GHEX compile configuration:" << std::endl;
+    std::cout << std::endl;
+#include <ghex_cmake_config.inc>
+    std::cout << std::endl;
+
+    oomph::print_config();
 }
 
 options&
