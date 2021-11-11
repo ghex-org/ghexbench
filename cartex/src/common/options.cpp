@@ -159,6 +159,8 @@ print_config()
     std::cout << std::endl;
 #include <cmake_config.inc>
     std::cout << std::endl;
+
+    print_runtime_config();
 }
 
 } // namespace cartex

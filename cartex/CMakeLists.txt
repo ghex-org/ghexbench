@@ -69,7 +69,7 @@ target_include_directories(cartex INTERFACE
 )
 target_compile_definitions(cartex INTERFACE
 # CARTEX_RUNTIME=${CARTEX_RUNTIME}
-  CARTEX_RUNTIME_$<UPPER_CASE:${CARTEX_RUNTIME}>
+# CARTEX_RUNTIME_$<UPPER_CASE:${CARTEX_RUNTIME}>
   CARTEX_FLOAT=${CARTEX_FLOAT}
 )
 set_target_properties(

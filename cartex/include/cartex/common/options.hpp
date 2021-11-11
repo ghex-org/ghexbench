@@ -22,6 +22,8 @@
 
 namespace cartex
 {
+void print_runtime_config();
+
 namespace options_impl
 {
 void abort(std::string const& message);
