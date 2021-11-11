@@ -42,6 +42,12 @@ options::parse(int argc, char** argv) const
             std::exit(0);
         }
 
+        if (arg == "-c" || arg == "--config")
+        {
+            print_config();
+            std::exit(0);
+        }
+
         if (arg[0] == '-' && arg[1] == '-')
         {
             std::string name = arg.substr(2);
@@ -62,7 +68,9 @@ options::parse(int argc, char** argv) const
                 auto opt = std::find_if(m_options.begin(), m_options.end(),
                     [&](option const& o) { return o.name == name; });
                 if (opt == m_options.end())
-                { options_impl::abort("unkown option: '" + arg + "'\n" + help_message(argv[0])); }
+                {
+                    options_impl::abort("unkown option: '" + arg + "'\n" + help_message(argv[0]));
+                }
 
                 if (parsed.m_map.find(name) != parsed.m_map.end())
                 {
@@ -98,7 +106,9 @@ options::parse(int argc, char** argv) const
     for (auto const& opt : m_options)
     {
         if (!opt.default_values.empty() && parsed.m_map.find(opt.name) == parsed.m_map.end())
-        { parsed.m_map[opt.name] = opt.default_values; }
+        {
+            parsed.m_map[opt.name] = opt.default_values;
+        }
     }
 
     return parsed;
@@ -113,7 +123,9 @@ options::help_message(std::string const& command) const
     std::size_t max_opt_len = 4;
     for (flag const& flg : m_flags) { max_opt_len = std::max(flg.name.size(), max_opt_len); }
     for (option const& opt : m_options)
-    { max_opt_len = std::max(opt.name.size() + opt.variable.size(), max_opt_len); }
+    {
+        max_opt_len = std::max(opt.name.size() + opt.variable.size(), max_opt_len);
+    }
 
     auto print = [&out, max_opt_len](std::string const& opt, std::string const& descr,
                      std::vector<std::string> const& default_values = {}) {
@@ -132,9 +144,23 @@ options::help_message(std::string const& command) const
     for (flag const& flg : m_flags) { print("--" + flg.name, flg.description); }
 
     for (option const& opt : m_options)
-    { print("--" + opt.name + " " + opt.variable, opt.description, opt.default_values); }
+    {
+        print("--" + opt.name + " " + opt.variable, opt.description, opt.default_values);
+    }
 
     return out.str();
+}
+
+void
+print_config()
+{
+    std::cout << std::endl;
+    std::cout << " -- GHEXBENCH compile configuration:" << std::endl;
+    std::cout << std::endl;
+#include <cmake_config.inc>
+    std::cout << std::endl;
+
+    print_runtime_config();
 }
 
 } // namespace cartex
