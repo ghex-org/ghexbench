@@ -15,6 +15,11 @@
 
 namespace cartex
 {
+void
+print_runtime_config()
+{
+}
+
 options&
 runtime::add_options(options& opts)
 {
@@ -27,8 +32,8 @@ runtime::check_options(options_values const&)
     return true;
 }
 
-runtime::impl::neighborhood::neighborhood(
-    int i, decomposition& decomp, MPI_Datatype mpi_T, std::array<int, 6> const& halos)
+runtime::impl::neighborhood::neighborhood(int i, decomposition& decomp, MPI_Datatype mpi_T,
+    std::array<int, 6> const& halos)
 : comm(decomp.mpi_comm())
 , num_fields{decomp.threads_per_rank()}
 , m_halos{halos}
@@ -236,8 +241,8 @@ runtime::impl::neighborhood::exchange(memory_type& field, int field_id)
 }
 
 void
-runtime::impl::neighborhood::pack_x(
-    memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
+runtime::impl::neighborhood::pack_x(memory_type& field, memory_type& buffer_left,
+    memory_type& buffer_right)
 {
 #ifdef __CUDACC__
     execute_kernel(blocks_x, dims_x, pack_x_kernel, stream, field.hd_data(), buffer_left.hd_data(),
@@ -260,8 +265,8 @@ runtime::impl::neighborhood::pack_x(
 }
 
 void
-runtime::impl::neighborhood::unpack_x(
-    memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
+runtime::impl::neighborhood::unpack_x(memory_type& field, memory_type& buffer_left,
+    memory_type& buffer_right)
 {
 #ifdef __CUDACC__
     execute_kernel(blocks_x, dims_x, unpack_x_kernel, stream, field.hd_data(),
@@ -283,8 +288,8 @@ runtime::impl::neighborhood::unpack_x(
 }
 
 void
-runtime::impl::neighborhood::pack_y(
-    memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
+runtime::impl::neighborhood::pack_y(memory_type& field, memory_type& buffer_left,
+    memory_type& buffer_right)
 {
 #ifdef __CUDACC__
     execute_kernel(blocks_y, dims_y, pack_y_kernel, stream, field.hd_data(), buffer_left.hd_data(),
@@ -310,8 +315,8 @@ runtime::impl::neighborhood::pack_y(
 }
 
 void
-runtime::impl::neighborhood::unpack_y(
-    memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
+runtime::impl::neighborhood::unpack_y(memory_type& field, memory_type& buffer_left,
+    memory_type& buffer_right)
 {
 #ifdef __CUDACC__
     execute_kernel(blocks_y, dims_y, unpack_y_kernel, stream, field.hd_data(),
@@ -338,8 +343,8 @@ runtime::impl::neighborhood::unpack_y(
 
 #ifdef CARTEX_MPI_PACK_Z
 void
-runtime::impl::neighborhood::pack_z(
-    memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
+runtime::impl::neighborhood::pack_z(memory_type& field, memory_type& buffer_left,
+    memory_type& buffer_right)
 {
 #ifdef __CUDACC__
     execute_kernel(blocks_z, dims_z, pack_z_kernel, stream, field.hd_data(), buffer_left.hd_data(),
@@ -367,8 +372,8 @@ runtime::impl::neighborhood::pack_z(
 }
 
 void
-runtime::impl::neighborhood::unpack_z(
-    memory_type& field, memory_type& buffer_left, memory_type& buffer_right)
+runtime::impl::neighborhood::unpack_z(memory_type& field, memory_type& buffer_left,
+    memory_type& buffer_right)
 {
 #ifdef __CUDACC__
     execute_kernel(blocks_z, dims_z, unpack_z_kernel, stream, field.hd_data(),
@@ -503,8 +508,8 @@ runtime::impl::init(int j)
         auto& recv_buffers = m_recv_buffers[j][i];
         auto& send_buffers = m_send_buffers[j][i];
 #else
-        auto& recv_buffers = m_recv_buffers[j];
-        auto& send_buffers = m_send_buffers[j];
+    auto& recv_buffers = m_recv_buffers[j];
+    auto& send_buffers = m_send_buffers[j];
 #endif
         // x buffers
         recv_buffers.emplace_back(m_base.m_halos[0] * d.domain_ext[1] * d.domain_ext[2], 0);

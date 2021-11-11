@@ -68,6 +68,7 @@ add_library(cartex INTERFACE)
 add_library(CartEx::cartex ALIAS cartex)
 target_include_directories(cartex INTERFACE
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 target_compile_definitions(cartex INTERFACE
