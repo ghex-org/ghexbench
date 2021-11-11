@@ -15,11 +15,18 @@
 
 #include <cartex/runtime/oomph_comm/runtime.hpp>
 #include "../runtime_inc.cpp"
+#include <oomph/utils.hpp>
 
 //#define OOMPH_SEND_AND_FORGET
 
 namespace cartex
 {
+void
+print_runtime_config()
+{
+    oomph::print_config();
+}
+
 options&
 runtime::add_options(options& opts)
 {
@@ -32,8 +39,8 @@ runtime::check_options(options_values const&)
     return true;
 }
 
-runtime::impl::neighborhood::neighborhood(int i, communicator* c, decomposition& decomp,
-    std::array<int, 6> const& halos)
+runtime::impl::neighborhood::neighborhood(
+    int i, communicator* c, decomposition& decomp, std::array<int, 6> const& halos)
 : comm(c)
 , num_fields{decomp.threads_per_rank()}
 , m_halos{halos}
@@ -130,8 +137,8 @@ runtime::impl::neighborhood::recvtag(int field_id, int dim, bool left) const noe
 }
 
 void
-runtime::impl::neighborhood::pack_x(memory_type& field, buffer_type& buffer_left,
-    buffer_type& buffer_right)
+runtime::impl::neighborhood::pack_x(
+    memory_type& field, buffer_type& buffer_left, buffer_type& buffer_right)
 {
 #ifdef __CUDACC__
     execute_kernel(blocks_x, dims_x, pack_x_kernel, stream, field.hd_data(), buffer_left.hd_data(),
@@ -154,8 +161,8 @@ runtime::impl::neighborhood::pack_x(memory_type& field, buffer_type& buffer_left
 }
 
 void
-runtime::impl::neighborhood::unpack_x(memory_type& field, buffer_type& buffer_left,
-    buffer_type& buffer_right)
+runtime::impl::neighborhood::unpack_x(
+    memory_type& field, buffer_type& buffer_left, buffer_type& buffer_right)
 {
 #ifdef __CUDACC__
     execute_kernel(blocks_x, dims_x, unpack_x_kernel, stream, field.hd_data(),
@@ -177,8 +184,8 @@ runtime::impl::neighborhood::unpack_x(memory_type& field, buffer_type& buffer_le
 }
 
 void
-runtime::impl::neighborhood::pack_y(memory_type& field, buffer_type& buffer_left,
-    buffer_type& buffer_right)
+runtime::impl::neighborhood::pack_y(
+    memory_type& field, buffer_type& buffer_left, buffer_type& buffer_right)
 {
 #ifdef __CUDACC__
     execute_kernel(blocks_y, dims_y, pack_y_kernel, stream, field.hd_data(), buffer_left.hd_data(),
@@ -204,8 +211,8 @@ runtime::impl::neighborhood::pack_y(memory_type& field, buffer_type& buffer_left
 }
 
 void
-runtime::impl::neighborhood::unpack_y(memory_type& field, buffer_type& buffer_left,
-    buffer_type& buffer_right)
+runtime::impl::neighborhood::unpack_y(
+    memory_type& field, buffer_type& buffer_left, buffer_type& buffer_right)
 {
 #ifdef __CUDACC__
     execute_kernel(blocks_y, dims_y, unpack_y_kernel, stream, field.hd_data(),
@@ -296,12 +303,13 @@ runtime::impl::neighborhood::exchange(memory_type& field, std::vector<buffer_typ
     std::vector<buffer_type>& recv_buffers, std::vector<buffer_type>& z_send_buffers,
     std::vector<buffer_type>& z_recv_buffers, int field_id)
 {
-
     comm->recv(recv_buffers[1], x_r.rank, recvtag(field_id, 0, true));
     comm->recv(recv_buffers[0], x_l.rank, recvtag(field_id, 0, false));
 #ifdef OOMPH_SEND_AND_FORGET
-    auto send_buffer_x_0 = comm->make_buffer<runtime::real_type>(m_halos[0] * d.domain_ext[1] * d.domain_ext[2]);
-    auto send_buffer_x_1 = comm->make_buffer<runtime::real_type>(m_halos[1] * d.domain_ext[1] * d.domain_ext[2]);
+    auto send_buffer_x_0 =
+        comm->make_buffer<runtime::real_type>(m_halos[0] * d.domain_ext[1] * d.domain_ext[2]);
+    auto send_buffer_x_1 =
+        comm->make_buffer<runtime::real_type>(m_halos[1] * d.domain_ext[1] * d.domain_ext[2]);
     pack_x(field, send_buffer_x_0, send_buffer_x_1);
     comm->send(std::move(send_buffer_x_1), x_l.rank, sendtag(field_id, 0, true));
     comm->send(std::move(send_buffer_x_0), x_r.rank, sendtag(field_id, 0, false));
@@ -317,8 +325,10 @@ runtime::impl::neighborhood::exchange(memory_type& field, std::vector<buffer_typ
     comm->recv(recv_buffers[2], y_l.rank, recvtag(field_id, 1, false));
 #ifdef OOMPH_SEND_AND_FORGET
     const auto x_ext = d.domain_ext[0] + m_halos[0] + m_halos[1];
-    auto send_buffer_y_0 = comm->make_buffer<runtime::real_type>(m_halos[2] * x_ext * d.domain_ext[2]);
-    auto send_buffer_y_1 = comm->make_buffer<runtime::real_type>(m_halos[3] * x_ext * d.domain_ext[2]);
+    auto       send_buffer_y_0 =
+        comm->make_buffer<runtime::real_type>(m_halos[2] * x_ext * d.domain_ext[2]);
+    auto send_buffer_y_1 =
+        comm->make_buffer<runtime::real_type>(m_halos[3] * x_ext * d.domain_ext[2]);
     pack_y(field, send_buffer_y_0, send_buffer_y_1);
     comm->send(std::move(send_buffer_y_1), y_l.rank, sendtag(field_id, 1, true));
     comm->send(std::move(send_buffer_y_0), y_r.rank, sendtag(field_id, 1, false));
@@ -335,8 +345,8 @@ runtime::impl::neighborhood::exchange(memory_type& field, std::vector<buffer_typ
     comm->recv(z_recv_buffers[0], z_l.rank, recvtag(field_id, 2, false));
 #ifdef OOMPH_SEND_AND_FORGET
     const auto y_ext = d.domain_ext[1] + m_halos[2] + m_halos[3];
-    auto send_buffer_z_0 = comm->make_buffer<runtime::real_type>(m_halos[4] * x_ext * y_ext);
-    auto send_buffer_z_1 = comm->make_buffer<runtime::real_type>(m_halos[5] * x_ext * y_ext);
+    auto       send_buffer_z_0 = comm->make_buffer<runtime::real_type>(m_halos[4] * x_ext * y_ext);
+    auto       send_buffer_z_1 = comm->make_buffer<runtime::real_type>(m_halos[5] * x_ext * y_ext);
     pack_z(field, send_buffer_z_0, send_buffer_z_1);
     comm->send(std::move(send_buffer_z_1), z_l.rank, sendtag(field_id, 2, true));
     comm->send(std::move(send_buffer_z_0), z_r.rank, sendtag(field_id, 2, false));
