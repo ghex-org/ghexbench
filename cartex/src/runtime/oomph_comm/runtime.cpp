@@ -17,8 +17,6 @@
 #include "../runtime_inc.cpp"
 #include <oomph/utils.hpp>
 
-//#define OOMPH_SEND_AND_FORGET
-
 namespace cartex
 {
 void
