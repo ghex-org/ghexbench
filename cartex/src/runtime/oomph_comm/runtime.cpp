@@ -15,9 +15,18 @@
 
 #include <cartex/runtime/oomph_comm/runtime.hpp>
 #include "../runtime_inc.cpp"
+#include <oomph/utils.hpp>
+
+//#define OOMPH_SEND_AND_FORGET
 
 namespace cartex
 {
+void
+print_runtime_config()
+{
+    oomph::print_config();
+}
+
 options&
 runtime::add_options(options& opts)
 {
