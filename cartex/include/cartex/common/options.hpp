@@ -157,4 +157,6 @@ class options
     std::string help_message(std::string const& command) const;
 };
 
+void print_config();
+
 } // namespace cartex

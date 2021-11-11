@@ -1,0 +1,25 @@
+std::cout << "CMAKE_CXX_FLAGS=" << "@CMAKE_CXX_FLAGS@" << std::endl;
+std::cout << "CMAKE_C_FLAGS=" << "@CMAKE_C_FLAGS@" << std::endl;
+std::cout << "CMAKE_BUILD_TYPE=" << "@CMAKE_BUILD_TYPE@" << std::endl;
+
+std::cout << "CARTEX_EVICT_CACHE=" << "@CARTEX_EVICT_CACHE@" << std::endl;
+std::cout << "CARTEX_EVICT_CACHE_SIZE=" << "@CARTEX_EVICT_CACHE_SIZE@" << std::endl;
+std::cout << "CARTEX_FAT_CALLBACKS=" << "@CARTEX_FAT_CALLBACKS@" << std::endl;
+std::cout << "CARTEX_FIELD_BY_FIELD=" << "@CARTEX_FIELD_BY_FIELD@" << std::endl;
+std::cout << "CARTEX_FLOAT=" << "@CARTEX_FLOAT@" << std::endl;
+std::cout << "CARTEX_MPI_PACK_Z=" << "@CARTEX_MPI_PACK_Z@" << std::endl;
+std::cout << "CARTEX_MPI_PACK_Z_LOOP_GPU=" << "@CARTEX_MPI_PACK_Z_LOOP_GPU@" << std::endl;
+std::cout << "CARTEX_NUM_HYPERTHREADS=" << "@CARTEX_NUM_HYPERTHREADS@" << std::endl;
+std::cout << "CARTEX_ON_GPU=" << "@CARTEX_ON_GPU@" << std::endl;
+std::cout << "CARTEX_OOMPH_NO_BUFFER_REUSE=" << "@CARTEX_OOMPH_NO_BUFFER_REUSE@" << std::endl;
+std::cout << "CARTEX_RMA=" << "@CARTEX_RMA@" << std::endl;
+std::cout << "CARTEX_RUNTIME=" << "@CARTEX_RUNTIME@" << std::endl;
+std::cout << "CARTEX_STAGED_EXCHANGE=" << "@CARTEX_STAGED_EXCHANGE@" << std::endl;
+std::cout << "CARTEX_TRANSPORT_BACKEND=" << "@CARTEX_TRANSPORT_BACKEND@" << std::endl;
+
+std::cout << "HWLOC_INCLUDE_DIR=" << "@HWLOC_INCLUDE_DIR@" << std::endl;
+std::cout << "HWLOC_LIBRARY=" << "@HWLOC_LIBRARY@" << std::endl;
+std::cout << "UCP_INCLUDE_DIR=" << "@UCP_INCLUDE_DIR@" << std::endl;
+std::cout << "UCP_LIBRARY=" << "@UCP_LIBRARY@" << std::endl;
+std::cout << "XPMEM_INCLUDE_DIR=" << "@XPMEM_INCLUDE_DIR@" << std::endl;
+std::cout << "XPMEM_LIBRARY=" << "@XPMEM_LIBRARY@" << std::endl;
