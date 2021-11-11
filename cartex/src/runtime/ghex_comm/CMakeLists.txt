@@ -64,3 +64,7 @@ set(_ghex_already_fetched ON CACHE INTERNAL "")
 target_sources(runtime PRIVATE runtime.cpp)
 target_link_libraries(runtime PUBLIC GHEX::lib)
 target_compile_definitions(runtime PUBLIC CARTEX_RMA=${CARTEX_RMA})
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ghex_cmake_config.inc.in 
+    ${CMAKE_BINARY_DIR}/include/ghex_cmake_config.inc)
+
