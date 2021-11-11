@@ -4,7 +4,6 @@ std::cout << "CMAKE_BUILD_TYPE=" << "@CMAKE_BUILD_TYPE@" << std::endl;
 
 std::cout << "CARTEX_EVICT_CACHE=" << "@CARTEX_EVICT_CACHE@" << std::endl;
 std::cout << "CARTEX_EVICT_CACHE_SIZE=" << "@CARTEX_EVICT_CACHE_SIZE@" << std::endl;
-std::cout << "CARTEX_FAT_CALLBACKS=" << "@CARTEX_FAT_CALLBACKS@" << std::endl;
 std::cout << "CARTEX_FIELD_BY_FIELD=" << "@CARTEX_FIELD_BY_FIELD@" << std::endl;
 std::cout << "CARTEX_FLOAT=" << "@CARTEX_FLOAT@" << std::endl;
 std::cout << "CARTEX_MPI_PACK_Z=" << "@CARTEX_MPI_PACK_Z@" << std::endl;
