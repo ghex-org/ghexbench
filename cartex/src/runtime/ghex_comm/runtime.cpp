@@ -21,6 +21,11 @@ namespace cartex
 void
 print_runtime_config()
 {
+    std::cout << std::endl;
+    std::cout << " -- GHEX compile configuration:" << std::endl;
+    std::cout << std::endl;
+#include <ghex_cmake_config.inc>
+    std::cout << std::endl;
 }
 
 options&
