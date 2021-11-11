@@ -16,6 +16,11 @@
 #include <cartex/runtime/ghex_comm/runtime.hpp>
 #include "../runtime_inc.cpp"
 
+namespace oomph
+{
+  void print_config();
+}
+
 namespace cartex
 {
 void
@@ -26,6 +31,8 @@ print_runtime_config()
     std::cout << std::endl;
 #include <ghex_cmake_config.inc>
     std::cout << std::endl;
+
+    oomph::print_config();
 }
 
 options&
