@@ -54,12 +54,6 @@ function(compile_as_cuda)
   endif()
 endfunction()
 
-# ---------------------------------------------------------------------
-# generate config file
-# ---------------------------------------------------------------------
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_config.inc.in 
-    ${CMAKE_CURRENT_BINARY_DIR}/include/cmake_config.inc)
-
 add_library(cartex INTERFACE)
 add_library(CartEx::cartex ALIAS cartex)
 target_include_directories(cartex INTERFACE

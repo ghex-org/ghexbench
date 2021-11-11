@@ -20,6 +20,9 @@ if(NOT HWCART_FOUND)
   set(_hwcart_already_fetched ON CACHE INTERNAL "")
 endif()
 
+configure_file(${PROJECT_SOURCE_DIR}/cmake/cmake_config.inc.in 
+    ${CMAKE_BINARY_DIR}/include/cmake_config.inc)
+
 add_subdirectory(common)
 add_subdirectory(device)
 add_subdirectory(decomposition)
