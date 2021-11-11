@@ -18,7 +18,6 @@
 #include <cartex/common/histogram.hpp>
 
 #ifdef CARTEX_EVICT_CACHE
-#include <immintrin.h>
 #include <string.h>
 #endif
 
@@ -30,6 +29,7 @@ runtime::exchange(int j, thread_pool::barrier& b)
     using clock_type = std::chrono::high_resolution_clock;
 
 #ifdef CARTEX_EVICT_CACHE
+    if(m_rank==0) std::cout << "cache flush size " <<  CARTEX_EVICT_CACHE_SIZE << "\n";
     auto cache_ptr = new double[CARTEX_EVICT_CACHE_SIZE/sizeof(double)];
     memset(cache_ptr, 1, sizeof(double)*(CARTEX_EVICT_CACHE_SIZE/sizeof(double)));
 #endif
@@ -54,7 +54,7 @@ runtime::exchange(int j, thread_pool::barrier& b)
     {
 #ifdef CARTEX_EVICT_CACHE
         for (long unsigned int i=0; i<(CARTEX_EVICT_CACHE_SIZE/sizeof(double)); ++i)
-            _mm_prefetch(cache_ptr+i, _MM_HINT_T0);
+            cache_ptr[i] += i;
 #endif
 
         b();
@@ -65,6 +65,10 @@ runtime::exchange(int j, thread_pool::barrier& b)
         step(j);
         const auto end = clock_type::now();
 
+        b();
+        if (j==0) CARTEX_CHECK_MPI_RESULT(MPI_Barrier(m_decomposition.mpi_comm()));
+        b();
+        
         const double dt = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
         hist(dt);
     };
@@ -253,3 +257,4 @@ runtime::check(int j)
 }
 
 } // namespace cartex
+
