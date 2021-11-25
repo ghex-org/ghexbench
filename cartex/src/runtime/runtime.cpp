@@ -31,7 +31,8 @@ runtime::exchange(int j, thread_pool::barrier& b)
 #ifdef CARTEX_EVICT_CACHE
     if(m_rank==0) std::cout << "cache flush size " <<  CARTEX_EVICT_CACHE_SIZE << "\n";
     auto cache_ptr = new double[CARTEX_EVICT_CACHE_SIZE/sizeof(double)];
-    memset(cache_ptr, 1, sizeof(double)*(CARTEX_EVICT_CACHE_SIZE/sizeof(double)));
+    for (long unsigned int i=0; i<(CARTEX_EVICT_CACHE_SIZE/sizeof(double)); ++i)
+        cache_ptr[i] = i;
 #endif
 
     // check for correctness
