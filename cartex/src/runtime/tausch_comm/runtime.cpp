@@ -172,8 +172,15 @@ runtime::impl::step(int)
 {
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
+#ifndef __CUDACC__
         m_tausch.packSendBuffer(s_x_l, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
         m_tausch.packSendBuffer(s_x_r, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#else
+        m_tausch.packSendBufferCUDA(s_x_l, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+        m_tausch.packSendBufferCUDA(s_x_r, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#endif
     }
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
@@ -189,14 +196,28 @@ runtime::impl::step(int)
     MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUS_IGNORE);
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
+#ifndef __CUDACC__
         m_tausch.unpackRecvBuffer(r_x_l, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
         m_tausch.unpackRecvBuffer(r_x_r, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#else
+        m_tausch.unpackRecvBufferCUDA(r_x_l, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+        m_tausch.unpackRecvBufferCUDA(r_x_r, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#endif
     }
 
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
+#ifndef __CUDACC__
         m_tausch.packSendBuffer(s_y_l, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
         m_tausch.packSendBuffer(s_y_r, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#else
+        m_tausch.packSendBufferCUDA(s_y_l, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+        m_tausch.packSendBufferCUDA(s_y_r, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#endif
     }
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
@@ -212,14 +233,28 @@ runtime::impl::step(int)
     MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUS_IGNORE);
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
+#ifndef __CUDACC__
         m_tausch.unpackRecvBuffer(r_y_l, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
         m_tausch.unpackRecvBuffer(r_y_r, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#else
+        m_tausch.unpackRecvBufferCUDA(r_y_l, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+        m_tausch.unpackRecvBufferCUDA(r_y_r, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#endif
     }
 
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
+#ifndef __CUDACC__
         m_tausch.packSendBuffer(s_z_l, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
         m_tausch.packSendBuffer(s_z_r, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#else
+        m_tausch.packSendBufferCUDA(s_z_l, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+        m_tausch.packSendBufferCUDA(s_z_r, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#endif
     }
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
@@ -235,8 +270,15 @@ runtime::impl::step(int)
     MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUS_IGNORE);
     for (int i = 0; i < m_base.m_num_fields; ++i)
     {
+#ifndef __CUDACC__
         m_tausch.unpackRecvBuffer(r_z_l, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
         m_tausch.unpackRecvBuffer(r_z_r, i, (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#else
+        m_tausch.unpackRecvBufferCUDA(r_z_l, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+        m_tausch.unpackRecvBufferCUDA(r_z_r, i,
+            (unsigned char*)(m_base.m_raw_fields[0][i].hd_data()));
+#endif
     }
 }
 
