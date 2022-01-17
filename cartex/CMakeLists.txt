@@ -18,7 +18,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 set(CARTEX_FLOAT "float" CACHE STRING "Floating-point type")
 set_property(CACHE CARTEX_FLOAT PROPERTY STRINGS "float" "double")
 set(CARTEX_RUNTIME "mpi_comm" CACHE STRING "Runtime")
-set_property(CACHE CARTEX_RUNTIME PROPERTY STRINGS "mpi_comm" "gcl_comm" "ghex_comm" "oomph_comm")
+set_property(CACHE CARTEX_RUNTIME PROPERTY STRINGS "mpi_comm" "gcl_comm" "ghex_comm" "oomph_comm"
+    "tausch_comm")
 set(CARTEX_ON_GPU "OFF" CACHE BOOL "use gpu")
 
 # Set up cuda if needed

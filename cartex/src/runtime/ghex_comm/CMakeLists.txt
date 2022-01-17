@@ -42,12 +42,15 @@ endif()
 if (CARTEX_TRANSPORT_BACKEND STREQUAL "LIBFABRIC")
     set (GHEX_TRANSPORT_BACKEND "LIBFABRIC" CACHE INTERNAL "") # Forces the value
     target_compile_definitions(runtime PUBLIC CARTEX_TRANSPORT=LIBFABRIC)
+    target_link_libraries(runtime PUBLIC oomph::libfabric)
 elseif (CARTEX_TRANSPORT_BACKEND STREQUAL "UCX")
     set (GHEX_TRANSPORT_BACKEND "UCX" CACHE INTERNAL "") # Forces the value
     target_compile_definitions(runtime PUBLIC CARTEX_TRANSPORT=UCX)
+    target_link_libraries(runtime PUBLIC oomph::ucx)
 else()
     set (GHEX_TRANSPORT_BACKEND "MPI" CACHE INTERNAL "") # Forces the value
     target_compile_definitions(runtime PUBLIC CARTEX_TRANSPORT=MPI)
+    target_link_libraries(runtime PUBLIC oomph::mpi)
 endif()
 
 if(_cartex_cuda_enabled)
