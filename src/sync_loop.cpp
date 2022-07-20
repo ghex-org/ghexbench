@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -9,9 +9,9 @@
  *
  */
 
-#include <cartex/common/sync_loop.hpp>
+#include <ghexbench/sync_loop.hpp>
 
-namespace cartex
+namespace ghexbench
 {
 sync_loop::sync_loop(MPI_Comm comm, unsigned int num_threads) noexcept
 : m_comm{comm}

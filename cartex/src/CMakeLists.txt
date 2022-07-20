@@ -20,7 +20,7 @@ if(NOT HWCART_FOUND)
   set(_hwcart_already_fetched ON CACHE INTERNAL "")
 endif()
 
-add_subdirectory(common)
+#add_subdirectory(common)
 add_subdirectory(device)
 add_subdirectory(decomposition)
 add_subdirectory(runtime)

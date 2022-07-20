@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -17,6 +17,8 @@
 
 #include <cartex/decomposition/decomposition.hpp>
 
+namespace ghexbench
+{
 namespace cartex
 {
 decomposition::~decomposition()
@@ -192,3 +194,4 @@ decomposition::domains() const noexcept
 }
 
 } // namespace cartex
+} // namespace ghexbench

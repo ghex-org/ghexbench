@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -23,13 +23,13 @@ extern "C"
 #include <algorithm>
 #include <iostream>
 
-#include <cartex/common/thread_pool.hpp>
+#include <ghexbench/thread_pool.hpp>
 
-namespace cartex
+namespace ghexbench
 {
 namespace _impl
 {
-static constexpr int s_num_ht = CARTEX_NUM_HT;
+static constexpr int s_num_ht = 2; //CARTEX_NUM_HT;
 struct cpu_set
 {
     mutable cpu_set_t m_cpuset;

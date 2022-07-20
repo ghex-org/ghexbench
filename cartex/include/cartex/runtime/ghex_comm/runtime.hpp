@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -30,6 +30,8 @@
 #include <type_traits>
 #include <sstream>
 
+namespace ghexbench
+{
 namespace cartex
 {
 using namespace ghex;
@@ -90,3 +92,4 @@ class runtime::impl
 };
 
 } // namespace cartex
+} // namespace ghexbench

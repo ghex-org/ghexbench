@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -11,16 +11,16 @@
 
 #include <thread>
 
-#include <cartex/common/options.hpp>
+#include <ghexbench/options.hpp>
 #include <cartex/device/set_device.hpp>
-#include <cartex/common/thread_pool.hpp>
+#include <ghexbench/thread_pool.hpp>
 #include <cartex/runtime/runtime.hpp>
 
 int
 main(int argc, char** argv)
 {
     /* clang-format off */
-    auto opts = cartex::options()
+    auto opts = ghexbench::options()
         ("domain",        "local domain size (default: 64 64 64)", "X Y Z",    3)
         ("global-domain", "global domain size",                    "X Y Z",    3)
         ("nrep",          "number of repetitions (default: 10)",   "r",        1)
@@ -37,10 +37,11 @@ main(int argc, char** argv)
         ("hwthread",      "hardware-thread grid",                  "NX NY NZ", 3)
         ("thread",        "software-thread grid",                  "NX NY NZ", {1,1,1})
         ("print",         "print decomposition")
-        ("check",         "check results");
+        ("check",         "check results")
+        ("config",        "print configuration");
     /* clang-format on */
-    const auto options = cartex::runtime::add_options(opts).parse(argc, argv);
-    if (!cartex::runtime::check_options(options)) { std::terminate(); }
+    const auto options = ghexbench::cartex::runtime::add_options(opts).parse(argc, argv);
+    if (!ghexbench::cartex::runtime::check_options(options)) { std::terminate(); }
 
     const auto threads = options.get<std::array<int, 3>>("thread");
     const auto num_threads = threads[0] * threads[1] * threads[2];
@@ -62,10 +63,16 @@ main(int argc, char** argv)
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    const auto device_id = cartex::setup_device(rank);
+    const auto device_id = ghexbench::cartex::setup_device(rank);
+
+    if (options.is_set("config"))
+    {
+        if (rank==0) ghexbench::cartex::print_config();
+        return 0;
+    }
 
     {
-        std::unique_ptr<cartex::decomposition> decomp_ptr;
+        std::unique_ptr<ghexbench::cartex::decomposition> decomp_ptr;
 
         const bool global = options.has("global-domain");
         if (global && options.has("domain"))
@@ -93,14 +100,14 @@ main(int argc, char** argv)
                 int        cart_size = dims[0] * dims[1] * dims[2];
                 if (cart_size != size)
                     throw std::runtime_error("cart size is not equal to world size");
-                decomp_ptr = std::make_unique<cartex::decomposition>(dims, threads,
+                decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(dims, threads,
                     (global ? options.get<std::array<int, 3>>("global-domain")
                             : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
                     !global);
             }
             /* clang-format off */
         else if (options.has("hwthread"))
-            decomp_ptr = std::make_unique<cartex::decomposition>(
+            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
                 options.get_or("node",   std::array<int,3>{1,1,1}),
                 options.get_or("socket", std::array<int,3>{1,1,1}),
@@ -113,7 +120,7 @@ main(int argc, char** argv)
                         : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
                 !global);
         else if (options.has("core"))
-            decomp_ptr = std::make_unique<cartex::decomposition>(
+            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
                 options.get_or("node",   std::array<int,3>{1,1,1}),
                 options.get_or("socket", std::array<int,3>{1,1,1}),
@@ -125,7 +132,7 @@ main(int argc, char** argv)
                         : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
                 !global);
         else if (options.has("l3"))
-            decomp_ptr = std::make_unique<cartex::decomposition>(
+            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
                 options.get_or("node",   std::array<int,3>{1,1,1}),
                 options.get_or("socket", std::array<int,3>{1,1,1}),
@@ -136,7 +143,7 @@ main(int argc, char** argv)
                         : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
                 !global);
         else if (options.has("numa"))
-            decomp_ptr = std::make_unique<cartex::decomposition>(
+            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
                 options.get_or("node",   std::array<int,3>{1,1,1}),
                 options.get_or("socket", std::array<int,3>{1,1,1}),
@@ -146,7 +153,7 @@ main(int argc, char** argv)
                         : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
                 !global);
         else if (options.has("socket"))
-            decomp_ptr = std::make_unique<cartex::decomposition>(
+            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
                 options.get_or("node",   std::array<int,3>{1,1,1}),
                 options.get<std::array<int,3>>("socket"),
@@ -155,7 +162,7 @@ main(int argc, char** argv)
                         : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
                 !global);
         else 
-            decomp_ptr = std::make_unique<cartex::decomposition>(
+            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
                 options.get_or("order",  std::string("XYZ")),
                 options.get_or("node",   std::array<int,3>{1,1,1}),
                 threads,
@@ -184,7 +191,7 @@ main(int argc, char** argv)
 
         CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
 
-        cartex::runtime r(options, *decomp_ptr);
+        ghexbench::cartex::runtime r(options, *decomp_ptr);
         if (rank == 0)
         {
             std::cout << r.info() << std::endl;
@@ -192,13 +199,13 @@ main(int argc, char** argv)
         }
 
         {
-            cartex::thread_pool tp(num_threads);
+            ghexbench::thread_pool tp(num_threads);
             auto                b = tp.make_barrier();
             for (int j = 0; j < num_threads; ++j)
                 tp.schedule(j,
                     [&r, device_id](int j)
                     {
-                        cartex::set_device(device_id);
+                        ghexbench::cartex::set_device(device_id);
                         r.init(j);
                     });
             tp.sync();
@@ -208,7 +215,7 @@ main(int argc, char** argv)
                 tp.schedule(j,
                     [&r, device_id, &b](int j)
                     {
-                        cartex::set_device(device_id);
+                        ghexbench::cartex::set_device(device_id);
                         r.exchange(j, b);
                     });
                 tp.schedule(j, [&r](int j) { r.exit(j); });

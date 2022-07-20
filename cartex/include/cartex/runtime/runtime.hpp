@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -16,14 +16,19 @@
 #include <memory>
 #include <string>
 
-#include <cartex/common/memory.hpp>
-#include <cartex/common/options.hpp>
+#include <ghexbench/options.hpp>
+#include <ghexbench/thread_pool.hpp>
+#include <ghexbench/sync_loop.hpp>
+#include <cartex/memory/memory.hpp>
 #include <cartex/decomposition/decomposition.hpp>
-#include <cartex/common/sync_loop.hpp>
-#include <cartex/common/thread_pool.hpp>
 
+namespace ghexbench
+{
 namespace cartex
 {
+void print_runtime_config();
+void print_config();
+
 class runtime
 {
   public:
@@ -74,3 +79,4 @@ class runtime
 };
 
 } // namespace cartex
+} // namespace ghexbench 

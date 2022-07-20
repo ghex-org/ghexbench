@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -18,7 +18,7 @@
 #include <atomic>
 #include <limits>
 
-namespace cartex
+namespace ghexbench
 {
 class sync_loop
 {
@@ -60,4 +60,4 @@ class sync_loop
     double elapsed(time_point_type const& tp, unsigned int thread_id) noexcept;
     void   bcast(double& dt, unsigned int thread_id) noexcept;
 };
-} // namespace cartex
+} // namespace ghexbench

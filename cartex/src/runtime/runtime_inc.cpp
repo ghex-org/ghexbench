@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -9,6 +9,8 @@
  *
  */
 
+namespace ghexbench
+{
 namespace cartex
 {
 runtime::runtime(const options_values& options, decomposition& decomp_)
@@ -59,3 +61,4 @@ runtime::exit(int j)
     m_impl->exit(j);
 }
 } // namespace cartex
+} // namespace ghexbench

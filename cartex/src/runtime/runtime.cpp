@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -12,18 +12,32 @@
 #include <chrono>
 #include <iostream>
 
+#include <ghexbench/accumulator.hpp>
+#include <ghexbench/histogram.hpp>
+#include <cartex/memory/memory_view.hpp>
 #include <cartex/runtime/runtime.hpp>
-#include <cartex/common/memory_view.hpp>
-#include <cartex/common/accumulator.hpp>
-#include <cartex/common/histogram.hpp>
 
 #ifdef CARTEX_EVICT_CACHE
 #include <immintrin.h>
 #include <string.h>
 #endif
 
+namespace ghexbench
+{
 namespace cartex
 {
+void
+print_config()
+{
+    std::cout << std::endl;
+    std::cout << " -- GHEXBENCH compile configuration:" << std::endl;
+    std::cout << std::endl;
+#include <cmake_config.inc>
+    std::cout << std::endl;
+
+    print_runtime_config();
+}
+
 void
 runtime::exchange(int j, thread_pool::barrier& b)
 {
@@ -253,3 +267,4 @@ runtime::check(int j)
 }
 
 } // namespace cartex
+} // namespace ghexbench

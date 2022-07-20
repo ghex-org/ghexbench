@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -13,27 +13,15 @@
 
 #include <oomph/context.hpp>
 #include <oomph/communicator.hpp>
-//#include <ghex/config.hpp>
-//#include <ghex/context.hpp>
-//#include <ghex/bulk_communication_object.hpp>
-//#include <ghex/structured/pattern.hpp>
-//#include <ghex/structured/rma_range_generator.hpp>
-//#include <ghex/structured/regular/domain_descriptor.hpp>
-//#include <ghex/structured/regular/field_descriptor.hpp>
-//#include <ghex/structured/regular/halo_generator.hpp>
-//#ifdef CARTEX_GHEX_STAGED
-//#include <ghex/structured/regular/make_pattern.hpp>
-//#endif
-
 #include <cartex/runtime/runtime.hpp>
 
 #include <memory>
 #include <vector>
-//#include <type_traits>
-//#include <sstream>
 
 #define CARTEX_MPI_MANY_BUFFERS
 
+namespace ghexbench
+{
 namespace cartex
 {
 using namespace oomph;
@@ -138,3 +126,4 @@ class runtime::impl
 };
 
 } // namespace cartex
+} // namespace ghexbench

@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -20,10 +20,8 @@
 #include <cassert>
 #include <sstream>
 
-namespace cartex
+namespace ghexbench
 {
-void print_runtime_config();
-
 namespace options_impl
 {
 void abort(std::string const& message);
@@ -159,6 +157,4 @@ class options
     std::string help_message(std::string const& command) const;
 };
 
-void print_config();
-
-} // namespace cartex
+} // namespace ghexbench

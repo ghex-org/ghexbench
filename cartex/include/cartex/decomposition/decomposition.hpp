@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -29,6 +29,8 @@ extern "C"
                                  std::string(__FILE__) + ":" + std::to_string(__LINE__));
 #endif
 
+namespace ghexbench
+{
 namespace cartex
 {
 class decomposition
@@ -187,3 +189,4 @@ class decomposition
 };
 
 } // namespace cartex
+} // namespace ghexbench 

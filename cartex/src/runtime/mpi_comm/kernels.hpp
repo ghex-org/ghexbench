@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -11,6 +11,8 @@
 
 #pragma once
 
+namespace ghexbench
+{
 namespace cartex
 {
 #ifdef __CUDACC__
@@ -264,3 +266,4 @@ unpack_z_kernel(runtime::real_type* field, runtime::real_type const* buffer_left
 #endif
 
 } // namespace cartex
+} // namespace ghexbench
