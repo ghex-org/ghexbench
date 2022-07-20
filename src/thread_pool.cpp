@@ -110,31 +110,32 @@ thread_pool::thread_pool(int n)
 {
     //int            num_cpus = std::thread::hardware_concurrency();
     _impl::cpu_set m_this_cpu_set(getpid());
-    const int current_cpu = sched_getcpu();
+    //const int current_cpu = sched_getcpu();
     for (int c0 = 0; c0 < CPU_SETSIZE; ++c0)
     {
-        const int c = (current_cpu + c0) % CPU_SETSIZE;
-        if (m_this_cpu_set.is_set(c))
+        //const int c = (current_cpu + c0) % CPU_SETSIZE;
+        if (m_this_cpu_set.is_set(c0))
         {
-            m_this_cpus.push_back(c);
-            //std::cout << "cpu " << c << std::endl;
+            m_this_cpus.push_back(c0);
+            //std::cout << "cpu " << c0 << std::endl;
         }
     }
 
     // number of cores
-    m_num_resources = m_this_cpus.size() / _impl::s_num_ht;
+    m_num_resources = m_this_cpus.size();// / _impl::s_num_ht;
+    //std::cout << "number of resources = " << m_num_resources << std::endl;
     if (m_num_threads > m_num_resources)
     {
-        if (m_num_threads <= (int)m_this_cpus.size())
-            std::cerr
-                << "warning: more threads in thread pool than physical hardware resources: using hyperthreading"
-                << std::endl;
-        else
+    //    if (m_num_threads <= (int)m_this_cpus.size())
+    //        std::cerr
+    //            << "warning: more threads in thread pool than physical hardware resources: using hyperthreading"
+    //            << std::endl;
+    //    else
             std::cerr << "warning: more threads in thread pool than hardware resources"
                       << std::endl;
     }
-    if (m_num_threads < m_num_resources)
-        std::cerr << "warning: less threads in thread pool than hardware resources" << std::endl;
+    //if (m_num_threads < m_num_resources)
+    //    std::cerr << "warning: less threads in thread pool than hardware resources" << std::endl;
 
     auto worker_fct = [this](int thread_id, int cpu_0)
     {
@@ -142,7 +143,11 @@ thread_pool::thread_pool(int n)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             const auto cpu = sched_getcpu();
-            if (cpu == cpu_0) break;
+            if (cpu == cpu_0)
+            {
+                //std::cout <<  "thread : " << thread_id << " on cpu " << cpu_0 << std::endl;
+                break;
+            }
             if (i == 4)
                 std::cerr << "warning: did not manage to set correct thread affinity" << std::endl;
         }

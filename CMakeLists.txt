@@ -24,4 +24,4 @@ add_subdirectory(src)
 
 add_subdirectory(cartex)
 
-#add_subdirectory(p2p)
+add_subdirectory(p2p)

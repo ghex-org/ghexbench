@@ -1,0 +1,41 @@
+
+set(benchmarks p2p_bi_avail)
+
+
+#add_executable(benchmark benchmark.cpp)
+#ghexbench_target_compile_options(benchmark)
+#target_link_libraries(benchmark PRIVATE cartex)
+#target_link_libraries(benchmark PRIVATE thread_pool)
+#target_link_libraries(benchmark PRIVATE options)
+#target_link_libraries(benchmark PRIVATE device)
+#target_link_libraries(benchmark PRIVATE decomposition)
+#target_link_libraries(benchmark PRIVATE runtime)
+#target_link_libraries(benchmark PRIVATE HWCART::hwcart)
+#target_link_libraries(benchmark PRIVATE MPI::MPI_CXX)
+#target_link_libraries(benchmark PRIVATE Threads::Threads)
+#target_compile_definitions(benchmark PRIVATE CARTEX_RUNTIME=${CARTEX_RUNTIME})
+
+function(compile_benchmark b)
+    add_executable(${b} ${b}.cpp)
+    if (P2P_ENABLE_DEVICE)
+        target_compile_definitions(${b} PRIVATE P2P_ENABLE_DEVICE)
+    endif()
+    target_link_libraries(${b} PRIVATE ghexbench)
+    target_link_libraries(${b} PRIVATE thread_pool)
+    target_link_libraries(${b} PRIVATE options)
+    target_link_libraries(${b} PRIVATE p2p)
+    target_link_libraries(${b} PRIVATE p2p_helper)
+    if (P2P_TRANSPORT_BACKEND STREQUAL "LIBFABRIC")
+        target_link_libraries(${b} PUBLIC oomph::libfabric)
+    elseif (P2P_TRANSPORT_BACKEND STREQUAL "UCX")
+        target_link_libraries(${b} PUBLIC oomph::ucx)
+    else()
+        target_link_libraries(${b} PUBLIC oomph::mpi)
+    endif()
+endfunction()
+
+
+foreach(b ${benchmarks})
+    compile_benchmark(${b})
+endforeach()
+
