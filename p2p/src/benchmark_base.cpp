@@ -201,7 +201,7 @@ benchmark_base<Derived>::main_loop(int thread_id)
 
     comm.wait_all();
 
-    state.wall_clock.toc();
+    //state.wall_clock.toc();
 }
 
 template<typename Derived>
@@ -223,6 +223,8 @@ benchmark_base<Derived>::run()
     }
 
     m_thread_pool.sync();
+    MPI_Barrier(static_cast<Derived*>(this)->m_ctx.mpi_comm());
+    m_thread_states[0]->wall_clock.toc();
 
     if (m_mpi_env.rank == 0)
     {
@@ -251,6 +253,9 @@ benchmark_base<Derived>::run()
 
     for (std::size_t i = 0; i < m_threads; ++i)
         m_thread_pool.schedule(i, [this](int i) { clear(i); });
+
+    m_thread_pool.sync();
+    MPI_Barrier(static_cast<Derived*>(this)->m_ctx.mpi_comm());
 
     m_thread_pool.join();
 }
