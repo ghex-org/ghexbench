@@ -22,6 +22,9 @@
 
 namespace ghexbench
 {
+int get_cpu() noexcept;
+int num_cpus() noexcept;
+
 class thread_pool
 {
   private:

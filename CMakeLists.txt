@@ -22,6 +22,12 @@ target_include_directories(ghexbench INTERFACE
 
 add_subdirectory(src)
 
-add_subdirectory(cartex)
+set(GHEXBENCH_BUILD_CARTEX "OFF" CACHE BOOL "cartex benchmark")
+if (GHEXBENCH_BUILD_CARTEX)
+    add_subdirectory(cartex)
+endif()
 
-add_subdirectory(p2p)
+set(GHEXBENCH_BUILD_P2P "OFF" CACHE BOOL "p2p benchmark")
+if (GHEXBENCH_BUILD_P2P)
+    add_subdirectory(p2p)
+endif()

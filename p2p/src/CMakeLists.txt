@@ -5,10 +5,6 @@ set(P2P_ENABLE_DEVICE "OFF" CACHE BOOL "use gpu")
 set(P2P_TRANSPORT_BACKEND "MPI" CACHE STRING "Choose the backend type: MPI | UCX | LIBFABRIC")
 set_property(CACHE P2P_TRANSPORT_BACKEND PROPERTY STRINGS "MPI" "UCX" "LIBFABRIC")
 
-#find_package(Threads REQUIRED)
-#compile_as_cuda(benchmark.cpp)
-#add_executable(benchmark benchmark.cpp)
-
 #set(_oomph_repository "https://github.com/ghex-org/oomph.git")
 #set(_oomph_tag        "main")
 set(_oomph_repository "https://github.com/boeschf/oomph.git")
@@ -28,20 +24,14 @@ if (P2P_TRANSPORT_BACKEND STREQUAL "LIBFABRIC")
     set(OOMPH_WITH_MPI OFF CACHE INTERNAL "")  # Forces the value
     set(OOMPH_WITH_UCX OFF CACHE INTERNAL "")  # Forces the value
     set(OOMPH_WITH_LIBFABRIC ON CACHE INTERNAL "")  # Forces the value
-    #target_link_libraries(runtime PUBLIC oomph::libfabric)
-    #target_compile_definitions(runtime PUBLIC P2P_TRANSPORT=LIBFABRIC)
 elseif (P2P_TRANSPORT_BACKEND STREQUAL "UCX")
     set(OOMPH_WITH_MPI OFF CACHE INTERNAL "")  # Forces the value
     set(OOMPH_WITH_UCX ON CACHE INTERNAL "")  # Forces the value
     set(OOMPH_WITH_LIBFABRIC OFF CACHE INTERNAL "")  # Forces the value
-    #target_link_libraries(runtime PUBLIC oomph::ucx)
-    #target_compile_definitions(runtime PUBLIC P2P_TRANSPORT=UCX)
 else()
     set(OOMPH_WITH_MPI ON CACHE INTERNAL "")  # Forces the value
     set(OOMPH_WITH_UCX OFF CACHE INTERNAL "")  # Forces the value
     set(OOMPH_WITH_LIBFABRIC OFF CACHE INTERNAL "")  # Forces the value
-    #target_link_libraries(runtime PUBLIC oomph::mpi)
-    #target_compile_definitions(runtime PUBLIC P2P_TRANSPORT=MPI)
 endif()
 
 if(P2P_ENABLE_DEVICE)
@@ -55,13 +45,51 @@ endif()
 FetchContent_MakeAvailable(oomph)
 set(_oomph_already_fetched ON CACHE INTERNAL "")
 
-#target_sources(runtime PRIVATE runtime.cpp)
-#target_compile_definitions(runtime PUBLIC P2P_RMA=${P2P_RMA})
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
-add_library(p2p_helper)
-target_link_libraries(p2p_helper PRIVATE p2p)
-ghexbench_target_compile_options(p2p_helper)
-target_sources(p2p_helper PRIVATE device_map.cpp)
+set(benchmarks
+    benchmark_intra_l3
+    benchmark_intra_node
+    benchmark_2_nodes
+)
 
+function(compile_benchmark b_)
+    set(b ${b_}.x)
+    add_executable(${b})
 
-add_subdirectory(bin)
+    target_sources(${b} PRIVATE main.cpp)
+    target_sources(${b} PRIVATE ${b_}.cpp)
+    target_sources(${b} PRIVATE benchmark_base.cpp)
+    target_sources(${b} PRIVATE device_map.cpp)
+
+    ghexbench_target_compile_options(${b})
+    target_compile_definitions(${b} PRIVATE P2P_NUM_HWTHREADS=2)
+    if (P2P_ENABLE_DEVICE)
+        target_compile_definitions(${b} PRIVATE P2P_ENABLE_DEVICE)
+    endif()
+
+    target_link_libraries(${b} PRIVATE p2p)
+    target_link_libraries(${b} PRIVATE thread_pool)
+    target_link_libraries(${b} PRIVATE options)
+    target_link_libraries(${b} PRIVATE mpi_utils)
+    target_link_libraries(${b} PRIVATE HWCART::hwcart)
+    if (P2P_TRANSPORT_BACKEND STREQUAL "LIBFABRIC")
+        target_link_libraries(${b} PUBLIC oomph::libfabric)
+    elseif (P2P_TRANSPORT_BACKEND STREQUAL "UCX")
+        target_link_libraries(${b} PUBLIC oomph::ucx)
+    else()
+        target_link_libraries(${b} PUBLIC oomph::mpi)
+    endif()
+
+    install(TARGETS ${b}
+        CONFIGURATIONS Debug
+        RUNTIME DESTINATION Debug/bin)
+    install(TARGETS ${b}
+        CONFIGURATIONS Release
+        RUNTIME DESTINATION Release/bin)
+
+endfunction()
+
+foreach(b ${benchmarks})
+    compile_benchmark(${b})
+endforeach()

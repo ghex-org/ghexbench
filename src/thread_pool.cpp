@@ -27,6 +27,12 @@ extern "C"
 
 namespace ghexbench
 {
+int
+get_cpu() noexcept
+{
+    return sched_getcpu();
+}
+
 namespace _impl
 {
 static constexpr int s_num_ht = 2; //CARTEX_NUM_HT;
@@ -48,6 +54,17 @@ struct cpu_set
 };
 
 } // namespace _impl
+
+int
+num_cpus() noexcept
+{
+    int res = 0;
+    _impl::cpu_set this_cpu_set(getpid());
+    for (int c0 = 0; c0 < CPU_SETSIZE; ++c0)
+        if (this_cpu_set.is_set(c0))
+            ++res;
+    return res;
+}
 
 thread_pool::barrier::barrier(int num_threads)
 : m_num_threads{num_threads}
@@ -122,17 +139,16 @@ thread_pool::thread_pool(int n)
     }
 
     // number of cores
-    m_num_resources = m_this_cpus.size();// / _impl::s_num_ht;
+    m_num_resources = m_this_cpus.size(); // / _impl::s_num_ht;
     //std::cout << "number of resources = " << m_num_resources << std::endl;
     if (m_num_threads > m_num_resources)
     {
-    //    if (m_num_threads <= (int)m_this_cpus.size())
-    //        std::cerr
-    //            << "warning: more threads in thread pool than physical hardware resources: using hyperthreading"
-    //            << std::endl;
-    //    else
-            std::cerr << "warning: more threads in thread pool than hardware resources"
-                      << std::endl;
+        //    if (m_num_threads <= (int)m_this_cpus.size())
+        //        std::cerr
+        //            << "warning: more threads in thread pool than physical hardware resources: using hyperthreading"
+        //            << std::endl;
+        //    else
+        std::cerr << "warning: more threads in thread pool than hardware resources" << std::endl;
     }
     //if (m_num_threads < m_num_resources)
     //    std::cerr << "warning: less threads in thread pool than hardware resources" << std::endl;
@@ -233,4 +249,4 @@ thread_pool::schedule_impl(int thread_id, function_type&& fct)
     return true;
 }
 
-} // namespace cartex
+} // namespace ghexbench
