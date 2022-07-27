@@ -25,8 +25,8 @@ struct send_callback
     using message = oomph::message_buffer<char>;
 
     communicator& comm;
-    unsigned      nrep;
-    unsigned      i = 0;
+    std::size_t   nrep;
+    std::size_t&  i;
 
     void operator()(message& m, rank_type rank, tag_type tag)
     {
@@ -42,8 +42,8 @@ struct recv_callback
     using message = oomph::message_buffer<char>;
 
     communicator& comm;
-    unsigned      nrep;
-    unsigned      i = 0;
+    std::size_t   nrep;
+    std::size_t&  i;
 
     void operator()(message& m, rank_type rank, tag_type tag)
     {

@@ -55,10 +55,20 @@ class timer : public accumulator
     inline void tic() noexcept { m_time_point = clock_type::now(); }
 
     /** @brief stop timings */
-    inline void toc() noexcept { this->operator()(plain_toc()); }
+    inline double toc() noexcept
+    {
+        auto const dt = plain_toc();
+        this->operator()(dt);
+        return dt;
+    }
 
     /** @brief stop and start another timing period */
-    inline void toc_tic() noexcept { this->operator()(plain_toc_tic()); }
+    inline double toc_tic() noexcept
+    {
+        auto const dt = plain_toc_tic();
+        this->operator()(dt);
+        return dt;
+    }
 
     /** @brief stop timings without accumulating*/
     inline double plain_toc() noexcept { return to_ms(clock_type::now() - m_time_point); }
@@ -67,8 +77,9 @@ class timer : public accumulator
     inline double plain_toc_tic() noexcept
     {
         auto t2 = clock_type::now();
+        auto const dt = to_ms(t2 - m_time_point);
         m_time_point = t2;
-        return to_ms(t2 - m_time_point);
+        return dt;
     }
 };
 
