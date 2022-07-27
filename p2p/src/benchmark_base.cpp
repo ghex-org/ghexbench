@@ -31,8 +31,6 @@ benchmark_base<Derived>::thread_state::thread_state(oomph::communicator&& c, std
 {
     smsgs.reserve(window);
     rmsgs.reserve(window);
-    scount.resize(window, 0);
-    rcount.resize(window, 0);
     for (std::size_t i = 0; i < window; ++i)
     {
 #ifdef P2P_ENABLE_DEVICE
@@ -169,6 +167,22 @@ benchmark_base<Derived>::clear(int thread_id)
 
 template<typename Derived>
 void
+benchmark_base<Derived>::send_recv(int thread_id, std::size_t n)
+{
+    auto& state = *m_thread_states[thread_id];
+    auto& comm = state.comm;
+
+    for (std::size_t i = 0; i < m_window; ++i)
+    {
+        comm.recv(state.rmsgs[i], m_peer_rank, thread_id + i * 1000,
+            ghexbench::p2p::recv_callback{comm, n});
+        comm.send(state.smsgs[i], m_peer_rank, thread_id + i * 1000,
+            ghexbench::p2p::send_callback{comm, n});
+    }
+}
+
+template<typename Derived>
+void
 benchmark_base<Derived>::check(int thread_id)
 {
     auto& state = *m_thread_states[thread_id];
@@ -178,20 +192,9 @@ benchmark_base<Derived>::check(int thread_id)
     if (thread_id == 0) MPI_Barrier(comm.mpi_comm());
     m_thread_barrier();
 
-    for (std::size_t i = 0; i < m_window; ++i)
-    {
-        comm.recv(state.rmsgs[i], m_peer_rank, thread_id + i * 1000,
-            ghexbench::p2p::recv_callback{comm, 1, state.rcount[i]});
-        comm.send(state.smsgs[i], m_peer_rank, thread_id + i * 1000,
-            ghexbench::p2p::send_callback{comm, 1, state.scount[i]});
-    }
+    send_recv(thread_id, 1);
 
     comm.wait_all();
-
-    state.scount.clear();
-    state.scount.resize(m_window, 0);
-    state.rcount.clear();
-    state.rcount.resize(m_window, 0);
 
     bool result = true;
     for (std::size_t i = 0; i < m_window; ++i)
@@ -199,7 +202,6 @@ benchmark_base<Derived>::check(int thread_id)
 #ifdef P2P_ENABLE_DEVICE
         state.rmsgs[i].clone_to_host();
 #endif
-
         for (auto c : state.rmsgs[i])
         {
             if (c != 1)
@@ -224,20 +226,9 @@ benchmark_base<Derived>::warm_up(int thread_id)
     if (thread_id == 0) MPI_Barrier(comm.mpi_comm());
     m_thread_barrier();
 
-    for (std::size_t i = 0; i < m_window; ++i)
-    {
-        comm.recv(state.rmsgs[i], m_peer_rank, thread_id + i * 1000,
-            ghexbench::p2p::recv_callback{comm, 1000, state.rcount[i]});
-        comm.send(state.smsgs[i], m_peer_rank, thread_id + i * 1000,
-            ghexbench::p2p::send_callback{comm, 1000, state.scount[i]});
-    }
+    send_recv(thread_id, 10000);
 
     comm.wait_all();
-
-    state.scount.clear();
-    state.scount.resize(m_window, 0);
-    state.rcount.clear();
-    state.rcount.resize(m_window, 0);
 }
 
 template<typename Derived>
@@ -253,70 +244,12 @@ benchmark_base<Derived>::main_loop(int thread_id)
 
     state.wall_clock.tic();
 
-    for (std::size_t i = 0; i < m_window; ++i)
-    {
-        comm.recv(state.rmsgs[i], m_peer_rank, thread_id + i * 1000,
-            ghexbench::p2p::recv_callback{comm, m_nrep, state.rcount[i]});
-        comm.send(state.smsgs[i], m_peer_rank, thread_id + i * 1000,
-            ghexbench::p2p::send_callback{comm, m_nrep, state.scount[i]});
-    }
+    send_recv(thread_id, m_nrep);
 
     //comm.wait_all();
-
-    //double const print_interval = 8e5;
-    //std::size_t check_interval = 100;
-    //std::size_t const total_count = m_threads * m_window * m_nrep;
-    ////if (thread_id==0 && comm.rank() == 0)
-    //if (true) //(thread_id==0 && comm.rank() == 0)
-    //{
-    //    std::size_t scount = 0;
-    //    std::size_t rcount = 0;
-    //    double elapsed = 0;
-    //    while(!comm.is_ready())
-    //    {
-    //        for (std::size_t n=0; n<check_interval; ++n)
-    //            comm.progress();
-    //        double const dt = state.wall_clock.toc_tic();
-    //        if ((scount+rcount) > (0.8*2*total_count))
-    //        {
-    //            check_interval *= 0.85;
-    //            check_interval = check_interval < 100u ? 100u : check_interval;
-    //        }
-    //        else
-    //        {
-    //            //std::cout << (scount+rcount) << " > " << (0.9*2*total_count) << "\n";
-    //            check_interval += check_interval*0.1*(0.25*print_interval-dt)/(0.25*print_interval);
-    //        }
-    //        elapsed += dt;
-    //        //std::cout << "checkinterval " << check_interval << std::endl;
-    //        if (elapsed > print_interval)
-    //        {
-
-    //            std::size_t scount_old = scount;
-    //            std::size_t rcount_old = rcount;
-    //            scount = 0;
-    //            rcount = 0;
-    //            for (std::size_t t = 0; t < m_threads; ++t)
-    //                for (std::size_t i = 0; i < m_window; ++i)
-    //                {
-    //                    rcount += m_thread_states[t]->rcount[i];
-    //                    scount += m_thread_states[t]->scount[i];
-    //                }
-    //            std::size_t const num_msgs = ((rcount-rcount_old)+(scount-scount_old))* m_mpi_env.size;
-    //            double const      bibw = 0.5*(m_size / elapsed) * num_msgs;
-    //            if (thread_id==0 && comm.rank() == 0)
-    //                std::cout << "estimated bandwidth (GB/s) " << bibw << "\n";
-    //            elapsed = 0;
-    //        }
-    //    }
-    //}
-    //else
+    while (!comm.is_ready())
     {
-        //comm.wait_all();
-        while (!comm.is_ready())
-        {
-            for (std::size_t n = 0; n < 100; ++n) comm.progress();
-        }
+        for (std::size_t n = 0; n < 100; ++n) comm.progress();
     }
 
     //state.wall_clock.toc();

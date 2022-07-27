@@ -26,7 +26,7 @@ struct send_callback
 
     communicator& comm;
     std::size_t   nrep;
-    std::size_t&  i;
+    std::size_t   i = 0;
 
     void operator()(message& m, rank_type rank, tag_type tag)
     {
@@ -43,7 +43,7 @@ struct recv_callback
 
     communicator& comm;
     std::size_t   nrep;
-    std::size_t&  i;
+    std::size_t   i = 0;
 
     void operator()(message& m, rank_type rank, tag_type tag)
     {

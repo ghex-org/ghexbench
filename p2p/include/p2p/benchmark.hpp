@@ -40,8 +40,6 @@ class benchmark_base
         oomph::tag_type                          rtag;
         std::vector<oomph::message_buffer<char>> smsgs;
         std::vector<oomph::message_buffer<char>> rmsgs;
-        std::vector<std::size_t>                 scount;
-        std::vector<std::size_t>                 rcount;
         timer                                    wall_clock;
 
         thread_state(oomph::communicator&& c, std::size_t size, std::size_t window, int thread_id,
@@ -85,6 +83,8 @@ class benchmark_base
     void warm_up(int thread_id);
 
     void main_loop(int thread_id);
+
+    void send_recv(int thread_id, std::size_t n);
 };
 
 class benchmark : public benchmark_base<benchmark>
