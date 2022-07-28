@@ -115,6 +115,14 @@ benchmark_base<Derived>::print_locality(int thread_id)
         std::cout.flush();
     };
 
+    if (comm.rank() == 0 && thread_id == 0)
+    {
+#ifndef P2P_ENABLE_DEVICE
+        print_row("node", "rank", "peer", "thread", "cpu");
+#else
+        print_row("node", "rank", "peer", "thread", "cpu", "device");
+#endif
+    }
     for (int r = 0; r < comm.size(); ++r)
     {
         if (thread_id == 0) MPI_Barrier(comm.mpi_comm());
@@ -125,15 +133,6 @@ benchmark_base<Derived>::print_locality(int thread_id)
             {
                 if (tid == thread_id)
                 {
-                    if (r == 0 && tid == 0)
-                    {
-#ifndef P2P_ENABLE_DEVICE
-                        print_row("node", "rank", "peer", "thread", "cpu");
-#else
-                        print_row("node", "rank", "peer", "thread", "cpu", "device");
-#endif
-                    }
-
 #ifndef P2P_ENABLE_DEVICE
                     print_row(node, comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu());
 #else
@@ -226,7 +225,7 @@ benchmark_base<Derived>::warm_up(int thread_id)
     if (thread_id == 0) MPI_Barrier(comm.mpi_comm());
     m_thread_barrier();
 
-    send_recv(thread_id, 10000);
+    send_recv(thread_id, 100);
 
     comm.wait_all();
 }
@@ -264,13 +263,31 @@ benchmark_base<Derived>::run()
 #ifndef P2P_ENABLE_DEVICE
     set_device();
 #endif
+    auto print_line = [](char const* description, auto value)
+    {
+        std::cout << std::left << std::setw(32) << description << std::right << std::setw(12)
+                  << value << std::endl;
+    };
 
+    m_wall_clock.tic();
     for (std::size_t i = 0; i < m_threads; ++i)
     {
         m_thread_pool.schedule(i, [this](int i) { init(i); });
         m_thread_pool.schedule(i, [this](int i) { print_locality(i); });
         m_thread_pool.schedule(i, [this](int i) { check(i); });
         m_thread_pool.schedule(i, [this](int i) { warm_up(i); });
+    }
+    m_thread_pool.sync();
+
+    double elapsed_warm_up = m_wall_clock.toc();
+    if (m_mpi_env.rank == 0)
+    {
+        std::cout << std::endl;
+        print_line("elapsed warm up (s)", elapsed_warm_up * 1.0e-6);
+    }
+
+    for (std::size_t i = 0; i < m_threads; ++i)
+    {
         m_thread_pool.schedule(i, [this](int i) { main_loop(i); });
     }
 
@@ -285,13 +302,6 @@ benchmark_base<Derived>::run()
         std::size_t const num_msgs = num_msgs_per_rank * m_mpi_env.size;
         double const      bibw = (m_size / elapsed) * (num_msgs_per_rank * m_mpi_env.size);
 
-        auto print_line = [](char const* description, auto value)
-        {
-            std::cout << std::left << std::setw(32) << description << std::right << std::setw(12)
-                      << value << std::endl;
-        };
-
-        std::cout << std::endl;
         print_line("elapsed (s)", elapsed * 1.0e-6);
         print_line("message size (bytes)", m_size);
         print_line("number of ranks", m_mpi_env.size);

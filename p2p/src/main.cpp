@@ -10,6 +10,7 @@
  */
 
 #include <p2p/benchmark.hpp>
+//#include <p2p/debug.hpp>
 
 int
 main(int argc, char** argv)
@@ -17,6 +18,8 @@ main(int argc, char** argv)
     using namespace ghexbench::p2p;
 
     benchmark bm(argc,argv);
+
+    //debug_wait();
 
     bm.run();
 

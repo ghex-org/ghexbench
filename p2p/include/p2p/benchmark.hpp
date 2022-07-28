@@ -58,6 +58,7 @@ class benchmark_base
     std::size_t          m_nrep;
     oomph::rank_type     m_peer_rank = 0;
     int                  m_device_id = 0;
+    timer                m_wall_clock;
 
     std::vector<std::unique_ptr<thread_state>> m_thread_states;
 

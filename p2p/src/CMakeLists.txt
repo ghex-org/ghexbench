@@ -61,6 +61,7 @@ function(compile_benchmark b_)
     target_sources(${b} PRIVATE ${b_}.cpp)
     target_sources(${b} PRIVATE benchmark_base.cpp)
     target_sources(${b} PRIVATE device_map.cpp)
+    #target_sources(${b} PRIVATE debug.cpp)
 
     ghexbench_target_compile_options(${b})
     target_compile_definitions(${b} PRIVATE P2P_NUM_HWTHREADS=2)
