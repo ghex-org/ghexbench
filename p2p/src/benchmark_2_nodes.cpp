@@ -39,8 +39,8 @@ oomph::rank_type
 benchmark::peer_rank()
 {
     auto       c = m_topo.level_grid_coord();
-    auto const node_coord = c[1][0];
-    auto const peer_node = ((node_coord + 2) + (((node_coord % 2) == 0) ? 1 : -1)) % 2;
+    auto const node_coord = c[0][0];
+    auto const peer_node = (node_coord == 0 ? 1 : 0);
     c[0][0] = peer_node;
     return m_topo.rank(c);
 }

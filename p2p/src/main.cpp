@@ -24,4 +24,4 @@ main(int argc, char** argv)
     bm.run();
 
     return 0;
-};
+}
