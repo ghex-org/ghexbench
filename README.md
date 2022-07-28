@@ -12,7 +12,7 @@ library. It contains
 
 ## Dependencies
 
-* [numactl](https://github.com/numactl/numactl)
+* [numactl](https://github.com/numactl/numactl) (minimum version 2.0.12)
 * [hwloc](https://github.com/open-mpi/hwloc) (minimum version 2.0)
 * [boost](https://github.com/boostorg/boost) header only, minimum version 1.75)
 * MPI implentation, for example [openmpi](https://github.com/open-mpi/ompi)
