@@ -1,15 +1,4 @@
-#cmake_minimum_required(VERSION 3.17)
-#
-#
-#set(P2P_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-#list(APPEND CMAKE_MODULE_PATH "${P2P_MODULE_PATH}")
-#make_version(GHEXBENCH_P2P 1 0 0)
-#
-
-
-message(${CMAKE_CURRENT_LIST_DIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-
 include(p2p_version)
 make_version(GHEXBENCH_P2P 1 0 0)
 
