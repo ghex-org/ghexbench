@@ -14,6 +14,8 @@
 
 #include <ghexbench/accumulator.hpp>
 #include <ghexbench/histogram.hpp>
+#include <ghexbench/mpi.hpp>
+
 #include <cartex/memory/memory_view.hpp>
 #include <cartex/runtime/runtime.hpp>
 
@@ -52,13 +54,17 @@ runtime::exchange(int j, thread_pool::barrier& b)
     if (m_check_res)
     {
         step(j);
+        std::cout << "check step" << std::endl;
         //print_fields(j);
         check(j);
     }
 
     histogram hist(1.0e-9, 20, 2, 100000);
 
-    auto warm_up_step = [j, this]() { step(j); };
+    auto warm_up_step = [j, this]() {
+        step(j);
+        std::cout << "warmup step" << std::endl;
+    };
 
 #ifndef CARTEX_EVICT_CACHE
     auto main_step = [j, this, &hist, &b]()
@@ -72,12 +78,13 @@ runtime::exchange(int j, thread_pool::barrier& b)
 #endif
 
         b();
-        if (j==0) CARTEX_CHECK_MPI_RESULT(MPI_Barrier(m_decomposition.mpi_comm()));
+        if (j==0) GHEXBENCH_CHECK_MPI_RESULT(MPI_Barrier(m_decomposition.mpi_comm()));
         b();
 
         const auto start = clock_type::now();
         step(j);
         const auto end = clock_type::now();
+        std::cout << "step" << std::endl;
 
         const double dt = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
         hist(dt);
@@ -92,6 +99,7 @@ runtime::exchange(int j, thread_pool::barrier& b)
     else
     {
         for (int t = 0; t < 50; ++t) warm_up_step();
+        std::cout << "now normal steps" << std::endl;
         for (int t = 0; t < m_num_reps; ++t) main_step();
         reps = m_num_reps;
     }
@@ -107,7 +115,7 @@ runtime::exchange(int j, thread_pool::barrier& b)
                                   (m_domains[i].domain_ext[0]) * (m_domains[i].domain_ext[1]) *
                                       (m_domains[i].domain_ext[2]);
         }
-        CARTEX_CHECK_MPI_RESULT(MPI_Reduce(&local_num_elements, &num_elements, 1,
+        GHEXBENCH_CHECK_MPI_RESULT(MPI_Reduce(&local_num_elements, &num_elements, 1,
             MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0, m_decomposition.mpi_comm()));
         if (m_rank == 0)
         {
@@ -178,7 +186,7 @@ void
 runtime::print_fields(int j)
 {
     using view_type = memory_view<real_type, 3>;
-    CARTEX_CHECK_MPI_RESULT(MPI_Barrier(m_decomposition.mpi_comm()));
+    GHEXBENCH_CHECK_MPI_RESULT(MPI_Barrier(m_decomposition.mpi_comm()));
     for (int r = 0; r < m_size; ++r)
     {
         if (r == m_rank)
@@ -196,7 +204,7 @@ runtime::print_fields(int j)
                 std::cout << std::endl;
             }
         }
-        CARTEX_CHECK_MPI_RESULT(MPI_Barrier(m_decomposition.mpi_comm()));
+        GHEXBENCH_CHECK_MPI_RESULT(MPI_Barrier(m_decomposition.mpi_comm()));
     }
 }
 

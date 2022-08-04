@@ -17,6 +17,11 @@
 
 namespace ghexbench
 {
+hw_topo::hw_topo()
+: m_empty{true}
+{
+}
+
 hw_topo::hw_topo(MPI_Comm comm, hwcart_order_t order, std::vector<int> const& level_grid,
     std::vector<hwcart_split_t> const& levels)
 : m_order{order}
@@ -40,7 +45,24 @@ hw_topo::hw_topo(MPI_Comm comm, hwcart_order_t order, std::vector<int> const& le
     GHEXBENCH_CHECK_MPI_RESULT(MPI_Comm_size(m_comm, &m_size));
 }
 
-hw_topo::~hw_topo() { hwcart_topo_free(&m_topo); }
+hw_topo::hw_topo(hw_topo&& other)
+: m_topo{other.m_topo}
+, m_order{other.m_order}
+, m_level_grid{other.m_level_grid}
+, m_levels{other.m_levels}
+, m_comm{std::move(other.m_comm)}
+, m_rank{other.m_rank}
+, m_size{other.m_size}
+, m_grid{other.m_grid}
+{
+    if (!m_empty) hwcart_topo_free(&m_topo);
+    m_empty = other.m_empty;
+}
+
+hw_topo::~hw_topo()
+{
+    if (!m_empty) hwcart_topo_free(&m_topo);
+}
 
 hw_topo_builder
 hw_topo::create(MPI_Comm comm)
@@ -55,6 +77,16 @@ hw_topo::get_comm() const
     return m_comm;
 }
 
+// return new Cartesian MPI communicator
+mpi_comm_holder
+hw_topo::make_cart_comm()
+{
+    MPI_Comm cart_comm;
+    int      periodic[3] = {1, 1, 1};
+    hwcart2mpicart(m_comm, m_levels.size(), m_level_grid.data(), periodic, m_order, &cart_comm);
+    return {cart_comm};
+}
+
 // number of ranks
 int
 hw_topo::size() const
@@ -67,6 +99,13 @@ int
 hw_topo::rank() const
 {
     return m_rank;
+}
+
+// spatial decompostion
+hw_topo::arr const &
+hw_topo::decomposition() const
+{
+    return m_grid;
 }
 
 // number of ranks within a resource
@@ -182,6 +221,15 @@ hw_topo::get_level(hwcart_split_t resource) const
     auto it = std::find(m_levels.begin(), m_levels.end(), resource);
     if (it == m_levels.end()) throw std::runtime_error("resource cannot be found");
     return std::distance(m_levels.begin(), it);
+}
+
+// print ranks
+void
+hw_topo::print() const
+{
+    hwcart_print_rank_topology(m_topo, m_comm, m_levels.size(),
+        const_cast<hwcart_split_t*>(m_levels.data()), const_cast<int*>(m_level_grid.data()),
+        m_order);
 }
 
 hw_topo

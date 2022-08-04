@@ -57,5 +57,7 @@ class mpi_comm_holder
     MPI_Comm get() const noexcept { return m; }
 
     operator MPI_Comm() const noexcept { return m; };
+
+    operator bool() const noexcept { return !(m==MPI_COMM_WORLD); }
 };
 } // namespace ghexbench

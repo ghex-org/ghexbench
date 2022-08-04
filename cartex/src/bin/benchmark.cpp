@@ -10,6 +10,7 @@
  */
 
 #include <thread>
+#include <iostream>
 
 #include <ghexbench/options.hpp>
 #include <cartex/device/set_device.hpp>
@@ -100,75 +101,98 @@ main(int argc, char** argv)
                 int        cart_size = dims[0] * dims[1] * dims[2];
                 if (cart_size != size)
                     throw std::runtime_error("cart size is not equal to world size");
-                decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(dims, threads,
+                //decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(dims, threads,
+                //    (global ? options.get<std::array<int, 3>>("global-domain")
+                //            : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+                //    !global);
+                decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(MPI_COMM_WORLD, dims, threads,
+                    (global ? options.get<std::array<int, 3>>("global-domain")
+                            : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+                    !global);
+            }
+            else
+            {
+                auto builder = ghexbench::hw_topo_builder(MPI_COMM_WORLD);
+                builder.order(ghexbench::cartex::decomposition::parse_order(
+                    options.get_or("order", std::string("XYZ"))));
+                if (options.has("node")) builder.nodes(options.get<std::array<int, 3>>("node"));
+                if (options.has("socket")) builder.nodes(options.get<std::array<int, 3>>("socket"));
+                if (options.has("numa")) builder.nodes(options.get<std::array<int, 3>>("numa"));
+                if (options.has("l3")) builder.nodes(options.get<std::array<int, 3>>("l3"));
+                if (options.has("core")) builder.nodes(options.get<std::array<int, 3>>("core"));
+                if (options.has("hwthread"))
+                    builder.nodes(options.get<std::array<int, 3>>("hwthread"));
+                decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(builder, threads,
                     (global ? options.get<std::array<int, 3>>("global-domain")
                             : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
                     !global);
             }
             /* clang-format off */
-        else if (options.has("hwthread"))
-            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
-                options.get_or("order",  std::string("XYZ")),
-                options.get_or("node",   std::array<int,3>{1,1,1}),
-                options.get_or("socket", std::array<int,3>{1,1,1}),
-                options.get_or("numa",   std::array<int,3>{1,1,1}),
-                options.get_or("l3",     std::array<int,3>{1,1,1}),
-                options.get_or("core",   std::array<int,3>{1,1,1}),
-                options.get<std::array<int,3>>("hwthread"),
-                threads, 
-                (global ? options.get<std::array<int,3>>("global-domain")
-                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
-                !global);
-        else if (options.has("core"))
-            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
-                options.get_or("order",  std::string("XYZ")),
-                options.get_or("node",   std::array<int,3>{1,1,1}),
-                options.get_or("socket", std::array<int,3>{1,1,1}),
-                options.get_or("numa",   std::array<int,3>{1,1,1}),
-                options.get_or("l3",     std::array<int,3>{1,1,1}),
-                options.get<std::array<int,3>>("core"),
-                threads,
-                (global ? options.get<std::array<int,3>>("global-domain")
-                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
-                !global);
-        else if (options.has("l3"))
-            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
-                options.get_or("order",  std::string("XYZ")),
-                options.get_or("node",   std::array<int,3>{1,1,1}),
-                options.get_or("socket", std::array<int,3>{1,1,1}),
-                options.get_or("numa",   std::array<int,3>{1,1,1}),
-                options.get<std::array<int,3>>("l3"),
-                threads,
-                (global ? options.get<std::array<int,3>>("global-domain")
-                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
-                !global);
-        else if (options.has("numa"))
-            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
-                options.get_or("order",  std::string("XYZ")),
-                options.get_or("node",   std::array<int,3>{1,1,1}),
-                options.get_or("socket", std::array<int,3>{1,1,1}),
-                options.get<std::array<int,3>>("numa"),
-                threads,
-                (global ? options.get<std::array<int,3>>("global-domain")
-                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
-                !global);
-        else if (options.has("socket"))
-            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
-                options.get_or("order",  std::string("XYZ")),
-                options.get_or("node",   std::array<int,3>{1,1,1}),
-                options.get<std::array<int,3>>("socket"),
-                threads,
-                (global ? options.get<std::array<int,3>>("global-domain")
-                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
-                !global);
-        else 
-            decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
-                options.get_or("order",  std::string("XYZ")),
-                options.get_or("node",   std::array<int,3>{1,1,1}),
-                threads,
-                (global ? options.get<std::array<int,3>>("global-domain")
-                        : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
-                !global);
+            //else if (options.has("hwthread"))
+            //{
+            //    decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
+            //        options.get_or("order",  std::string("XYZ")),
+            //        options.get_or("node",   std::array<int,3>{1,1,1}),
+            //        options.get_or("socket", std::array<int,3>{1,1,1}),
+            //        options.get_or("numa",   std::array<int,3>{1,1,1}),
+            //        options.get_or("l3",     std::array<int,3>{1,1,1}),
+            //        options.get_or("core",   std::array<int,3>{1,1,1}),
+            //        options.get<std::array<int,3>>("hwthread"),
+            //        threads, 
+            //        (global ? options.get<std::array<int,3>>("global-domain")
+            //                : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+            //        !global);
+            //}
+            //else if (options.has("core"))
+            //    decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
+            //        options.get_or("order",  std::string("XYZ")),
+            //        options.get_or("node",   std::array<int,3>{1,1,1}),
+            //        options.get_or("socket", std::array<int,3>{1,1,1}),
+            //        options.get_or("numa",   std::array<int,3>{1,1,1}),
+            //        options.get_or("l3",     std::array<int,3>{1,1,1}),
+            //        options.get<std::array<int,3>>("core"),
+            //        threads,
+            //        (global ? options.get<std::array<int,3>>("global-domain")
+            //                : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+            //        !global);
+            //else if (options.has("l3"))
+            //    decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
+            //        options.get_or("order",  std::string("XYZ")),
+            //        options.get_or("node",   std::array<int,3>{1,1,1}),
+            //        options.get_or("socket", std::array<int,3>{1,1,1}),
+            //        options.get_or("numa",   std::array<int,3>{1,1,1}),
+            //        options.get<std::array<int,3>>("l3"),
+            //        threads,
+            //        (global ? options.get<std::array<int,3>>("global-domain")
+            //                : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+            //        !global);
+            //else if (options.has("numa"))
+            //    decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
+            //        options.get_or("order",  std::string("XYZ")),
+            //        options.get_or("node",   std::array<int,3>{1,1,1}),
+            //        options.get_or("socket", std::array<int,3>{1,1,1}),
+            //        options.get<std::array<int,3>>("numa"),
+            //        threads,
+            //        (global ? options.get<std::array<int,3>>("global-domain")
+            //                : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+            //        !global);
+            //else if (options.has("socket"))
+            //    decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
+            //        options.get_or("order",  std::string("XYZ")),
+            //        options.get_or("node",   std::array<int,3>{1,1,1}),
+            //        options.get<std::array<int,3>>("socket"),
+            //        threads,
+            //        (global ? options.get<std::array<int,3>>("global-domain")
+            //                : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+            //        !global);
+            //else 
+            //    decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(
+            //        options.get_or("order",  std::string("XYZ")),
+            //        options.get_or("node",   std::array<int,3>{1,1,1}),
+            //        threads,
+            //        (global ? options.get<std::array<int,3>>("global-domain")
+            //                : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
+            //        !global);
         }
         /* clang-format on */
         catch (...)
@@ -180,16 +204,16 @@ main(int argc, char** argv)
 
         if (options.is_set("print"))
         {
-            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+            GHEXBENCH_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
             decomp_ptr->print();
-            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+            GHEXBENCH_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
             decomp_ptr.release();
-            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(MPI_COMM_WORLD));
+            GHEXBENCH_CHECK_MPI_RESULT(MPI_Barrier(MPI_COMM_WORLD));
             MPI_Finalize();
             return 0;
         }
 
-        CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+        GHEXBENCH_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
 
         ghexbench::cartex::runtime r(options, *decomp_ptr);
         if (rank == 0)
@@ -209,7 +233,7 @@ main(int argc, char** argv)
                         r.init(j);
                     });
             tp.sync();
-            CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+            GHEXBENCH_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
             for (int j = 0; j < num_threads; ++j)
             {
                 tp.schedule(j,
@@ -223,7 +247,7 @@ main(int argc, char** argv)
             tp.join();
         }
 
-        CARTEX_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
+        GHEXBENCH_CHECK_MPI_RESULT(MPI_Barrier(decomp_ptr->mpi_comm()));
     }
     MPI_Finalize();
     return 0;

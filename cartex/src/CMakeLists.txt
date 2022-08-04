@@ -1,6 +1,6 @@
-#find_package(MPI REQUIRED COMPONENTS CXX)
-#find_package(HWLOC REQUIRED)
-#
+find_package(MPI REQUIRED COMPONENTS CXX)
+find_package(HWLOC REQUIRED)
+
 #if(NOT _hwcart_already_fetched)
 #  find_package(HWCART QUIET)
 #endif()
@@ -21,6 +21,7 @@
 #endif()
 
 #add_subdirectory(common)
+
 add_subdirectory(device)
 add_subdirectory(decomposition)
 add_subdirectory(runtime)

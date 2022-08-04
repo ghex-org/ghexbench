@@ -20,6 +20,10 @@ target_include_directories(ghexbench INTERFACE
   $<INSTALL_INTERFACE:include>
 )
 
+set(GHEXBENCH_ENABLE_DEVICE "OFF" CACHE BOOL "use gpu")
+set(GHEXBENCH_DEVICE_TYPE "NVIDIA" CACHE STRING "Choose the device type:  NVIDIA | AMD")
+set_property(CACHE GHEXBENCH_DEVICE_TYPE PROPERTY STRINGS "NVIDIA" "AMD")
+
 add_subdirectory(src)
 
 set(GHEXBENCH_BUILD_CARTEX "OFF" CACHE BOOL "cartex benchmark")

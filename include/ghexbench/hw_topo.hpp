@@ -39,15 +39,19 @@ class hw_topo
     int                         m_rank;
     int                         m_size;
     arr                         m_grid;
+    bool                        m_empty = false;
 
   public:
+    hw_topo();
+
     hw_topo(MPI_Comm comm, hwcart_order_t order, std::vector<int> const& level_grid,
         std::vector<hwcart_split_t> const& levels);
 
     ~hw_topo();
 
     hw_topo(hw_topo const&) = delete;
-    hw_topo(hw_topo&&) = default;
+
+    hw_topo(hw_topo&&);
 
   public:
     static hw_topo_builder create(MPI_Comm comm);
@@ -56,11 +60,17 @@ class hw_topo
     // return MPI communicator
     MPI_Comm get_comm() const;
 
+    // return new Cartesian MPI communicator
+    mpi_comm_holder make_cart_comm();
+
     // number of ranks
     int size() const;
 
     // current rank
     int rank() const;
+
+    // spatial decompostion
+    arr const & decomposition() const;
 
     // number of ranks within a resource
     int size(hwcart_split_t resource) const;
@@ -81,6 +91,9 @@ class hw_topo
 
     // rank from grid coordinate
     int rank(arr const& c) const;
+
+    // print ranks
+    void print() const;
 
   private:
     int get_level(hwcart_split_t resource) const;

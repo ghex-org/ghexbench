@@ -4,12 +4,7 @@ file(STRINGS "version.txt" _cartex_version)
 project(CartEx VERSION ${_cartex_version} LANGUAGES CXX)
 unset(_cartex_version)
 
-#if(NOT CMAKE_BUILD_TYPE) # AND NOT CMAKE_CONFIGURATION_TYPES)
-#  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
-#  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-#endif()
-set(CMAKE_CXX_STANDARD 14)
-#set(CMAKE_CXX_EXTENSIONS OFF)
+#set(CMAKE_CXX_STANDARD 14)
 
 message(${CMAKE_CURRENT_LIST_DIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
@@ -20,7 +15,16 @@ set_property(CACHE CARTEX_FLOAT PROPERTY STRINGS "float" "double")
 set(CARTEX_RUNTIME "mpi_comm" CACHE STRING "Runtime")
 set_property(CACHE CARTEX_RUNTIME PROPERTY STRINGS "mpi_comm" "gcl_comm" "ghex_comm" "oomph_comm"
     "tausch_comm")
-set(CARTEX_ON_GPU "OFF" CACHE BOOL "use gpu")
+
+if (GHEXBENCH_ENABLE_DEVICE)
+    if (GHEXBENCH_DEVICE_TYPE STREQUAL "NVIDIA")
+        set(CARTEX_ON_GPU "ON")
+    else()
+        set(CARTEX_ON_GPU "OFF")
+    endif()
+else()
+    set(CARTEX_ON_GPU "OFF")
+endif()
 
 # Set up cuda if needed
 set(_cartex_cuda_enabled OFF)
