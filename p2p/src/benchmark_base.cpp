@@ -89,7 +89,7 @@ benchmark_base<Derived>::set_device()
     auto& ctx = static_cast<Derived*>(this)->m_ctx;
     auto const local_size = ctx.local_size();
     device_map dmap(m_options.get_or<std::string>("devicemap", ""));
-    if (dmap.size() < local_size)
+    if ((int)dmap.size() < local_size)
         abort("device map does not match number of processes per node", m_mpi_env.rank == 0);
     m_device_id = dmap[ctx.local_rank()];
     int const num_devices = hwmalloc::get_num_devices();
@@ -137,7 +137,7 @@ benchmark_base<Derived>::print_locality(int thread_id)
                     print_row(node, comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu());
 #else
                     print_row(node, comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu(),
-                        device_id);
+                        m_device_id);
 #endif
                 }
                 m_thread_barrier();
