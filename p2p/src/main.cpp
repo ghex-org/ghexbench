@@ -9,13 +9,16 @@
  *
  */
 
-#pragma once
+#include <p2p/benchmark.hpp>
 
-namespace ghexbench
+int
+main(int argc, char** argv)
 {
-namespace cartex
-{
-int setup_device(int);
-void set_device(int);
-} // namespace cartex
-} // namespace ghexbench 
+    using namespace ghexbench::p2p;
+
+    benchmark bm(argc,argv);
+
+    bm.run();
+
+    return 0;
+}

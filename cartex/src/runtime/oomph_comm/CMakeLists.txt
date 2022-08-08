@@ -25,21 +25,12 @@ FetchContent_Declare(
 )
 
 if (CARTEX_TRANSPORT_BACKEND STREQUAL "LIBFABRIC")
-    set(OOMPH_WITH_MPI OFF CACHE INTERNAL "")  # Forces the value
-    set(OOMPH_WITH_UCX OFF CACHE INTERNAL "")  # Forces the value
-    set(OOMPH_WITH_LIBFABRIC ON CACHE INTERNAL "")  # Forces the value
     target_link_libraries(runtime PUBLIC oomph::libfabric)
     target_compile_definitions(runtime PUBLIC CARTEX_TRANSPORT=LIBFABRIC)
 elseif (CARTEX_TRANSPORT_BACKEND STREQUAL "UCX")
-    set(OOMPH_WITH_MPI OFF CACHE INTERNAL "")  # Forces the value
-    set(OOMPH_WITH_UCX ON CACHE INTERNAL "")  # Forces the value
-    set(OOMPH_WITH_LIBFABRIC OFF CACHE INTERNAL "")  # Forces the value
     target_link_libraries(runtime PUBLIC oomph::ucx)
     target_compile_definitions(runtime PUBLIC CARTEX_TRANSPORT=UCX)
 else()
-    set(OOMPH_WITH_MPI ON CACHE INTERNAL "")  # Forces the value
-    set(OOMPH_WITH_UCX OFF CACHE INTERNAL "")  # Forces the value
-    set(OOMPH_WITH_LIBFABRIC OFF CACHE INTERNAL "")  # Forces the value
     target_link_libraries(runtime PUBLIC oomph::mpi)
     target_compile_definitions(runtime PUBLIC CARTEX_TRANSPORT=MPI)
 endif()
@@ -52,6 +43,7 @@ else()
     set(OOMPH_GPU_TYPE "AUTO" CACHE INTERNAL "")  # Forces the value
 endif()
 
+#set(CMAKE_CXX_STANDARD 17)
 FetchContent_MakeAvailable(oomph)
 set(_oomph_already_fetched ON CACHE INTERNAL "")
 

@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -14,9 +14,9 @@
 #include <iomanip>
 #include <algorithm>
 
-#include <cartex/common/options.hpp>
+#include <ghexbench/options.hpp>
 
-namespace cartex
+namespace ghexbench
 {
 namespace options_impl
 {
@@ -39,12 +39,6 @@ options::parse(int argc, char** argv) const
         if (arg == "-h" || arg == "--help")
         {
             std::cout << help_message(argv[0]);
-            std::exit(0);
-        }
-
-        if (arg == "-c" || arg == "--config")
-        {
-            print_config();
             std::exit(0);
         }
 
@@ -149,18 +143,6 @@ options::help_message(std::string const& command) const
     }
 
     return out.str();
-}
-
-void
-print_config()
-{
-    std::cout << std::endl;
-    std::cout << " -- GHEXBENCH compile configuration:" << std::endl;
-    std::cout << std::endl;
-#include <cmake_config.inc>
-    std::cout << std::endl;
-
-    print_runtime_config();
 }
 
 } // namespace cartex

@@ -1,7 +1,7 @@
 /*
- * GridTools
+ * ghex-org
  *
- * Copyright (c) 2014-2021, ETH Zurich
+ * Copyright (c) 2014-2022, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -20,8 +20,11 @@
 #include <atomic>
 #include <memory>
 
-namespace cartex
+namespace ghexbench
 {
+int get_cpu() noexcept;
+int num_cpus() noexcept;
+
 class thread_pool
 {
   private:
@@ -102,4 +105,4 @@ class thread_pool
     bool schedule_impl(int thread_id, function_type&& fct);
 };
 
-} // namespace cartex
+} // namespace ghexbench
