@@ -31,10 +31,6 @@ set(_oomph_already_fetched ON CACHE INTERNAL "")
 
 
 set(benchmarks
-    #benchmark_intra_l3
-    #benchmark_intra_numa
-    #benchmark_intra_node
-    #benchmark_2_nodes
     benchmark_paired
 )
 
