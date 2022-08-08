@@ -260,7 +260,7 @@ benchmark_base<Derived>::run()
 {
     m_peer_rank = static_cast<Derived*>(this)->peer_rank();
 
-#ifndef P2P_ENABLE_DEVICE
+#ifdef P2P_ENABLE_DEVICE
     set_device();
 #endif
     auto print_line = [](char const* description, auto value)
@@ -272,6 +272,9 @@ benchmark_base<Derived>::run()
     m_wall_clock.tic();
     for (std::size_t i = 0; i < m_threads; ++i)
     {
+#ifdef P2P_ENABLE_DEVICE
+        m_thread_pool.schedule(i, [this](int) { hwmalloc::set_device_id(m_device_id); });
+#endif
         m_thread_pool.schedule(i, [this](int i) { init(i); });
         m_thread_pool.schedule(i, [this](int i) { print_locality(i); });
         m_thread_pool.schedule(i, [this](int i) { check(i); });

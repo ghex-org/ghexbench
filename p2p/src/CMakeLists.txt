@@ -1,59 +1,41 @@
-#find_package(Threads REQUIRED)
-
-#set(P2P_ENABLE_DEVICE "OFF" CACHE BOOL "use gpu")
-
 set(P2P_TRANSPORT_BACKEND "MPI" CACHE STRING "Choose the backend type: MPI | UCX | LIBFABRIC")
 set_property(CACHE P2P_TRANSPORT_BACKEND PROPERTY STRINGS "MPI" "UCX" "LIBFABRIC")
 
-##set(_oomph_repository "https://github.com/ghex-org/oomph.git")
-##set(_oomph_tag        "main")
-#set(_oomph_repository "https://github.com/boeschf/oomph.git")
-#set(_oomph_tag        "refactoring")
-#
-#if(NOT _oomph_already_fetched)
-#    message(STATUS "Fetching oomph ${_oomph_tag} from ${_oomph_repository}")
-#endif()
-#include(FetchContent)
-#FetchContent_Declare(
-#    oomph
-#    GIT_REPOSITORY ${_oomph_repository}
-#    GIT_TAG        ${_oomph_tag}
-#)
-#
-##if (P2P_TRANSPORT_BACKEND STREQUAL "LIBFABRIC")
-##    #set(OOMPH_WITH_MPI OFF CACHE INTERNAL "")  # Forces the value
-##    #set(OOMPH_WITH_UCX OFF CACHE INTERNAL "")  # Forces the value
-##    #set(OOMPH_WITH_LIBFABRIC ON CACHE INTERNAL "")  # Forces the value
-##    set(OOMPH_WITH_LIBFABRIC ON CACHE INTERNAL "")  # Forces the value
-##elseif (P2P_TRANSPORT_BACKEND STREQUAL "UCX")
-##    #set(OOMPH_WITH_MPI OFF CACHE INTERNAL "")  # Forces the value
-##    #set(OOMPH_WITH_UCX ON CACHE INTERNAL "")  # Forces the value
-##    #set(OOMPH_WITH_LIBFABRIC OFF CACHE INTERNAL "")  # Forces the value
-##    set(OOMPH_WITH_UCX ON CACHE INTERNAL "")  # Forces the value
-##else()
-##    #set(OOMPH_WITH_MPI ON CACHE INTERNAL "")  # Forces the value
-##    #set(OOMPH_WITH_UCX OFF CACHE INTERNAL "")  # Forces the value
-##    #set(OOMPH_WITH_LIBFABRIC OFF CACHE INTERNAL "")  # Forces the value
-##    set(OOMPH_WITH_MPI ON CACHE INTERNAL "")  # Forces the value
-##endif()
-#
-#if(GHEXBENCH_ENABLE_DEVICE)
-#    set(OOMPH_USE_GPU ON CACHE INTERNAL "")  # Forces the value
-#    set(OOMPH_GPU_TYPE ${GHEXBENCH_DEVICE_TYPE} CACHE INTERNAL "")  # Forces the value
-#else() 
-#    set(OOMPH_USE_GPU OFF CACHE INTERNAL "")  # Forces the value
-#    set(OOMPH_GPU_TYPE "AUTO" CACHE INTERNAL "")  # Forces the value
-#endif()
-#
-#FetchContent_MakeAvailable(oomph)
-#set(_oomph_already_fetched ON CACHE INTERNAL "")
-
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
+#set(_oomph_repository "https://github.com/ghex-org/oomph.git")
+#set(_oomph_tag        "main")
+set(_oomph_repository "https://github.com/boeschf/oomph.git")
+set(_oomph_tag        "refactoring")
+
+if(NOT _oomph_already_fetched)
+    message(STATUS "Fetching oomph ${_oomph_tag} from ${_oomph_repository}")
+endif()
+include(FetchContent)
+FetchContent_Declare(
+    oomph
+    GIT_REPOSITORY ${_oomph_repository}
+    GIT_TAG        ${_oomph_tag}
+)
+
+if(GHEXBENCH_ENABLE_DEVICE)
+    set(OOMPH_USE_GPU ON CACHE INTERNAL "")  # Forces the value
+    set(OOMPH_GPU_TYPE ${GHEXBENCH_DEVICE_TYPE} CACHE INTERNAL "")  # Forces the value
+else() 
+    set(OOMPH_USE_GPU OFF CACHE INTERNAL "")  # Forces the value
+    set(OOMPH_GPU_TYPE "AUTO" CACHE INTERNAL "")  # Forces the value
+endif()
+
+FetchContent_MakeAvailable(oomph)
+set(_oomph_already_fetched ON CACHE INTERNAL "")
+
+
 set(benchmarks
-    benchmark_intra_l3
-    benchmark_intra_node
-    benchmark_2_nodes
+    #benchmark_intra_l3
+    #benchmark_intra_numa
+    #benchmark_intra_node
+    #benchmark_2_nodes
+    benchmark_paired
 )
 
 function(compile_benchmark b_)

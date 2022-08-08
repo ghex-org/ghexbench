@@ -34,7 +34,8 @@ benchmark::benchmark(int& argc, char**& argv)
 {
     auto const n_cores = m_topo.size(HWCART_MD_L3CACHE);
 
-    if (n_cores > 1 && n_cores % 2 != 0) abort("even number of ranks per L3 cache expected!", m_ctx.rank() == 0);
+    if (n_cores > 1 && n_cores % 2 != 0)
+        abort("even number of ranks per L3 cache expected!", m_ctx.rank() == 0);
     if (m_threads > 1 && m_threads % 2 != 0)
         abort("even number of cores per rank expected!", m_ctx.rank() == 0);
 }
