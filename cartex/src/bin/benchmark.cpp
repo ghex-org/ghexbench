@@ -116,12 +116,13 @@ main(int argc, char** argv)
                 builder.order(ghexbench::cartex::decomposition::parse_order(
                     options.get_or("order", std::string("XYZ"))));
                 if (options.has("node")) builder.nodes(options.get<std::array<int, 3>>("node"));
-                if (options.has("socket")) builder.nodes(options.get<std::array<int, 3>>("socket"));
-                if (options.has("numa")) builder.nodes(options.get<std::array<int, 3>>("numa"));
-                if (options.has("l3")) builder.nodes(options.get<std::array<int, 3>>("l3"));
-                if (options.has("core")) builder.nodes(options.get<std::array<int, 3>>("core"));
+                if (options.has("socket"))
+                    builder.sockets(options.get<std::array<int, 3>>("socket"));
+                if (options.has("numa")) builder.numas(options.get<std::array<int, 3>>("numa"));
+                if (options.has("l3")) builder.l3s(options.get<std::array<int, 3>>("l3"));
+                if (options.has("core")) builder.cores(options.get<std::array<int, 3>>("core"));
                 if (options.has("hwthread"))
-                    builder.nodes(options.get<std::array<int, 3>>("hwthread"));
+                    builder.hwthreads(options.get<std::array<int, 3>>("hwthread"));
                 decomp_ptr = std::make_unique<ghexbench::cartex::decomposition>(builder, threads,
                     (global ? options.get<std::array<int, 3>>("global-domain")
                             : options.get_or("domain", std::array<int, 3>{64, 64, 64})),
