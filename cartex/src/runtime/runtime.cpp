@@ -54,7 +54,6 @@ runtime::exchange(int j, thread_pool::barrier& b)
     if (m_check_res)
     {
         step(j);
-        std::cout << "check step" << std::endl;
         //print_fields(j);
         check(j);
     }
@@ -63,7 +62,6 @@ runtime::exchange(int j, thread_pool::barrier& b)
 
     auto warm_up_step = [j, this]() {
         step(j);
-        std::cout << "warmup step" << std::endl;
     };
 
 #ifndef CARTEX_EVICT_CACHE
@@ -84,7 +82,6 @@ runtime::exchange(int j, thread_pool::barrier& b)
         const auto start = clock_type::now();
         step(j);
         const auto end = clock_type::now();
-        std::cout << "step" << std::endl;
 
         const double dt = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
         hist(dt);
@@ -99,7 +96,6 @@ runtime::exchange(int j, thread_pool::barrier& b)
     else
     {
         for (int t = 0; t < 50; ++t) warm_up_step();
-        std::cout << "now normal steps" << std::endl;
         for (int t = 0; t < m_num_reps; ++t) main_step();
         reps = m_num_reps;
     }

@@ -142,9 +142,9 @@ decomposition::decomposition(MPI_Comm comm,
 MPI_Comm
 decomposition::mpi_comm() const noexcept
 {
-    //if(!m_use_mpi_cart)
-    //    return m_hw_topo.get_comm();
-    //else
+    if(!m_use_mpi_cart)
+        return m_hw_topo.get_comm();
+    else
         return m_cart_comm;
 }
 
