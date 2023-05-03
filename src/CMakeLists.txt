@@ -1,5 +1,7 @@
 find_package(MPI REQUIRED COMPONENTS CXX)
 find_package(HWLOC REQUIRED)
+find_package(Threads REQUIRED)
+
 
 if(NOT _hwcart_already_fetched)
   find_package(HWCART QUIET)
@@ -24,9 +26,10 @@ add_library(options options.cpp)
 ghexbench_target_compile_options(options)
 target_link_libraries(options PRIVATE ghexbench)
 
-add_library(thread_pool thread_pool.cpp)
+add_library(thread_pool thread_pool.cpp thread_affinity.cpp)
 ghexbench_target_compile_options(thread_pool)
 target_link_libraries(thread_pool PRIVATE ghexbench)
+target_link_libraries(thread_pool PRIVATE Threads::Threads)
 
 add_library(mpi_utils mpi.cpp mpi_environment.cpp hw_topo.cpp)
 ghexbench_target_compile_options(mpi_utils)

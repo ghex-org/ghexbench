@@ -1,7 +1,7 @@
 /*
  * ghex-org
  *
- * Copyright (c) 2014-2022, ETH Zurich
+ * Copyright (c) 2014-2023, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -28,8 +28,7 @@ namespace ghexbench
 namespace p2p
 {
 
-template<typename Derived>
-class benchmark_base
+class benchmark
 {
   private:
     struct thread_state
@@ -46,11 +45,13 @@ class benchmark_base
             oomph::rank_type peer);
     };
 
-  protected:
     options              m_opts;
     options_values       m_options;
-    std::size_t          m_threads;
+    bool                 m_is_multithreaded;
     mpi_environment      m_mpi_env;
+    hw_topo              m_topo;
+    oomph::context       m_ctx;
+    std::size_t          m_threads;
     thread_pool          m_thread_pool;
     thread_pool::barrier m_thread_barrier;
     std::size_t          m_size;
@@ -62,11 +63,8 @@ class benchmark_base
 
     std::vector<std::unique_ptr<thread_state>> m_thread_states;
 
-  protected:
-    static void abort(std::string const& msg, bool print = true);
-
   public:
-    benchmark_base(int& argc, char**& argv, std::size_t num_threads_);
+    benchmark(int& argc, char**& argv);
 
     void run();
 
@@ -86,27 +84,8 @@ class benchmark_base
     void main_loop(int thread_id);
 
     void send_recv(int thread_id, std::size_t n);
-};
 
-class benchmark : public benchmark_base<benchmark>
-{
-  private:
-    friend class benchmark_base<benchmark>;
-    using base = benchmark_base<benchmark>;
-    using base::abort;
-
-  private:
-    hw_topo        m_topo;
-    oomph::context m_ctx;
-
-  public:
-    benchmark(int& argc, char**& argv);
-
-  private:
-    static options& add_options(options& opts);
-
-  private:
-    oomph::rank_type peer_rank();
+    static void abort(std::string const& msg, bool print = true);
 };
 
 } // namespace p2p

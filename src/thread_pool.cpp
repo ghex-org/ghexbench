@@ -1,7 +1,7 @@
 /*
  * ghex-org
  *
- * Copyright (c) 2014-2022, ETH Zurich
+ * Copyright (c) 2014-2023, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -9,62 +9,16 @@
  *
  */
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-extern "C"
-{
-#include <sched.h>
-#include <unistd.h>
-}
-#include <memory>
-#include <stdexcept>
 #include <chrono>
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
+#include <ghexbench/thread_affinity.hpp>
 #include <ghexbench/thread_pool.hpp>
 
 namespace ghexbench
 {
-int
-get_cpu() noexcept
-{
-    return sched_getcpu();
-}
-
-namespace _impl
-{
-static constexpr int s_num_ht = 2; //CARTEX_NUM_HT;
-struct cpu_set
-{
-    mutable cpu_set_t m_cpuset;
-
-    cpu_set() noexcept { CPU_ZERO(&m_cpuset); }
-
-    cpu_set(pid_t pid)
-    {
-        if (0 != sched_getaffinity(pid, sizeof(cpu_set_t), &m_cpuset))
-            throw std::runtime_error("could not get thread affinity mask");
-    }
-
-    bool is_set(int cpu) const noexcept { return CPU_ISSET(cpu, &m_cpuset); }
-
-    void set(int cpu) noexcept { CPU_SET(cpu, &m_cpuset); }
-};
-
-} // namespace _impl
-
-int
-num_cpus() noexcept
-{
-    int res = 0;
-    _impl::cpu_set this_cpu_set(getpid());
-    for (int c0 = 0; c0 < CPU_SETSIZE; ++c0)
-        if (this_cpu_set.is_set(c0))
-            ++res;
-    return res;
-}
 
 thread_pool::barrier::barrier(int num_threads)
 : m_num_threads{num_threads}
@@ -125,48 +79,11 @@ thread_pool::thread_pool(int n)
 : m_num_threads{n}
 , m_thread_wrapper(n)
 {
-    //int            num_cpus = std::thread::hardware_concurrency();
-    _impl::cpu_set m_this_cpu_set(getpid());
-    //const int current_cpu = sched_getcpu();
-    for (int c0 = 0; c0 < CPU_SETSIZE; ++c0)
+    auto worker_fct = [this](int thread_id, int count)
     {
-        //const int c = (current_cpu + c0) % CPU_SETSIZE;
-        if (m_this_cpu_set.is_set(c0))
-        {
-            m_this_cpus.push_back(c0);
-            //std::cout << "cpu " << c0 << std::endl;
-        }
-    }
-
-    // number of cores
-    m_num_resources = m_this_cpus.size(); // / _impl::s_num_ht;
-    //std::cout << "number of resources = " << m_num_resources << std::endl;
-    if (m_num_threads > m_num_resources)
-    {
-        //    if (m_num_threads <= (int)m_this_cpus.size())
-        //        std::cerr
-        //            << "warning: more threads in thread pool than physical hardware resources: using hyperthreading"
-        //            << std::endl;
-        //    else
-        std::cerr << "warning: more threads in thread pool than hardware resources" << std::endl;
-    }
-    //if (m_num_threads < m_num_resources)
-    //    std::cerr << "warning: less threads in thread pool than hardware resources" << std::endl;
-
-    auto worker_fct = [this](int thread_id, int cpu_0)
-    {
-        for (int i = 0; i < 5; ++i)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            const auto cpu = sched_getcpu();
-            if (cpu == cpu_0)
-            {
-                //std::cout <<  "thread : " << thread_id << " on cpu " << cpu_0 << std::endl;
-                break;
-            }
-            if (i == 4)
-                std::cerr << "warning: did not manage to set correct thread affinity" << std::endl;
-        }
+        set_affinity(thread_id, count);
+        //const auto cpu = get_cpu();
+        //std::cout <<  "thread : " << thread_id << " on cpu " << cpu << std::endl;
 
         while (true)
         {
@@ -185,15 +102,7 @@ thread_pool::thread_pool(int n)
 
     for (int i = 0; i < m_num_threads; ++i)
     {
-        const auto cpu_0 = m_this_cpus[i % m_this_cpus.size()];
-        auto&      t = m_thread_wrapper[i];
-
-        _impl::cpu_set s;
-        s.set(cpu_0);
-        t.m_thread = thread_type(worker_fct, i, cpu_0);
-        auto rc =
-            pthread_setaffinity_np(t.m_thread.native_handle(), sizeof(cpu_set_t), &s.m_cpuset);
-        if (rc != 0) std::cerr << "Error calling pthread_setaffinity_np: " << rc << "\n";
+        m_thread_wrapper[i].m_thread = thread_type(worker_fct, i, m_num_threads);
     }
 }
 
@@ -227,7 +136,7 @@ thread_pool::sync()
         [](const auto& tw) { return tw.m_queue.size() > 0u; }))
     {
         using namespace std::chrono_literals;
-        std::this_thread::sleep_for(1ms);
+        std::this_thread::sleep_for(10us);
     }
 }
 
