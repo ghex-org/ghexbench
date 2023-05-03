@@ -1,7 +1,7 @@
 /*
  * ghex-org
  *
- * Copyright (c) 2014-2022, ETH Zurich
+ * Copyright (c) 2014-2023, ETH Zurich
  * All rights reserved.
  *
  * Please, refer to the LICENSE file in the root directory.
@@ -12,6 +12,8 @@
 #include <exception>
 #include <iomanip>
 
+#include <ghexbench/thread_affinity.hpp>
+
 #include <p2p/benchmark.hpp>
 #include <p2p/device_map.hpp>
 #include <p2p/callbacks.hpp>
@@ -21,9 +23,8 @@ namespace ghexbench
 namespace p2p
 {
 
-template<typename Derived>
-benchmark_base<Derived>::thread_state::thread_state(oomph::communicator&& c, std::size_t size,
-    std::size_t window, int thread_id, oomph::rank_type peer)
+benchmark::thread_state::thread_state(oomph::communicator&& c, std::size_t size, std::size_t window,
+    int thread_id, oomph::rank_type peer)
 : comm{std::move(c)}
 , peer_rank{peer}
 , stag{thread_id}
@@ -49,49 +50,24 @@ benchmark_base<Derived>::thread_state::thread_state(oomph::communicator&& c, std
     }
 }
 
-template<typename Derived>
-benchmark_base<Derived>::benchmark_base(int& argc, char**& argv, std::size_t num_threads_)
-: m_opts{ghexbench::options() /* clang-format off */
-    ("size", "buffer size", "s", {1024})
-    ("inflights","number of simultaneous inflights per thread", "i", {1})
-    ("nrep", "number of messages per thread", "n", {100})
-#ifdef P2P_ENABLE_DEVICE
-    ("devicemap", "rank to device map (per node) in the form i1:i2:...:iN (N=number of ranks per node)", "d", 1)
-#endif
-  } /* clang-format on */
-, m_options{Derived::add_options(m_opts).parse(argc, argv)}
-, m_threads{num_threads_}
-, m_mpi_env{m_threads > 1, argc, argv}
-, m_thread_pool{(int)num_threads_}
-, m_thread_barrier{m_thread_pool.make_barrier()}
-, m_size{m_options.get<std::size_t>("size")}
-, m_window{m_options.get<std::size_t>("inflights")}
-, m_nrep{m_options.get<std::size_t>("nrep")}
-, m_thread_states{num_threads_}
-{
-}
-
-template<typename Derived>
 void
-benchmark_base<Derived>::abort(std::string const& msg, bool print)
+benchmark::abort(std::string const& msg, bool print)
 {
     if (print) std::cerr << "aborting: " << msg << std::endl;
     std::terminate();
 }
 
-template<typename Derived>
 int
-benchmark_base<Derived>::set_device()
+benchmark::set_device()
 {
 #ifndef P2P_ENABLE_DEVICE
     return m_device_id;
 #else
-    auto& ctx = static_cast<Derived*>(this)->m_ctx;
-    auto const local_size = ctx.local_size();
+    auto const local_size = m_ctx.local_size();
     device_map dmap(m_options.get_or<std::string>("devicemap", ""));
     if ((int)dmap.size() < local_size)
         abort("device map does not match number of processes per node", m_mpi_env.rank == 0);
-    m_device_id = dmap[ctx.local_rank()];
+    m_device_id = dmap[m_ctx.local_rank()];
     int const num_devices = hwmalloc::get_num_devices();
     if ((m_device_id >= num_devices) || (m_device_id < 0))
         abort("device id is out of range", m_mpi_env.rank == 0);
@@ -100,11 +76,10 @@ benchmark_base<Derived>::set_device()
 #endif
 }
 
-template<typename Derived>
 void
-benchmark_base<Derived>::print_locality(int thread_id)
+benchmark::print_locality(int thread_id)
 {
-    auto const node = static_cast<Derived*>(this)->m_topo.level_grid_coord()[0][0];
+    auto const node = m_topo.level_grid_coord()[0][0];
     auto&      comm = m_thread_states[thread_id]->comm;
 
     auto print_cell = [](auto item) { std::cout << std::setw(7) << item; };
@@ -148,25 +123,22 @@ benchmark_base<Derived>::print_locality(int thread_id)
     }
 }
 
-template<typename Derived>
 void
-benchmark_base<Derived>::init(int thread_id)
+benchmark::init(int thread_id)
 {
-    auto& ctx = static_cast<Derived*>(this)->m_ctx;
-    m_thread_states[thread_id] = std::make_unique<thread_state>(ctx.get_communicator(), m_size,
+    //set_affinity(thread_id, m_threads);
+    m_thread_states[thread_id] = std::make_unique<thread_state>(m_ctx.get_communicator(), m_size,
         m_window, thread_id, m_peer_rank);
 }
 
-template<typename Derived>
 void
-benchmark_base<Derived>::clear(int thread_id)
+benchmark::clear(int thread_id)
 {
     m_thread_states[thread_id].reset();
 }
 
-template<typename Derived>
 void
-benchmark_base<Derived>::send_recv(int thread_id, std::size_t n)
+benchmark::send_recv(int thread_id, std::size_t n)
 {
     auto& state = *m_thread_states[thread_id];
     auto& comm = state.comm;
@@ -180,9 +152,8 @@ benchmark_base<Derived>::send_recv(int thread_id, std::size_t n)
     }
 }
 
-template<typename Derived>
 void
-benchmark_base<Derived>::check(int thread_id)
+benchmark::check(int thread_id)
 {
     auto& state = *m_thread_states[thread_id];
     auto& comm = state.comm;
@@ -214,9 +185,8 @@ benchmark_base<Derived>::check(int thread_id)
     if (!result) abort("wrong result received");
 }
 
-template<typename Derived>
 void
-benchmark_base<Derived>::warm_up(int thread_id)
+benchmark::warm_up(int thread_id)
 {
     auto& state = *m_thread_states[thread_id];
     auto& comm = state.comm;
@@ -230,9 +200,8 @@ benchmark_base<Derived>::warm_up(int thread_id)
     comm.wait_all();
 }
 
-template<typename Derived>
 void
-benchmark_base<Derived>::main_loop(int thread_id)
+benchmark::main_loop(int thread_id)
 {
     auto& state = *m_thread_states[thread_id];
     auto& comm = state.comm;
@@ -254,12 +223,9 @@ benchmark_base<Derived>::main_loop(int thread_id)
     //state.wall_clock.toc();
 }
 
-template<typename Derived>
 void
-benchmark_base<Derived>::run()
+benchmark::run()
 {
-    m_peer_rank = static_cast<Derived*>(this)->peer_rank();
-
 #ifdef P2P_ENABLE_DEVICE
     set_device();
 #endif
@@ -295,7 +261,7 @@ benchmark_base<Derived>::run()
     }
 
     m_thread_pool.sync();
-    MPI_Barrier(static_cast<Derived*>(this)->m_ctx.mpi_comm());
+    MPI_Barrier(m_ctx.mpi_comm());
     m_thread_states[0]->wall_clock.toc();
 
     if (m_mpi_env.rank == 0)
@@ -320,12 +286,10 @@ benchmark_base<Derived>::run()
         m_thread_pool.schedule(i, [this](int i) { clear(i); });
 
     m_thread_pool.sync();
-    MPI_Barrier(static_cast<Derived*>(this)->m_ctx.mpi_comm());
+    MPI_Barrier(m_ctx.mpi_comm());
 
     m_thread_pool.join();
 }
-
-template class benchmark_base<benchmark>;
 
 } // namespace p2p
 } // namespace ghexbench

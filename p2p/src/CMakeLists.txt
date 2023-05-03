@@ -6,7 +6,7 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 #set(_oomph_repository "https://github.com/ghex-org/oomph.git")
 #set(_oomph_tag        "main")
 set(_oomph_repository "https://github.com/boeschf/oomph.git")
-set(_oomph_tag        "refactoring")
+set(_oomph_tag        "refactoring2")
 
 if(NOT _oomph_already_fetched)
     message(STATUS "Fetching oomph ${_oomph_tag} from ${_oomph_repository}")
@@ -25,6 +25,8 @@ else()
     set(OOMPH_USE_GPU OFF CACHE INTERNAL "")  # Forces the value
     set(OOMPH_GPU_TYPE "AUTO" CACHE INTERNAL "")  # Forces the value
 endif()
+set(OOMPH_GIT_SUBMODULE OFF CACHE INTERNAL "")  # Forces the value
+set(OOMPH_USE_BUNDLED_LIBS ON CACHE INTERNAL "")  # Forces the value
 
 FetchContent_MakeAvailable(oomph)
 set(_oomph_already_fetched ON CACHE INTERNAL "")
@@ -41,11 +43,10 @@ function(compile_benchmark b_)
 
     target_sources(${b} PRIVATE main.cpp)
     target_sources(${b} PRIVATE ${b_}.cpp)
-    target_sources(${b} PRIVATE benchmark_base.cpp)
+    target_sources(${b} PRIVATE benchmark.cpp)
     target_sources(${b} PRIVATE device_map.cpp)
 
     ghexbench_target_compile_options(${b})
-    target_compile_definitions(${b} PRIVATE P2P_NUM_HWTHREADS=2)
     if (GHEXBENCH_ENABLE_DEVICE)
         target_compile_definitions(${b} PRIVATE P2P_ENABLE_DEVICE)
     endif()
