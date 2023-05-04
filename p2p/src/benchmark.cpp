@@ -12,8 +12,6 @@
 #include <exception>
 #include <iomanip>
 
-#include <ghexbench/thread_affinity.hpp>
-
 #include <p2p/benchmark.hpp>
 #include <p2p/device_map.hpp>
 #include <p2p/callbacks.hpp>
@@ -22,33 +20,6 @@ namespace ghexbench
 {
 namespace p2p
 {
-
-benchmark::thread_state::thread_state(oomph::communicator&& c, std::size_t size, std::size_t window,
-    int thread_id, oomph::rank_type peer)
-: comm{std::move(c)}
-, peer_rank{peer}
-, stag{thread_id}
-, rtag{thread_id}
-{
-    smsgs.reserve(window);
-    rmsgs.reserve(window);
-    for (std::size_t i = 0; i < window; ++i)
-    {
-#ifdef P2P_ENABLE_DEVICE
-        smsgs.push_back(comm.make_device_buffer<char>(size));
-        rmsgs.push_back(comm.make_device_buffer<char>(size));
-#else
-        smsgs.push_back(comm.make_buffer<char>(size));
-        rmsgs.push_back(comm.make_buffer<char>(size));
-#endif
-        for (auto& c : smsgs[i]) c = 1;
-        for (auto& c : rmsgs[i]) c = -1;
-#ifdef P2P_ENABLE_DEVICE
-        smsgs[i].clone_to_device();
-        rmsgs[i].clone_to_device();
-#endif
-    }
-}
 
 void
 benchmark::abort(std::string const& msg, bool print)
@@ -79,7 +50,6 @@ benchmark::set_device()
 void
 benchmark::print_locality(int thread_id)
 {
-    auto const node = m_topo.level_grid_coord()[0][0];
     auto&      comm = m_thread_states[thread_id]->comm;
 
     auto print_cell = [](auto item) { std::cout << std::setw(7) << item; };
@@ -93,9 +63,9 @@ benchmark::print_locality(int thread_id)
     if (comm.rank() == 0 && thread_id == 0)
     {
 #ifndef P2P_ENABLE_DEVICE
-        print_row("node", "rank", "peer", "thread", "cpu");
+        print_row("rank", "peer", "thread", "cpu");
 #else
-        print_row("node", "rank", "peer", "thread", "cpu", "device");
+        print_row("rank", "peer", "thread", "cpu", "device");
 #endif
     }
     for (int r = 0; r < comm.size(); ++r)
@@ -109,9 +79,9 @@ benchmark::print_locality(int thread_id)
                 if (tid == thread_id)
                 {
 #ifndef P2P_ENABLE_DEVICE
-                    print_row(node, comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu());
+                    print_row(comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu());
 #else
-                    print_row(node, comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu(),
+                    print_row(comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu(),
                         m_device_id);
 #endif
                 }
