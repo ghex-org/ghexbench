@@ -89,7 +89,7 @@ hardware_resources()
     hwloc_cpuset_t cpus = hwloc_bitmap_alloc();
     hwloc(cpus == NULL, "Bitmap allocation");
     auto bitmap_guard = on_scope_exit([&] { hwloc_bitmap_free(cpus); });
-    hwloc(hwloc_get_cpubind(topology, cpus, HWLOC_CPUBIND_PROCESS), "Get cpuset.");
+    hwloc(hwloc_get_cpubind(topology, cpus, HWLOC_CPUBIND_THREAD), "Get cpuset.");
     hwloc(hwloc_topology_restrict(topology, cpus, 0), "Topo restrict.");
     // get the cores and PUs
     int cores = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_CORE);
@@ -111,7 +111,7 @@ set_affinity(int tid, int count)
     hwloc_cpuset_t cpus = hwloc_bitmap_alloc();
     hwloc(cpus == NULL, "Bitmap allocation");
     auto bitmap_guard = on_scope_exit([&] { hwloc_bitmap_free(cpus); });
-    hwloc(hwloc_get_cpubind(topology, cpus, HWLOC_CPUBIND_PROCESS), "Get cpuset.");
+    hwloc(hwloc_get_cpubind(topology, cpus, HWLOC_CPUBIND_THREAD), "Get cpuset.");
     hwloc(hwloc_topology_restrict(topology, cpus, 0), "Topo restrict.");
     // Extract the root object describing the full local node
     auto root = hwloc_get_root_obj(topology);
