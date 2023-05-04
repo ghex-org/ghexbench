@@ -33,8 +33,9 @@ set(_oomph_already_fetched ON CACHE INTERNAL "")
 
 
 set(benchmarks
-    benchmark_paired
-    benchmark_paired_simple
+    #benchmark_paired
+    #benchmark_paired_simple
+    benchmark
 )
 
 function(compile_benchmark b_)
@@ -43,7 +44,6 @@ function(compile_benchmark b_)
 
     target_sources(${b} PRIVATE main.cpp)
     target_sources(${b} PRIVATE ${b_}.cpp)
-    target_sources(${b} PRIVATE benchmark.cpp)
     target_sources(${b} PRIVATE device_map.cpp)
 
     ghexbench_target_compile_options(${b})
