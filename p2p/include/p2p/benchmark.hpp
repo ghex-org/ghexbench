@@ -42,7 +42,7 @@ class benchmark
         timer                                    wall_clock;
 
         thread_state(oomph::communicator&& c, std::size_t size, std::size_t window, int thread_id,
-            oomph::rank_type peer)
+            oomph::rank_type peer, [[maybe_unused]] int device_id)
         : comm{std::move(c)}
         , peer_rank{peer}
         , stag{thread_id}
@@ -53,8 +53,8 @@ class benchmark
             for (std::size_t i = 0; i < window; ++i)
             {
 #ifdef P2P_ENABLE_DEVICE
-                smsgs.push_back(comm.make_device_buffer<char>(size));
-                rmsgs.push_back(comm.make_device_buffer<char>(size));
+                smsgs.push_back(comm.make_device_buffer<char>(size, device_id));
+                rmsgs.push_back(comm.make_device_buffer<char>(size, device_id));
 #else
                 smsgs.push_back(comm.make_buffer<char>(size));
                 rmsgs.push_back(comm.make_buffer<char>(size));
@@ -113,8 +113,8 @@ class benchmark
     , m_nrep{m_options.get<std::size_t>("nrep")}
     , m_thread_states{m_threads}
     {
-        if (m_ctx.size() != 2) abort("number of ranks != 2", m_ctx.rank() == 0);
-        m_peer_rank = m_ctx.rank() == 0 ? 1 : 0;
+        if (m_ctx.size() % 2 != 0) abort("number of ranks not divisible by 2", m_ctx.rank() == 0);
+        m_peer_rank = (m_ctx.rank() + (m_ctx.size() / 2) + m_ctx.size()) % m_ctx.size();
     }
 
     void run();

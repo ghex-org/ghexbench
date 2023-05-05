@@ -11,6 +11,7 @@
 #include <iostream>
 #include <exception>
 #include <iomanip>
+#include <numeric>
 
 #include <p2p/benchmark.hpp>
 #include <p2p/device_map.hpp>
@@ -50,7 +51,7 @@ benchmark::set_device()
 void
 benchmark::print_locality(int thread_id)
 {
-    auto&      comm = m_thread_states[thread_id]->comm;
+    auto& comm = m_thread_states[thread_id]->comm;
 
     auto print_cell = [](auto item) { std::cout << std::setw(7) << item; };
     auto print_row = [&print_cell](auto... items)
@@ -96,9 +97,8 @@ benchmark::print_locality(int thread_id)
 void
 benchmark::init(int thread_id)
 {
-    //set_affinity(thread_id, m_threads);
     m_thread_states[thread_id] = std::make_unique<thread_state>(m_ctx.get_communicator(), m_size,
-        m_window, thread_id, m_peer_rank);
+        m_window, thread_id, m_peer_rank, m_device_id);
 }
 
 void
@@ -234,17 +234,23 @@ benchmark::run()
     MPI_Barrier(m_ctx.mpi_comm());
     m_thread_states[0]->wall_clock.toc();
 
+    std::vector<std::size_t> all_m_threads(m_ctx.size());
+    MPI_Gather(&m_threads, sizeof(std::size_t), MPI_BYTE, all_m_threads.data(), sizeof(std::size_t),
+        MPI_BYTE, 0, m_ctx.mpi_comm());
+
     if (m_mpi_env.rank == 0)
     {
         double const      elapsed = m_thread_states[0]->wall_clock.sum(); // in microseconds
-        std::size_t const num_msgs_per_rank = m_threads * m_window * m_nrep;
-        std::size_t const num_msgs = num_msgs_per_rank * m_mpi_env.size;
-        double const      bibw = (m_size / elapsed) * (num_msgs_per_rank * m_mpi_env.size);
+        std::size_t const num_all_threads =
+            std::accumulate(all_m_threads.begin(), all_m_threads.end(), std::size_t(0u));
+        std::size_t const num_msgs = num_all_threads * m_window * m_nrep;
+        double const      bibw = (m_size / (1000.0 * elapsed)) * num_msgs;
 
         print_line("elapsed (s)", elapsed * 1.0e-6);
         print_line("message size (bytes)", m_size);
         print_line("number of ranks", m_mpi_env.size);
-        print_line("number of threads", m_threads);
+        print_line("number of threads on rank 0", m_threads);
+        print_line("number of threads total", num_all_threads);
         print_line("number of inflights", m_window);
         print_line("number of repetitions", m_nrep);
         print_line("total message count", num_msgs);
