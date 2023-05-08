@@ -83,7 +83,7 @@ benchmark::print_locality(int thread_id)
                     print_row(comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu());
 #else
                     print_row(comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu(),
-                        m_device_id);
+                        m_on_device ? m_device_id : "-");
 #endif
                 }
                 m_thread_barrier();
@@ -98,7 +98,7 @@ void
 benchmark::init(int thread_id)
 {
     m_thread_states[thread_id] = std::make_unique<thread_state>(m_ctx.get_communicator(), m_size,
-        m_window, thread_id, m_peer_rank, m_device_id);
+        m_window, thread_id, m_peer_rank, m_device_id, m_on_device);
 }
 
 void

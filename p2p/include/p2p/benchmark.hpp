@@ -42,7 +42,7 @@ class benchmark
         timer                                    wall_clock;
 
         thread_state(oomph::communicator&& c, std::size_t size, std::size_t window, int thread_id,
-            oomph::rank_type peer, [[maybe_unused]] int device_id)
+            oomph::rank_type peer, [[maybe_unused]] int device_id, [[maybe_unused]] bool on_device)
         : comm{std::move(c)}
         , peer_rank{peer}
         , stag{thread_id}
@@ -53,17 +53,30 @@ class benchmark
             for (std::size_t i = 0; i < window; ++i)
             {
 #ifdef P2P_ENABLE_DEVICE
-                smsgs.push_back(comm.make_device_buffer<char>(size, device_id));
-                rmsgs.push_back(comm.make_device_buffer<char>(size, device_id));
+                if (on_device)
+                {
+                    smsgs.push_back(comm.make_device_buffer<char>(size, device_id));
+                    rmsgs.push_back(comm.make_device_buffer<char>(size, device_id));
+                }
+                else
+                {
+                    smsgs.push_back(comm.make_buffer<char>(size));
+                    rmsgs.push_back(comm.make_buffer<char>(size));
+                }
 #else
                 smsgs.push_back(comm.make_buffer<char>(size));
                 rmsgs.push_back(comm.make_buffer<char>(size));
 #endif
+
                 for (auto& c : smsgs[i]) c = 1;
                 for (auto& c : rmsgs[i]) c = -1;
+
 #ifdef P2P_ENABLE_DEVICE
-                smsgs[i].clone_to_device();
-                rmsgs[i].clone_to_device();
+                if (on_device)
+                {
+                    smsgs[i].clone_to_device();
+                    rmsgs[i].clone_to_device();
+                }
 #endif
             }
         }
@@ -82,6 +95,7 @@ class benchmark
     std::size_t          m_nrep;
     oomph::rank_type     m_peer_rank;
     int                  m_device_id = 0;
+    bool                 m_on_device = false;
     timer                m_wall_clock;
 
     std::vector<std::unique_ptr<thread_state>> m_thread_states;
@@ -97,6 +111,7 @@ class benchmark
 #ifdef P2P_ENABLE_DEVICE
     ("devicemap", "rank to device map (per node) in the form i1:i2:...:iN (N=number of ranks per node)", "d", 1)
 #endif
+    ("memory", "specify the memory location (host: H or device: D) for a pair of processes", "M0 M1", {"H", "H"})
   } /* clang-format on */
     , m_options{m_opts.parse(argc, argv)}
     , m_is_multithreaded{m_options.is_set("mt")}
@@ -115,6 +130,17 @@ class benchmark
     {
         if (m_ctx.size() % 2 != 0) abort("number of ranks not divisible by 2", m_ctx.rank() == 0);
         m_peer_rank = (m_ctx.rank() + (m_ctx.size() / 2) + m_ctx.size()) % m_ctx.size();
+
+        auto [m0, m1] = m_options.get<std::array<std::string, 2>>("memory");
+        if ((m0 != "H" && m0 != "D") || (m1 != "H" && m1 != "D"))
+            abort("invalid memory locations", m_ctx.rank() == 0);
+#ifndef P2P_ENABLE_DEVICE
+        if ((m0 == "D" || m1 == "D") && m_ctx.rank() == 0)
+            std::cerr << "warning: device memory is not suppored - using host memory instead"
+                      << std::endl;
+#else
+        if (auto m = m_ctx.rank() < m_ctx.size() ? m0 : m1; m == "D") m_on_device = true;
+#endif
     }
 
     void run();
