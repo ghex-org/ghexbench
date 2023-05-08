@@ -83,7 +83,7 @@ benchmark::print_locality(int thread_id)
                     print_row(comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu());
 #else
                     print_row(comm.rank(), m_peer_rank, thread_id, ghexbench::get_cpu(),
-                        m_on_device ? m_device_id : "-");
+                        m_on_device ? std::to_string(m_device_id) : "-");
 #endif
                 }
                 m_thread_barrier();
@@ -140,7 +140,7 @@ benchmark::check(int thread_id)
     for (std::size_t i = 0; i < m_window; ++i)
     {
 #ifdef P2P_ENABLE_DEVICE
-        state.rmsgs[i].clone_to_host();
+        if (m_on_device) state.rmsgs[i].clone_to_host();
 #endif
         for (auto c : state.rmsgs[i])
         {
@@ -222,6 +222,8 @@ benchmark::run()
     if (m_mpi_env.rank == 0)
     {
         std::cout << std::endl;
+        print_line("memory locatlity",
+            (m_on_device ? "D" : "H") + std::string(" ") + (m_peer_on_device ? "D" : "H"));
         print_line("elapsed warm up (s)", elapsed_warm_up * 1.0e-6);
     }
 

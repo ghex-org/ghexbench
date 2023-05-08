@@ -96,6 +96,7 @@ class benchmark
     oomph::rank_type     m_peer_rank;
     int                  m_device_id = 0;
     bool                 m_on_device = false;
+    bool                 m_peer_on_device = false;
     timer                m_wall_clock;
 
     std::vector<std::unique_ptr<thread_state>> m_thread_states;
@@ -139,7 +140,10 @@ class benchmark
             std::cerr << "warning: device memory is not suppored - using host memory instead"
                       << std::endl;
 #else
-        if (auto m = m_ctx.rank() < m_ctx.size() ? m0 : m1; m == "D") m_on_device = true;
+        auto [m0_, m1_] =
+            m_ctx.rank() < m_ctx.size() ? std::make_pair(m0, m1) : std::make_pair(m1, m0);
+        m_on_device = (m0_ == "D");
+        m_peer_on_device = (m1_ == "D");
 #endif
     }
 
